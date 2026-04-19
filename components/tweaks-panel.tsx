@@ -53,10 +53,11 @@ const STORAGE_KEY = "splits.accent";
 function setFavicon(accent: string) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="${accent}"/><text x="16" y="22" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="20" font-weight="700" letter-spacing="-0.03em" fill="#0A0A0C">S</text></svg>`;
   const href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  // Don't touch Next.js-managed <link rel=icon> nodes — React still has them
+  // in its fiber tree and removing them throws on next reconcile. Instead,
+  // append our own; browsers use the last rel=icon in document order.
   let link = document.querySelector<HTMLLinkElement>("link#dynamic-favicon");
   if (!link) {
-    // Remove any existing rel=icon links to avoid Next.js re-applying its default
-    document.querySelectorAll<HTMLLinkElement>('link[rel="icon"]').forEach((el) => el.remove());
     link = document.createElement("link");
     link.id = "dynamic-favicon";
     link.rel = "icon";
