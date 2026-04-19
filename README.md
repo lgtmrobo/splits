@@ -8,13 +8,16 @@ Single-user by design — the owner's Google email is the only one that can hold
 
 ## Screenshots
 
-> _Drop screenshots in `docs/screenshots/` and they'll render here._
+_Mock data for the README — generated via `pnpm dev:mock` + `pnpm screenshots`._
 
 **Dashboard**
 ![Dashboard](docs/screenshots/dashboard.png)
 
 **Training plan**
 ![Training plan](docs/screenshots/plan.png)
+
+**Activities**
+![Activities](docs/screenshots/activities.png)
 
 **Activity detail**
 ![Activity detail](docs/screenshots/activity.png)
@@ -24,6 +27,9 @@ Single-user by design — the owner's Google email is the only one that can hold
 
 **Stats**
 ![Stats](docs/screenshots/stats.png)
+
+**Races**
+![Races](docs/screenshots/races.png)
 
 ---
 

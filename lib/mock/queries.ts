@@ -258,3 +258,68 @@ export async function getPaceTrend12w(): Promise<number[]> {
 export async function getRestingHR12w(): Promise<number[]> {
   return RESTING_HR_12W;
 }
+
+// =========================================================================
+// Mock-side stubs for queries added later (WHOOP / dashboard helpers)
+// =========================================================================
+
+export async function getPlannedRunByDate(dateISO: string) {
+  return PLANNED_RUNS.find((p) => p.scheduled_date === dateISO) ?? null;
+}
+
+export async function getWeekStats(_weekStartISO: string) {
+  const M = 1609.344;
+  return {
+    distance_m: 42.3 * M,
+    duration_s: 5 * 3600 + 42 * 60,
+    elev_m: 1842 * 0.3048,
+    avg_hr: 148,
+    runs: 5,
+  };
+}
+
+export async function getStreakDays(): Promise<number> {
+  return 14;
+}
+
+export async function getPlanAdherenceBreakdown() {
+  const M = 1609.344;
+  return {
+    sessions: { done: 38, due: 40 },
+    volume: { actual_m: 368 * M, planned_m: 382 * M },
+    workouts: { done: 14, due: 14 },
+  };
+}
+
+export async function getShellSummary() {
+  return {
+    activities: 187,
+    gear: GEAR.length,
+    races: RACES.filter((r) => r.status === "upcoming").length,
+    plan: PLAN
+      ? { name: PLAN.name, week: CURRENT_WEEK_INDEX + 1, totalWeeks: TOTAL_WEEKS, pct: 55 }
+      : null,
+    nextRace: RACES[0] ? { name: RACES[0].name, date: RACES[0].race_date, weeksOut: 9 } : null,
+    lastSync: new Date(Date.now() - 4 * 60_000).toISOString(),
+    lastSyncCount: 14,
+  };
+}
+
+export async function getLatestRecovery() {
+  return {
+    date: "2026-04-18",
+    resting_heart_rate: 49,
+    hrv_rmssd_milli: 62,
+    recovery_score: 78,
+  };
+}
+
+export async function getWhoopWorkoutForActivity(_activityId: number) {
+  return {
+    strain: 14.2,
+    zones_min: [4, 14, 12, 22, 6],
+    total_min: 58,
+    average_heart_rate: 164,
+    max_heart_rate: 181,
+  };
+}
