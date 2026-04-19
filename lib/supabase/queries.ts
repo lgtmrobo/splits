@@ -547,11 +547,37 @@ export async function getWeekHRZones(): Promise<HRZone[]> {
   const sb = createServerSupabase();
   const since = new Date();
   since.setUTCDate(since.getUTCDate() - 7);
+  const zones = defaultHRZones();
+
+  // Prefer WHOOP per-workout zones (real per-zone time, personalized to user).
+  const { data: whoop } = await sb
+    .from("whoop_workouts")
+    .select("zone_one_ms, zone_two_ms, zone_three_ms, zone_four_ms, zone_five_ms")
+    .gte("start_at", since.toISOString());
+
+  if (whoop && whoop.length > 0) {
+    const ms = [0, 0, 0, 0, 0];
+    for (const w of whoop) {
+      ms[0] += Number(w.zone_one_ms ?? 0);
+      ms[1] += Number(w.zone_two_ms ?? 0);
+      ms[2] += Number(w.zone_three_ms ?? 0);
+      ms[3] += Number(w.zone_four_ms ?? 0);
+      ms[4] += Number(w.zone_five_ms ?? 0);
+    }
+    const minutes = ms.map((m) => Math.round(m / 60_000));
+    const total = minutes.reduce((a, b) => a + b, 0) || 1;
+    return zones.map((z, i) => ({
+      ...z,
+      minutes: minutes[i],
+      pct: Math.round((minutes[i] / total) * 100),
+    }));
+  }
+
+  // Fallback: bucket Strava activities by average_heartrate (only useful if HR is recorded)
   const { data: acts } = await sb
     .from("activities")
     .select("id, moving_time_s, average_heartrate")
     .gte("start_date", since.toISOString());
-  const zones = defaultHRZones();
   if (!acts || acts.length === 0) return zones;
 
   const minutesBy: Record<string, number> = { Z1: 0, Z2: 0, Z3: 0, Z4: 0, Z5: 0 };
@@ -710,6 +736,8 @@ export async function getWhoopWorkoutForActivity(activityId: number): Promise<{
     .from("whoop_workouts")
     .select("*")
     .eq("matched_activity_id", activityId)
+    .order("start_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (!data) return null;
   const ms = [

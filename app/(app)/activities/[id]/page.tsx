@@ -378,7 +378,15 @@ export default async function ActivityDetailPage({ params }: Props) {
               xLabels={xLabels}
             />
           ) : (
-            <div className="muted" style={{ padding: 24, textAlign: "center", fontSize: 12 }}>No HR stream.</div>
+            <div className="muted" style={{ padding: 32, textAlign: "center", fontSize: 12, lineHeight: 1.5 }}>
+              No HR stream from Strava.
+              {whoop && (
+                <>
+                  <br />
+                  WHOOP: avg <span style={{ color: "var(--text-1)" }}>{whoop.average_heart_rate ?? "—"}</span> · max <span style={{ color: "var(--text-1)" }}>{whoop.max_heart_rate ?? "—"}</span> · strain <span style={{ color: "var(--accent)" }}>{whoop.strain?.toFixed(1) ?? "—"}</span>
+                </>
+              )}
+            </div>
           )}
         </div>
         <div className="card">

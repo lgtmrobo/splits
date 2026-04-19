@@ -19,7 +19,7 @@ export async function backfillRecovery(athleteId: string, days = 30) {
     if (next) params.set("nextToken", next);
     const page: WhoopPage<WhoopRecovery> = await whoopFetch(
       athleteId,
-      `/v1/recovery?${params.toString()}`
+      `/v2/recovery?${params.toString()}`
     );
     const rows = page.records
       .filter((r) => r.score_state === "SCORED" && r.score)
@@ -100,7 +100,7 @@ export async function backfillWorkouts(athleteId: string, days = 30) {
     if (next) params.set("nextToken", next);
     const page: WhoopPage<WhoopWorkout> = await whoopFetch(
       athleteId,
-      `/v1/activity/workout?${params.toString()}`
+      `/v2/activity/workout?${params.toString()}`
     );
     collected.push(...page.records);
     next = page.next_token;
@@ -135,12 +135,12 @@ export async function backfillWorkouts(athleteId: string, days = 30) {
     strain: w.score?.strain ?? null,
     average_heart_rate: w.score?.average_heart_rate ?? null,
     max_heart_rate: w.score?.max_heart_rate ?? null,
-    zone_zero_ms: w.score?.zone_duration?.zone_zero_milli ?? null,
-    zone_one_ms: w.score?.zone_duration?.zone_one_milli ?? null,
-    zone_two_ms: w.score?.zone_duration?.zone_two_milli ?? null,
-    zone_three_ms: w.score?.zone_duration?.zone_three_milli ?? null,
-    zone_four_ms: w.score?.zone_duration?.zone_four_milli ?? null,
-    zone_five_ms: w.score?.zone_duration?.zone_five_milli ?? null,
+    zone_zero_ms: w.score?.zone_durations?.zone_zero_milli ?? null,
+    zone_one_ms: w.score?.zone_durations?.zone_one_milli ?? null,
+    zone_two_ms: w.score?.zone_durations?.zone_two_milli ?? null,
+    zone_three_ms: w.score?.zone_durations?.zone_three_milli ?? null,
+    zone_four_ms: w.score?.zone_durations?.zone_four_milli ?? null,
+    zone_five_ms: w.score?.zone_durations?.zone_five_milli ?? null,
     matched_activity_id: findMatch(w.start),
     raw_jsonb: w,
     synced_at: new Date().toISOString(),

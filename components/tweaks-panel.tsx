@@ -48,18 +48,51 @@ const SWATCHES: Swatch[] = [
   },
 ];
 
+const STORAGE_KEY = "splits.accent";
+
+function setFavicon(accent: string) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="${accent}"/><text x="16" y="22" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="20" font-weight="700" letter-spacing="-0.03em" fill="#0A0A0C">S</text></svg>`;
+  const href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  let link = document.querySelector<HTMLLinkElement>("link#dynamic-favicon");
+  if (!link) {
+    // Remove any existing rel=icon links to avoid Next.js re-applying its default
+    document.querySelectorAll<HTMLLinkElement>('link[rel="icon"]').forEach((el) => el.remove());
+    link = document.createElement("link");
+    link.id = "dynamic-favicon";
+    link.rel = "icon";
+    link.type = "image/svg+xml";
+    document.head.appendChild(link);
+  }
+  link.href = href;
+}
+
 export function TweaksPanel() {
   const [active, setActive] = useState(0);
   const [open, setOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
+  // Load persisted choice on mount
   useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const idx = SWATCHES.findIndex((s) => s.name === saved);
+      if (idx >= 0) setActive(idx);
+    }
+    setHydrated(true);
+  }, []);
+
+  // Apply CSS vars + persist + sync favicon whenever active changes
+  useEffect(() => {
+    if (!hydrated) return;
     const s = SWATCHES[active];
     const r = document.documentElement;
     r.style.setProperty("--accent", s.accent);
     r.style.setProperty("--accent-dim", s.dim);
     r.style.setProperty("--accent-soft", s.soft);
     r.style.setProperty("--accent-glow", s.glow);
-  }, [active]);
+    localStorage.setItem(STORAGE_KEY, s.name);
+    setFavicon(s.accent);
+  }, [active, hydrated]);
 
   if (!open) {
     return (

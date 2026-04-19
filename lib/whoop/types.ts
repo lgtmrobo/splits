@@ -26,7 +26,7 @@ export interface WhoopRecoveryScore {
 
 export interface WhoopRecovery {
   cycle_id: number;
-  sleep_id: number;
+  sleep_id: string;          // v2: UUID
   user_id: number;
   created_at: string;
   updated_at: string;
@@ -50,7 +50,7 @@ export interface WhoopCycle {
   score?: WhoopCycleScore;
 }
 
-export interface WhoopZoneDuration {
+export interface WhoopZoneDurations {
   zone_zero_milli?: number;
   zone_one_milli?: number;
   zone_two_milli?: number;
@@ -64,15 +64,15 @@ export interface WhoopWorkoutScore {
   average_heart_rate: number;
   max_heart_rate: number;
   kilojoule: number;
-  zone_duration: WhoopZoneDuration;
+  zone_durations: WhoopZoneDurations;
 }
 
 export interface WhoopWorkout {
-  id: number;
+  id: string;                // v2: UUID
   user_id: number;
   start: string;
   end: string;
-  sport_id: number;
+  sport_id?: number;
   sport_name?: string;
   score_state: string;
   score?: WhoopWorkoutScore;
