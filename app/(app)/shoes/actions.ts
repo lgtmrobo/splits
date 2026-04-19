@@ -52,6 +52,7 @@ export async function saveShoe(payload: ShoePayload) {
     model_name: payload.model_name || null,
     description: payload.description || null,
     distance_m: milesToM(payload.miles),
+    cap_m: milesToM(payload.cap_miles),
     retired: payload.retired,
     primary_shoe: payload.primary_shoe,
     nickname: null,

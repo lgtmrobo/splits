@@ -342,7 +342,7 @@ function decorateGear(rows: any[]): Gear[] {
     ...g,
     color: pickGearColor(i, !!g.retired),
     purpose: g.description ?? "",
-    cap_m: defaultCapM(g.description ?? null),
+    cap_m: g.cap_m != null ? Number(g.cap_m) : defaultCapM(g.description ?? null),
     last_run: null,
   })) as Gear[];
 }
