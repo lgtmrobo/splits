@@ -18,7 +18,10 @@ import type {
 const M_PER_MILE = 1609.344;
 const M_PER_FT = 0.3048;
 
-const GEAR_PALETTE = ["#8EF542", "#6BA8E8", "#E8B04D", "#B18EE8", "#F58EE8", "#8EF5E8"];
+// Index 0 = the user's primary/most-used shoe; uses the live accent so it
+// stays in sync with the Tweaks panel. Subsequent shoes get distinct hex
+// colors so they're visually distinguishable.
+const GEAR_PALETTE = ["var(--accent)", "#6BA8E8", "#E8B04D", "#B18EE8", "#F58EE8", "#8EF5E8"];
 
 function pickGearColor(idx: number, retired: boolean) {
   if (retired) return "#6B6B75";

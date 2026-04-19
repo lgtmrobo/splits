@@ -1,9 +1,9 @@
 import { MilesBar } from "@/components/charts/miles-bar";
 import { Sparkline } from "@/components/charts/sparkline";
-import { Icon } from "@/components/ui/icon";
 import { Pill, Stat } from "@/components/ui/primitives";
 import { getAllActivities, getAllGear } from "@/lib/supabase/queries";
 import { metersToMiles, speedToPacePerMile } from "@/lib/utils/units";
+import { AddShoeButton, EditShoeButton } from "./shoes-actions-bar";
 
 const M_PER_MILE = 1609.344;
 
@@ -90,8 +90,7 @@ export default async function ShoesPage() {
           </div>
         </div>
         <div className="row gap-10">
-          <button type="button" className="btn">Import from Strava</button>
-          <button type="button" className="btn primary">+ Add shoe</button>
+          <AddShoeButton />
         </div>
       </div>
 
@@ -155,9 +154,19 @@ export default async function ShoesPage() {
                 <div className="row gap-6">
                   {danger && <Pill kind="red">Retire soon</Pill>}
                   {warn && !danger && <Pill kind="warn">Near cap</Pill>}
-                  <button type="button" className="btn ghost">
-                    <Icon name="more" size={14} />
-                  </button>
+                  <EditShoeButton
+                    shoe={{
+                      id: s.id,
+                      name: s.name,
+                      brand_name: s.brand_name ?? "",
+                      model_name: s.model_name ?? "",
+                      description: s.description ?? "",
+                      miles: Math.round(metersToMiles(s.distance_m)),
+                      cap_miles: Math.round(metersToMiles(s.cap_m)),
+                      primary_shoe: s.primary_shoe,
+                      retired: s.retired,
+                    }}
+                  />
                 </div>
               </div>
               <div className="row baseline gap-6" style={{ marginBottom: 6 }}>

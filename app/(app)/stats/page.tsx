@@ -24,8 +24,13 @@ function paceFromDecimal(min: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-export default async function StatsPage() {
-  const [monthly, paceTrend, zones, totals, activities, restingHR12w, latestRec] = await Promise.all([
+export default async function StatsPage({
+  searchParams,
+}: {
+  searchParams: { range?: string };
+}) {
+  const range = (searchParams.range as "ytd" | "12w" | "all" | undefined) ?? "ytd";
+  const [monthly, paceTrend, zones, totals, allActivities, restingHR12w, latestRec] = await Promise.all([
     getMonthlyStats(),
     getPaceTrend12w(),
     getWeekHRZones(),
@@ -34,6 +39,15 @@ export default async function StatsPage() {
     getRestingHR12w(),
     getLatestRecovery(),
   ]);
+
+  // Apply range filter to activities used by Longest, Best 10K, Elevation cards
+  const yearStartISO = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1)).toISOString();
+  const twelveWeeksAgoISO = new Date(Date.now() - 12 * 7 * 86400_000).toISOString();
+  const activities =
+    range === "12w" ? allActivities.filter((a) => a.start_date >= twelveWeeksAgoISO)
+    : range === "all" ? allActivities
+    : allActivities.filter((a) => a.start_date >= yearStartISO);
+  const rangeLabel = range === "12w" ? "12w" : range === "all" ? "All-time" : "YTD";
   const rhrVals = restingHR12w.filter((r) => r > 0);
   const rhrCurrent = latestRec?.resting_heart_rate != null
     ? Math.round(Number(latestRec.resting_heart_rate))
@@ -55,27 +69,25 @@ export default async function StatsPage() {
   const paceFirst = paceVals[0] ?? 0;
   const paceDeltaSec = paceFirst > 0 && paceCurrent > 0 ? Math.round((paceFirst - paceCurrent) * 60) : null;
 
-  // All-time totals (since first activity)
-  const sortedByDate = [...activities].sort((a, b) => a.start_date.localeCompare(b.start_date));
+  // Header totals (for the chosen range)
+  const sortedByDate = [...allActivities].sort((a, b) => a.start_date.localeCompare(b.start_date));
   const firstYear = sortedByDate[0] ? new Date(sortedByDate[0].start_date).getUTCFullYear() : null;
-  const allTimeMi = Math.round(metersToMiles(activities.reduce((a, b) => a + Number(b.distance_m ?? 0), 0)));
-  const allTimeDur = activities.reduce((a, b) => a + Number(b.moving_time_s ?? 0), 0);
-  const headerLine = `All-time · ${allTimeMi.toLocaleString()} mi · ${formatDuration(allTimeDur)}${firstYear ? ` · since ${firstYear}` : ""}`;
+  const scopedMi = Math.round(metersToMiles(activities.reduce((a, b) => a + Number(b.distance_m ?? 0), 0)));
+  const scopedDur = activities.reduce((a, b) => a + Number(b.moving_time_s ?? 0), 0);
+  const headerLine = `${rangeLabel} · ${scopedMi.toLocaleString()} mi · ${formatDuration(scopedDur)}${firstYear ? ` · since ${firstYear}` : ""}`;
 
   // Zones total (use minutes as-is from getWeekHRZones, already real)
   const zonesTotalMin = zones.reduce((a, z) => a + z.minutes, 0);
   const zonesTotalH = Math.floor(zonesTotalMin / 60);
   const zonesTotalRem = zonesTotalMin % 60;
 
-  // Elevation YTD
-  const yearStart = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1)).toISOString();
-  const ytdActs = activities.filter((a) => a.start_date >= yearStart);
-  const totalElevFt = Math.round(ytdActs.reduce((a, b) => a + Number(b.total_elevation_gain_m ?? 0), 0) / M_PER_FT);
-  const perRunFt = ytdActs.length ? Math.round(totalElevFt / ytdActs.length) : 0;
-  const biggestDayFt = ytdActs.reduce((max, a) => Math.max(max, Math.round(Number(a.total_elevation_gain_m ?? 0) / M_PER_FT)), 0);
+  // Elevation (for the chosen range)
+  const totalElevFt = Math.round(activities.reduce((a, b) => a + Number(b.total_elevation_gain_m ?? 0), 0) / M_PER_FT);
+  const perRunFt = activities.length ? Math.round(totalElevFt / activities.length) : 0;
+  const biggestDayFt = activities.reduce((max, a) => Math.max(max, Math.round(Number(a.total_elevation_gain_m ?? 0) / M_PER_FT)), 0);
   const everestFt = 29032;
   const everestX = totalElevFt > 0 ? +(totalElevFt / everestFt).toFixed(2) : 0;
-  const flatRunsPct = ytdActs.length ? Math.round((ytdActs.filter((a) => (Number(a.total_elevation_gain_m ?? 0) / M_PER_FT) < 50).length / ytdActs.length) * 100) : 0;
+  const flatRunsPct = activities.length ? Math.round((activities.filter((a) => (Number(a.total_elevation_gain_m ?? 0) / M_PER_FT) < 50).length / activities.length) * 100) : 0;
 
   // Longest run
   const longest = activities.reduce<typeof activities[number] | null>(
@@ -207,7 +219,7 @@ export default async function StatsPage() {
           </div>
         </div>
         <div className="card">
-          <CardHeader title="Elevation · YTD" />
+          <CardHeader title={`Elevation · ${rangeLabel}`} />
           <Stat label="Total climb" value={totalElevFt.toLocaleString()} unit="ft" size="lg" />
           <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--hairline)" }}>
             <Stat label="Per run avg" value={String(perRunFt)} unit="ft" />
@@ -221,11 +233,11 @@ export default async function StatsPage() {
       <div className="grid" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr" }}>
         <div className="card">
           <Stat
-            label="Year to Date"
-            value={ytdMi.toLocaleString()}
+            label={range === "all" ? "All-time" : range === "12w" ? "Last 12w" : "Year to Date"}
+            value={scopedMi.toLocaleString()}
             unit="mi"
             size="lg"
-            delta={ytdDeltaPct != null ? `${ytdDeltaPct >= 0 ? "+" : ""}${ytdDeltaPct}% vs last yr` : undefined}
+            delta={range === "ytd" && ytdDeltaPct != null ? `${ytdDeltaPct >= 0 ? "+" : ""}${ytdDeltaPct}% vs last yr` : undefined}
             deltaKind={ytdDeltaPct != null && ytdDeltaPct >= 0 ? "up" : "down"}
           />
         </div>

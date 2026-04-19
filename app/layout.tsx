@@ -9,8 +9,9 @@ export const metadata: Metadata = {
 };
 
 // Sync inline script — runs before first paint to apply the saved accent
-// from localStorage. Without this the page renders with the default green
-// CSS vars and then flashes to the saved color after hydration.
+// from localStorage AND inject the favicon. There is no static favicon
+// file (deliberately), so the only way the tab gets an icon is via this
+// script + the TweaksPanel update path.
 const ACCENT_BOOT = `
 (function(){
   try {
@@ -22,13 +23,20 @@ const ACCENT_BOOT = `
       "violet":         ["#A78BFA","#7C6FCF","rgba(167, 139, 250, 0.12)","rgba(167, 139, 250, 0.35)"]
     };
     var saved = localStorage.getItem("splits.accent");
-    if (!saved || !swatches[saved]) return;
-    var s = swatches[saved];
+    var key = (saved && swatches[saved]) ? saved : "electric-green";
+    var s = swatches[key];
     var r = document.documentElement;
     r.style.setProperty("--accent", s[0]);
     r.style.setProperty("--accent-dim", s[1]);
     r.style.setProperty("--accent-soft", s[2]);
     r.style.setProperty("--accent-glow", s[3]);
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="' + s[0] + '"/><text x="16" y="22" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="20" font-weight="700" fill="#0A0A0C">S</text></svg>';
+    var link = document.createElement("link");
+    link.id = "dynamic-favicon";
+    link.rel = "icon";
+    link.type = "image/svg+xml";
+    link.href = "data:image/svg+xml," + encodeURIComponent(svg);
+    document.head.appendChild(link);
   } catch (e) {}
 })();
 `;

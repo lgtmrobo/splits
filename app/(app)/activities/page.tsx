@@ -27,18 +27,29 @@ function labelForActivity(planned: WorkoutType | undefined, name: string): strin
   return "Easy";
 }
 
-export default async function ActivitiesPage() {
-  const [activities, totals, gear] = await Promise.all([
+export default async function ActivitiesPage({
+  searchParams,
+}: {
+  searchParams: { type?: string };
+}) {
+  const [allActivities, totals, gear] = await Promise.all([
     getAllActivities(),
     getActivityTotals(),
     getAllGear(),
   ]);
   const gearById = new Map(gear.map((g) => [g.id, g]));
-  const dates = activities.map((a) => a.start_date_local.slice(0, 10)).sort();
+  const dates = allActivities.map((a) => a.start_date_local.slice(0, 10)).sort();
   const minDate = dates[0] ?? "1970-01-01";
   const maxDate = dates[dates.length - 1] ?? "1970-01-01";
-  const planned = activities.length ? await getPlannedRunsBetween(minDate, maxDate) : [];
+  const planned = allActivities.length ? await getPlannedRunsBetween(minDate, maxDate) : [];
   const typeByDate = new Map<string, WorkoutType>(planned.map((p) => [p.scheduled_date, p.workout_type]));
+
+  const filter = searchParams.type ?? "all";
+  const activities = allActivities.filter((a) => {
+    if (filter === "all") return true;
+    const label = labelForActivity(typeByDate.get(a.start_date_local.slice(0, 10)), a.name).toLowerCase();
+    return label === filter;
+  });
 
   return (
     <div className="content fadein">

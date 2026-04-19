@@ -28,7 +28,12 @@ function fmtRange(startISO: string): string {
 }
 const addDays = addDaysISO;
 
-export default async function PlanPage() {
+export default async function PlanPage({
+  searchParams,
+}: {
+  searchParams: { view?: string };
+}) {
+  const view = (searchParams.view as "week" | "block" | "full" | undefined) ?? "week";
   const plan = await getActivePlan();
   if (!plan) {
     return (
@@ -178,6 +183,63 @@ export default async function PlanPage() {
         />
       </div>
 
+      {view === "block" && (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <CardHeader title="All Weeks · Block view" action={`${weekMileage.length} weeks`} />
+          <div className="col gap-6">
+            {weekMileage.map((w) => {
+              const planned = metersToMiles(w.planned_m);
+              const actual = w.actual_m != null ? metersToMiles(w.actual_m) : null;
+              const isCurrent = w.week_number - 1 === meta.current_week_index;
+              const isPast = w.start_date < todayISO && !isCurrent;
+              return (
+                <div
+                  key={w.start_date}
+                  className="row between gap-10"
+                  style={{
+                    padding: "10px 12px",
+                    background: isCurrent ? "var(--accent-soft)" : "var(--surface-2)",
+                    border: `1px solid ${isCurrent ? "var(--accent)" : "var(--hairline)"}`,
+                    borderRadius: 8,
+                    fontFamily: "var(--font-geist-mono), monospace",
+                    fontSize: 12,
+                  }}
+                >
+                  <span style={{ width: 56, color: "var(--text-3)" }}>{w.label}</span>
+                  <span style={{ width: 110, color: "var(--text-2)" }}>{fmtRange(w.start_date)}</span>
+                  <span className="num" style={{ flex: 1, textAlign: "right", color: "var(--text-1)" }}>
+                    {actual != null ? actual.toFixed(1) : "—"} <span className="muted">/ {planned.toFixed(0)} mi</span>
+                  </span>
+                  {isCurrent && <Pill kind="accent">Now</Pill>}
+                  {isPast && actual != null && actual >= planned * 0.95 && <Pill kind="accent">✓</Pill>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {view === "full" && (
+        <div className="col gap-14" style={{ marginBottom: 14 }}>
+          {weekMileage.map(async (w) => {
+            const days = await getWeekView(w.start_date);
+            const isCurrent = w.week_number - 1 === meta.current_week_index;
+            return (
+              <div key={w.start_date} className="card">
+                <CardHeader
+                  title={`${w.label} · ${fmtRange(w.start_date)}`}
+                  action={`${metersToMiles(w.planned_m).toFixed(0)} mi planned${isCurrent ? " · current" : ""}`}
+                />
+                <div className="grid" style={{ gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
+                  {days.map((d) => <WeekDayCell key={d.date_iso} day={d} todayISO={todayISO} />)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {view === "week" && (
       <div className="grid" style={{ gridTemplateColumns: "2fr 1fr", marginBottom: 14 }}>
         <div className="card">
           <CardHeader
@@ -236,8 +298,9 @@ export default async function PlanPage() {
           </div>
         </div>
       </div>
+      )}
 
-      {nextWeekRuns.length > 0 && (
+      {view === "week" && nextWeekRuns.length > 0 && (
         <div className="card">
           <CardHeader
             title={`Next Week · ${fmtRange(nextWeekStart)}`}

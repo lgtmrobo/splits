@@ -42,10 +42,6 @@ export function Topbar() {
         {p.showDate && <Pill kind="muted">{todayLabel()}</Pill>}
       </div>
       <div className="topbar-right">
-        <button type="button" className="btn ghost" style={{ gap: 6 }}>
-          <Icon name="search" size={12} /> Search
-          <span className="pill muted" style={{ marginLeft: 6, fontSize: 9, padding: "1px 4px" }}>⌘K</span>
-        </button>
         <button type="button" className="btn">
           <Icon name="sync" size={12} /> Sync Strava
         </button>

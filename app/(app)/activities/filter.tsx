@@ -1,12 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Segmented } from "@/components/ui/segmented";
 
 type Filter = "all" | "workout" | "long" | "easy" | "recovery";
 
 export function ActivityTypeFilter() {
-  const [filter, setFilter] = useState<Filter>("all");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const filter = (searchParams.get("type") as Filter | null) ?? "all";
+
+  const setFilter = (next: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "all") params.delete("type");
+    else params.set("type", next);
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname);
+  };
+
   return (
     <Segmented
       options={[

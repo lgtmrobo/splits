@@ -167,6 +167,11 @@ export async function fetchActivityStreams(
 /**
  * Sync gear (shoes) for the athlete. Strava returns gear refs on activities
  * but full details come from /gear/{id}.
+ *
+ * If a Strava gear matches a locally-added shoe by name+brand+model, we
+ * merge: keep the local row's `cap_m`-equivalent metadata (currently only
+ * `nickname` exists on the schema), prefer the higher distance, re-link
+ * activities to the Strava id, and delete the local row.
  */
 export async function syncGear(athleteId: string) {
   const supabase = createServiceRoleSupabase();
@@ -179,8 +184,31 @@ export async function syncGear(athleteId: string) {
   const ids = new Set<string>();
   for (const r of existing ?? []) if (r.gear_id) ids.add(r.gear_id as string);
 
+  // Pull all locally-added shoes once for merge-by-name matching.
+  const { data: localShoes } = await supabase
+    .from("gear")
+    .select("id, name, brand_name, model_name, distance_m, nickname, primary_shoe, retired")
+    .eq("athlete_id", athleteId)
+    .like("id", "local_%");
+
+  const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
+  const matchKey = (g: { name?: string | null; brand_name?: string | null; model_name?: string | null }) =>
+    `${norm(g.name)}|${norm(g.brand_name)}|${norm(g.model_name)}`;
+  type LocalShoe = NonNullable<typeof localShoes>[number];
+  const localByKey = new Map<string, LocalShoe>();
+  for (const l of localShoes ?? []) localByKey.set(matchKey(l), l);
+
   for (const id of ids) {
     const g = await stravaFetch<StravaGear>(athleteId, `/gear/${id}`);
+    const local = localByKey.get(matchKey(g));
+
+    // Merge with local if matched.
+    const mergedDistance =
+      local && Number(local.distance_m ?? 0) > Number(g.distance ?? 0)
+        ? Number(local.distance_m)
+        : Number(g.distance);
+    const mergedNickname = local?.nickname ?? g.nickname ?? null;
+
     await supabase.from("gear").upsert(
       {
         id: g.id,
@@ -189,13 +217,24 @@ export async function syncGear(athleteId: string) {
         brand_name: g.brand_name,
         model_name: g.model_name,
         description: g.description,
-        distance_m: g.distance,
+        distance_m: mergedDistance,
         retired: g.retired,
         primary_shoe: g.primary,
-        nickname: g.nickname ?? null,
+        nickname: mergedNickname,
         synced_at: new Date().toISOString(),
       },
       { onConflict: "id" }
     );
+
+    if (local && local.id !== g.id) {
+      // Re-link any activities pointing at the old local id, then drop it.
+      await supabase
+        .from("activities")
+        .update({ gear_id: g.id })
+        .eq("athlete_id", athleteId)
+        .eq("gear_id", local.id);
+      await supabase.from("gear").delete().eq("id", local.id);
+      console.log(`[gear] merged local shoe "${g.name}" (${local.id}) → Strava ${g.id}`);
+    }
   }
 }
