@@ -53,13 +53,18 @@ export function startOfWeek(iso: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Today's date in the server's local timezone, as YYYY-MM-DD. */
+/** Athlete's timezone. Override with APP_TIMEZONE env var. */
+const APP_TZ = process.env.APP_TIMEZONE || "America/Los_Angeles";
+
+/** Today's date in the athlete's timezone, as YYYY-MM-DD. */
 export function todayLocalISO(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  return parts; // en-CA gives YYYY-MM-DD natively
 }
 
 /** Days between two YYYY-MM-DD strings (b - a), TZ-safe. */
