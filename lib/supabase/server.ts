@@ -2,11 +2,19 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
+export function isDevAuthBypass(): boolean {
+  return process.env.DEV_AUTH_BYPASS === "true";
+}
+
 /**
  * Session-scoped client for App Router server components / route handlers.
  * Uses the caller's cookies, so RLS policies apply.
+ *
+ * In local dev with DEV_AUTH_BYPASS=true, returns the service-role client
+ * so pages can render without a logged-in user.
  */
 export function createServerSupabase() {
+  if (isDevAuthBypass()) return createServiceRoleSupabase();
   const cookieStore = cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

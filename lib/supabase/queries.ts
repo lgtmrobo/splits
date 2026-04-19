@@ -653,7 +653,81 @@ export async function getPaceTrend12w(): Promise<number[]> {
 }
 
 export async function getRestingHR12w(): Promise<number[]> {
-  return [];
+  const sb = createServerSupabase();
+  const since = new Date();
+  since.setUTCDate(since.getUTCDate() - 12 * 7);
+  const { data } = await sb
+    .from("whoop_recovery")
+    .select("date, resting_heart_rate")
+    .gte("date", since.toISOString().slice(0, 10))
+    .order("date", { ascending: true });
+  if (!data || data.length === 0) return [];
+  // Group into 12 weekly buckets
+  const buckets: number[][] = Array.from({ length: 12 }, () => []);
+  const today = new Date();
+  for (const r of data) {
+    if (r.resting_heart_rate == null) continue;
+    const d = new Date(r.date + "T00:00:00Z");
+    const wkAgo = Math.floor((today.getTime() - d.getTime()) / (7 * 86400_000));
+    const idx = 11 - wkAgo;
+    if (idx >= 0 && idx < 12) buckets[idx].push(Number(r.resting_heart_rate));
+  }
+  return buckets.map((b) => (b.length ? b.reduce((a, c) => a + c, 0) / b.length : 0));
+}
+
+export async function getLatestRecovery(): Promise<{
+  date: string;
+  resting_heart_rate: number | null;
+  hrv_rmssd_milli: number | null;
+  recovery_score: number | null;
+} | null> {
+  const sb = createServerSupabase();
+  const { data } = await sb
+    .from("whoop_recovery")
+    .select("date, resting_heart_rate, hrv_rmssd_milli, recovery_score")
+    .order("date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data
+    ? {
+        date: data.date,
+        resting_heart_rate: data.resting_heart_rate,
+        hrv_rmssd_milli: data.hrv_rmssd_milli,
+        recovery_score: data.recovery_score,
+      }
+    : null;
+}
+
+export async function getWhoopWorkoutForActivity(activityId: number): Promise<{
+  strain: number | null;
+  zones_min: number[]; // [Z1..Z5]
+  total_min: number;
+  average_heart_rate: number | null;
+  max_heart_rate: number | null;
+} | null> {
+  const sb = createServerSupabase();
+  const { data } = await sb
+    .from("whoop_workouts")
+    .select("*")
+    .eq("matched_activity_id", activityId)
+    .maybeSingle();
+  if (!data) return null;
+  const ms = [
+    Number(data.zone_one_ms ?? 0),
+    Number(data.zone_two_ms ?? 0),
+    Number(data.zone_three_ms ?? 0),
+    Number(data.zone_four_ms ?? 0),
+    Number(data.zone_five_ms ?? 0),
+  ];
+  const minutes = ms.map((m) => Math.round(m / 60_000));
+  const total = minutes.reduce((a, b) => a + b, 0);
+  return {
+    strain: data.strain != null ? Number(data.strain) : null,
+    zones_min: minutes,
+    total_min: total,
+    average_heart_rate: data.average_heart_rate != null ? Number(data.average_heart_rate) : null,
+    max_heart_rate: data.max_heart_rate != null ? Number(data.max_heart_rate) : null,
+  };
 }
 
 // =========================================================================

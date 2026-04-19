@@ -68,6 +68,24 @@ export default function ConnectStravaPage() {
       >
         <Icon name="sync" size={12} /> Connect Strava
       </Link>
+
+      <div className="hr" />
+
+      <div className="col gap-8">
+        <div style={{ fontSize: 14, fontWeight: 500 }}>Optional: connect WHOOP</div>
+        <p className="muted" style={{ margin: 0, fontSize: 12, lineHeight: 1.5 }}>
+          Pulls daily recovery (resting HR, HRV) and per-workout strain + HR
+          zones. We'll backfill the last 30 days on connect.
+        </p>
+      </div>
+
+      <Link
+        href="/api/whoop/auth"
+        className="btn"
+        style={{ justifyContent: "center", padding: "10px 14px" }}
+      >
+        <Icon name="sync" size={12} /> Connect WHOOP
+      </Link>
     </div>
   );
 }

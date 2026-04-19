@@ -16,6 +16,7 @@ import {
   getMonthlyStats,
   getNextARace,
   getPaceTrend12w,
+  getLatestRecovery,
   getPlanAdherenceBreakdown,
   getPlanMeta,
   getPlannedRunsBetween,
@@ -84,7 +85,7 @@ function daysUntil(dateISO: string): number {
 }
 
 export default async function DashboardPage() {
-  const [planMeta, plan, weekMileage, dailyLoad, zones, recent, gear, paceTrend, monthly, nextRace, adherence, streak] = await Promise.all([
+  const [planMeta, plan, weekMileage, dailyLoad, zones, recent, gear, paceTrend, monthly, nextRace, adherence, streak, recovery] = await Promise.all([
     getPlanMeta(),
     getActivePlan(),
     getWeekMileage(),
@@ -97,6 +98,7 @@ export default async function DashboardPage() {
     getNextARace(),
     getPlanAdherenceBreakdown(),
     getStreakDays(),
+    getLatestRecovery(),
   ]);
 
   const currentWeek = weekMileage[planMeta.current_week_index] ?? weekMileage[weekMileage.length - 1] ?? null;
@@ -333,8 +335,16 @@ export default async function DashboardPage() {
             <LineChart data={paceTrend.map((p) => p || 0)} width={280} height={110} padL={28} padB={18} padT={10} invertY unit=":00" />
           </div>
           <div className="row between" style={{ marginTop: 8, paddingTop: 10, borderTop: "1px solid var(--hairline)" }}>
-            <Stat label="Resting HR" value="—" unit="bpm" />
-            <Stat label="VO₂ est." value="—" />
+            <Stat
+              label="Resting HR"
+              value={recovery?.resting_heart_rate != null ? String(Math.round(Number(recovery.resting_heart_rate))) : "—"}
+              unit="bpm"
+            />
+            <Stat
+              label="HRV"
+              value={recovery?.hrv_rmssd_milli != null ? String(Math.round(Number(recovery.hrv_rmssd_milli))) : "—"}
+              unit="ms"
+            />
           </div>
         </div>
       </div>

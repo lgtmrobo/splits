@@ -18,9 +18,10 @@ function isPublicPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Dev bypass: if Supabase isn't configured, everything is open.
-  // Comment this block out once you have env vars wired up.
+  // Dev bypass: explicit opt-in via DEV_AUTH_BYPASS=true (local only),
+  // OR if Supabase env vars are missing.
   if (
+    process.env.DEV_AUTH_BYPASS === "true" ||
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     !process.env.ALLOWED_EMAIL

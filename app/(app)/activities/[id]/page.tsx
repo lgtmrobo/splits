@@ -10,6 +10,7 @@ import {
   getAnalysisForActivity,
   getGearById,
   getPlannedRunByDate,
+  getWhoopWorkoutForActivity,
 } from "@/lib/supabase/queries";
 import type { WorkoutType } from "@/lib/types";
 import { fetchActivityStreams } from "@/lib/strava/sync";
@@ -84,11 +85,23 @@ export default async function ActivityDetailPage({ params }: Props) {
     }
   }
 
-  const [analysis, gear, planned] = await Promise.all([
+  const [analysis, gear, planned, whoop] = await Promise.all([
     getAnalysisForActivity(detail.activity.id),
     detail.activity.gear_id ? getGearById(detail.activity.gear_id) : Promise.resolve(null),
     getPlannedRunByDate(detail.activity.start_date_local.slice(0, 10)),
+    getWhoopWorkoutForActivity(detail.activity.id),
   ]);
+
+  // If we have WHOOP zones, replace the synthetic zone shape with real data.
+  const hrZones = whoop && whoop.total_min > 0
+    ? [
+        { zone: "Z1" as const, label: "Recover", bpm_range: "<60%", minutes: whoop.zones_min[0], pct: Math.round((whoop.zones_min[0] / whoop.total_min) * 100) },
+        { zone: "Z2" as const, label: "Aerobic", bpm_range: "60–70%", minutes: whoop.zones_min[1], pct: Math.round((whoop.zones_min[1] / whoop.total_min) * 100) },
+        { zone: "Z3" as const, label: "Tempo",   bpm_range: "70–80%", minutes: whoop.zones_min[2], pct: Math.round((whoop.zones_min[2] / whoop.total_min) * 100) },
+        { zone: "Z4" as const, label: "Thresh",  bpm_range: "80–90%", minutes: whoop.zones_min[3], pct: Math.round((whoop.zones_min[3] / whoop.total_min) * 100) },
+        { zone: "Z5" as const, label: "VO₂",     bpm_range: "90+%",   minutes: whoop.zones_min[4], pct: Math.round((whoop.zones_min[4] / whoop.total_min) * 100) },
+      ]
+    : detail.zones;
   const { activity } = detail;
 
   const kindLabel = activityKindLabel(planned?.workout_type, activity.name, activity.sport_type);
@@ -212,7 +225,7 @@ export default async function ActivityDetailPage({ params }: Props) {
         <div className="card">
           <CardHeader title="HR Zones · This run" />
           <div style={{ marginBottom: 14 }}>
-            <ZoneBar zones={detail.zones} />
+            <ZoneBar zones={hrZones} />
           </div>
           <table className="tbl" style={{ fontSize: 12 }}>
             <thead>
@@ -224,7 +237,7 @@ export default async function ActivityDetailPage({ params }: Props) {
               </tr>
             </thead>
             <tbody>
-              {detail.zones.map((z, i) => (
+              {hrZones.map((z, i) => (
                 <tr key={z.zone}>
                   <td>
                     <span style={{ color: `var(--zone-${i + 1})`, marginRight: 6 }}>■</span>

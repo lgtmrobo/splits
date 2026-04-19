@@ -6,8 +6,10 @@ import { CardHeader, Stat } from "@/components/ui/primitives";
 import {
   getActivityTotals,
   getAllActivities,
+  getLatestRecovery,
   getMonthlyStats,
   getPaceTrend12w,
+  getRestingHR12w,
   getWeekHRZones,
 } from "@/lib/supabase/queries";
 import { formatDuration, metersToMiles, milesToMeters } from "@/lib/utils/units";
@@ -23,13 +25,21 @@ function paceFromDecimal(min: number): string {
 }
 
 export default async function StatsPage() {
-  const [monthly, paceTrend, zones, totals, activities] = await Promise.all([
+  const [monthly, paceTrend, zones, totals, activities, restingHR12w, latestRec] = await Promise.all([
     getMonthlyStats(),
     getPaceTrend12w(),
     getWeekHRZones(),
     getActivityTotals(),
     getAllActivities(),
+    getRestingHR12w(),
+    getLatestRecovery(),
   ]);
+  const rhrVals = restingHR12w.filter((r) => r > 0);
+  const rhrCurrent = latestRec?.resting_heart_rate != null
+    ? Math.round(Number(latestRec.resting_heart_rate))
+    : (rhrVals.length ? Math.round(rhrVals[rhrVals.length - 1]) : null);
+  const rhrFirst = rhrVals[0] ?? null;
+  const rhrDelta = rhrFirst != null && rhrCurrent != null ? rhrCurrent - Math.round(rhrFirst) : null;
 
   const monthlyBars = monthly.map((m, i) => ({
     week_number: i + 1,
@@ -153,11 +163,31 @@ export default async function StatsPage() {
 
       <div className="grid" style={{ gridTemplateColumns: "1fr 1fr 1fr", marginBottom: 14 }}>
         <div className="card">
-          <CardHeader title="Resting HR · 12w" />
-          <Stat label="Current" value="—" unit="bpm" size="lg" />
-          <div className="muted" style={{ fontSize: 11, marginTop: 12 }}>
-            Connect Whoop to populate.
-          </div>
+          <CardHeader title="Resting HR · 12w" action={latestRec?.date ? `from ${latestRec.date}` : undefined} />
+          <Stat
+            label="Current"
+            value={rhrCurrent != null ? String(rhrCurrent) : "—"}
+            unit="bpm"
+            size="lg"
+            delta={rhrDelta != null ? `${rhrDelta >= 0 ? "+" : ""}${rhrDelta} bpm vs 12w` : undefined}
+            deltaKind={rhrDelta != null && rhrDelta < 0 ? "up" : "down"}
+          />
+          {restingHR12w.length === 0 ? (
+            <div className="muted" style={{ fontSize: 11, marginTop: 12 }}>
+              Connect WHOOP to populate.
+            </div>
+          ) : (
+            <div style={{ marginTop: 12 }}>
+              <LineChart
+                data={restingHR12w.map((r) => r || 0)}
+                width={280}
+                height={120}
+                padL={32}
+                invertY
+                stroke="var(--red)"
+              />
+            </div>
+          )}
         </div>
         <div className="card">
           <CardHeader title="Time in HR Zones · 7d" action={`${zonesTotalH}:${String(zonesTotalRem).padStart(2, "0")}:00`} />
