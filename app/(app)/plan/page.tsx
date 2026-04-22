@@ -9,7 +9,7 @@ import {
   getWeekMileage,
   getWeekView,
 } from "@/lib/supabase/queries";
-import { metersToMiles } from "@/lib/utils/units";
+import { formatMilesCompact, metersToMiles } from "@/lib/utils/units";
 import { addDaysISO, sundayOfISO, todayLocalISO } from "@/lib/utils/dates";
 import type { PlannedRun, PlanWeekDay } from "@/lib/types";
 
@@ -158,7 +158,7 @@ export default async function PlanPage({
             {peakWeek && (
               <div className="col" style={{ alignItems: "flex-end", whiteSpace: "nowrap" }}>
                 <span className="stat-label" style={{ marginBottom: 0 }}>Peak week</span>
-                <span className="num" style={{ fontSize: 16 }}>{peakWeek.miles.toFixed(0)} mi · {peakWeek.label}</span>
+                <span className="num" style={{ fontSize: 16 }}>{formatMilesCompact(peakWeek.miles)} mi · {peakWeek.label}</span>
               </div>
             )}
             <div className="vr" />
@@ -208,7 +208,7 @@ export default async function PlanPage({
                   <span style={{ width: 56, color: "var(--text-3)" }}>{w.label}</span>
                   <span style={{ width: 110, color: "var(--text-2)" }}>{fmtRange(w.start_date)}</span>
                   <span className="num" style={{ flex: 1, textAlign: "right", color: "var(--text-1)" }}>
-                    {actual != null ? actual.toFixed(1) : "—"} <span className="muted">/ {planned.toFixed(0)} mi</span>
+                    {actual != null ? actual.toFixed(1) : "—"} <span className="muted">/ {formatMilesCompact(planned)} mi</span>
                   </span>
                   {isCurrent && <Pill kind="accent">Now</Pill>}
                   {isPast && actual != null && actual >= planned * 0.95 && <Pill kind="accent">✓</Pill>}
@@ -228,7 +228,7 @@ export default async function PlanPage({
               <div key={w.start_date} className="card">
                 <CardHeader
                   title={`${w.label} · ${fmtRange(w.start_date)}`}
-                  action={`${metersToMiles(w.planned_m).toFixed(0)} mi planned${isCurrent ? " · current" : ""}`}
+                  action={`${formatMilesCompact(metersToMiles(w.planned_m))} mi planned${isCurrent ? " · current" : ""}`}
                 />
                 <div className="grid" style={{ gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
                   {days.map((d) => <WeekDayCell key={d.date_iso} day={d} todayISO={todayISO} />)}
@@ -244,7 +244,7 @@ export default async function PlanPage({
         <div className="card">
           <CardHeader
             title={`This Week · ${fmtRange(thisWeekStart)}`}
-            action={`${thisWeekActualMi.toFixed(1)} / ${thisWeekPlannedMi.toFixed(0)} mi · ${thisWeekDone}/${thisWeekHas} done`}
+            action={`${thisWeekActualMi.toFixed(1)} / ${formatMilesCompact(thisWeekPlannedMi)} mi · ${thisWeekDone}/${thisWeekHas} done`}
           />
           <div className="grid" style={{ gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
             {weekView.map((d) => <WeekDayCell key={d.date_iso} day={d} todayISO={todayISO} />)}
@@ -271,7 +271,7 @@ export default async function PlanPage({
                 <div className="row between">
                   <span className="stat-label" style={{ marginBottom: 0 }}>Longest upcoming</span>
                   <span className="num">
-                    {metersToMiles(longestUpcoming.target_distance_m ?? 0).toFixed(0)} mi
+                    {formatMilesCompact(metersToMiles(longestUpcoming.target_distance_m ?? 0))} mi
                     {longestUpcomingWeek ? ` · ${longestUpcomingWeek.label}` : ""}
                   </span>
                 </div>
@@ -304,7 +304,7 @@ export default async function PlanPage({
         <div className="card">
           <CardHeader
             title={`Next Week · ${fmtRange(nextWeekStart)}`}
-            action={`${nextWeekTotalMi.toFixed(0)} mi planned`}
+            action={`${formatMilesCompact(nextWeekTotalMi)} mi planned`}
           />
           <div className="grid" style={{ gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
             {Array.from({ length: 7 }).map((_, i) => {
@@ -417,7 +417,7 @@ function WeekDayCell({ day, todayISO }: { day: PlanWeekDay; todayISO: string }) 
           {wt.charAt(0).toUpperCase() + wt.slice(1)}
         </Pill>
         <div className="num" style={{ fontSize: 18, fontWeight: 500, color: "var(--text-1)" }}>
-          {miles > 0 ? `${miles.toFixed(0)}mi` : "—"}
+          {miles > 0 ? `${formatMilesCompact(miles)}mi` : "—"}
         </div>
       </div>
       <div style={{ fontSize: 11, color: "var(--text-2)", lineHeight: 1.35 }}>

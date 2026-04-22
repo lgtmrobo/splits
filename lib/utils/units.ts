@@ -24,6 +24,12 @@ export function formatMiles(m: number | null | undefined, decimals = 1): string 
   return metersToMiles(m).toFixed(decimals);
 }
 
+/** Compact miles: "1.5", "7", "10.5" — 1 decimal, trailing .0 stripped. */
+export function formatMilesCompact(mi: number): string {
+  const rounded = Math.round(mi * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
 /** Elevation gain in feet, integer. */
 export function formatFeet(m: number | null | undefined): string {
   if (m == null) return "—";
