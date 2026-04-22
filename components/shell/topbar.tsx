@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { Pill } from "@/components/ui/primitives";
 
@@ -31,7 +32,26 @@ function todayLabel(): string {
 
 export function Topbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const p = metaForPath(pathname);
+  const [syncing, setSyncing] = useState(false);
+
+  async function onSync() {
+    if (syncing) return;
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/strava/sync", { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        console.error("[sync] failed", res.status, body);
+      }
+      router.refresh();
+    } catch (e) {
+      console.error("[sync] error", e);
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   return (
     <div className="topbar">
@@ -42,8 +62,8 @@ export function Topbar() {
         {p.showDate && <Pill kind="muted">{todayLabel()}</Pill>}
       </div>
       <div className="topbar-right">
-        <button type="button" className="btn">
-          <Icon name="sync" size={12} /> Sync Strava
+        <button type="button" className="btn" onClick={onSync} disabled={syncing}>
+          <Icon name="sync" size={12} /> {syncing ? "Syncing…" : "Sync Strava"}
         </button>
         <div
           style={{
