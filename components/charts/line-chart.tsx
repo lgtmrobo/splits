@@ -72,7 +72,14 @@ export function LineChart({
     { length: yTicks },
     (_, i) => mn + (range * i) / (yTicks - 1)
   );
-  const approxLen = Math.round(innerW * 1.2);
+  // Actual polyline length through the points, padded for bezier smoothing.
+  // Must exceed the real stroke length or the draw-in animation leaves a
+  // tail undrawn.
+  let polyLen = 0;
+  for (let i = 1; i < xs.length; i++) {
+    polyLen += Math.hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1]);
+  }
+  const approxLen = Math.ceil(polyLen * 1.3 + 20);
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="chart-frame">

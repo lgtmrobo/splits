@@ -357,38 +357,11 @@ export default async function ActivityDetailPage({ params }: Props) {
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-        <div className="card">
-          <div className="row between" style={{ marginBottom: 10 }}>
-            <div className="card-title">Heart Rate · Full run</div>
-            <div className="row gap-10" style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: 11, color: "var(--text-2)" }}>
-              <span>avg <span style={{ color: "var(--text-1)" }}>{activity.average_heartrate ?? "—"}</span></span>
-              <span>max <span style={{ color: "var(--text-1)" }}>{activity.max_heartrate ?? "—"}</span></span>
-            </div>
-          </div>
-          {detail.hr_curve.length > 0 ? (
-            <LineChart
-              data={detail.hr_curve}
-              width={500}
-              height={180}
-              padL={36}
-              stroke="var(--red)"
-              minY={Math.min(...detail.hr_curve) - 5}
-              maxY={Math.max(...detail.hr_curve) + 5}
-              yTicks={5}
-              xLabels={xLabels}
-            />
-          ) : (
-            <div className="muted" style={{ padding: 32, textAlign: "center", fontSize: 12, lineHeight: 1.5 }}>
-              No HR stream from Strava.
-              {whoop && (
-                <>
-                  <br />
-                  WHOOP: avg <span style={{ color: "var(--text-1)" }}>{whoop.average_heart_rate ?? "—"}</span> · max <span style={{ color: "var(--text-1)" }}>{whoop.max_heart_rate ?? "—"}</span> · strain <span style={{ color: "var(--accent)" }}>{whoop.strain?.toFixed(1) ?? "—"}</span>
-                </>
-              )}
-            </div>
-          )}
-        </div>
+        <HeartRateSummary
+          avgHR={activity.average_heartrate ?? whoop?.average_heart_rate ?? null}
+          maxHR={activity.max_heartrate ?? whoop?.max_heart_rate ?? null}
+          strain={whoop?.strain ?? null}
+        />
         <div className="card">
           <div className="row between" style={{ marginBottom: 10 }}>
             <div className="card-title">Pace · Full run</div>
@@ -412,6 +385,162 @@ export default async function ActivityDetailPage({ params }: Props) {
             />
           ) : (
             <div className="muted" style={{ padding: 24, textAlign: "center", fontSize: 12 }}>No pace stream.</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeartRateSummary({
+  avgHR,
+  maxHR,
+  strain,
+}: {
+  avgHR: number | null;
+  maxHR: number | null;
+  strain: number | null;
+}) {
+  // Fixed 100–200 bpm window — most runs land in here and a stable scale
+  // makes avg/max positions readable across activities without guessing.
+  const LO = 100;
+  const HI = 200;
+  const place = (v: number) =>
+    Math.max(0, Math.min(100, ((v - LO) / (HI - LO)) * 100));
+  const avgPct = avgHR != null ? place(avgHR) : null;
+  const maxPct = maxHR != null ? place(maxHR) : null;
+  const strainPct = strain != null ? Math.min(100, (strain / 21) * 100) : null;
+  const strainLabel =
+    strain == null
+      ? "—"
+      : strain >= 18
+      ? "All-out"
+      : strain >= 14
+      ? "Strenuous"
+      : strain >= 10
+      ? "Moderate"
+      : "Light";
+
+  return (
+    <div className="card">
+      <div className="row between" style={{ marginBottom: 14 }}>
+        <div className="card-title">Heart Rate · Summary</div>
+      </div>
+      <div
+        className="grid"
+        style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 18 }}
+      >
+        <Stat label="Avg HR" value={avgHR ?? "—"} unit="bpm" size="lg" />
+        <Stat label="Max HR" value={maxHR ?? "—"} unit="bpm" size="lg" />
+        <Stat
+          label="Strain"
+          value={strain != null ? strain.toFixed(1) : "—"}
+          unit={strain != null ? "/21" : ""}
+          size="lg"
+        />
+      </div>
+      <div className="col gap-6" style={{ marginBottom: 16 }}>
+        <div
+          className="row between"
+          style={{
+            fontFamily: "var(--font-geist-mono), monospace",
+            fontSize: 10,
+            color: "var(--text-3)",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+          }}
+        >
+          <span>HR range</span>
+          <span>{LO}–{HI} bpm</span>
+        </div>
+        <div
+          style={{
+            position: "relative",
+            height: 10,
+            background:
+              "linear-gradient(90deg, var(--zone-1) 0%, var(--zone-2) 25%, var(--zone-3) 50%, var(--zone-4) 75%, var(--zone-5) 100%)",
+            borderRadius: 5,
+            opacity: 0.55,
+          }}
+        >
+          {avgPct != null && (
+            <div
+              title={`Avg ${avgHR}`}
+              style={{
+                position: "absolute",
+                top: -4,
+                bottom: -4,
+                left: `calc(${avgPct}% - 2px)`,
+                width: 4,
+                background: "var(--text-1)",
+                borderRadius: 2,
+                boxShadow: "0 0 0 1px var(--bg)",
+              }}
+            />
+          )}
+          {maxPct != null && (
+            <div
+              title={`Max ${maxHR}`}
+              style={{
+                position: "absolute",
+                top: -4,
+                bottom: -4,
+                left: `calc(${maxPct}% - 2px)`,
+                width: 4,
+                background: "var(--accent)",
+                borderRadius: 2,
+                boxShadow: "0 0 0 1px var(--bg)",
+              }}
+            />
+          )}
+        </div>
+        <div
+          className="row between"
+          style={{
+            fontFamily: "var(--font-geist-mono), monospace",
+            fontSize: 10,
+            color: "var(--text-3)",
+          }}
+        >
+          <span>
+            <span style={{ color: "var(--text-1)" }}>■</span> avg {avgHR ?? "—"}
+          </span>
+          <span>
+            <span style={{ color: "var(--accent)" }}>■</span> max {maxHR ?? "—"}
+          </span>
+        </div>
+      </div>
+      <div className="col gap-6">
+        <div
+          className="row between"
+          style={{
+            fontFamily: "var(--font-geist-mono), monospace",
+            fontSize: 10,
+            color: "var(--text-3)",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+          }}
+        >
+          <span>Strain</span>
+          <span>{strainLabel}</span>
+        </div>
+        <div
+          style={{
+            height: 10,
+            background: "var(--surface-3)",
+            borderRadius: 5,
+            overflow: "hidden",
+          }}
+        >
+          {strainPct != null && (
+            <div
+              style={{
+                width: `${strainPct}%`,
+                height: "100%",
+                background:
+                  "linear-gradient(90deg, var(--zone-2), var(--zone-4) 65%, var(--zone-5))",
+              }}
+            />
           )}
         </div>
       </div>
