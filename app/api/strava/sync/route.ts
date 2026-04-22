@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { backfillActivities, syncGear } from "@/lib/strava/sync";
+import { backfillActivities, backfillPolylines, syncGear } from "@/lib/strava/sync";
 import { backfillAllWhoop } from "@/lib/whoop/sync";
 import { createServerSupabase, createServiceRoleSupabase } from "@/lib/supabase/server";
 
@@ -25,6 +25,7 @@ export async function POST(_req: NextRequest) {
   try {
     const { inserted } = await backfillActivities(athlete.id as string, 14 / 365);
     await syncGear(athlete.id as string);
+    await backfillPolylines(athlete.id as string);
     out.inserted = inserted;
   } catch (e) {
     out.error = `strava: ${String(e)}`;

@@ -82,6 +82,53 @@ export async function backfillActivities(athleteId: string, years = 2) {
 }
 
 /**
+ * Fill in `summary_polyline` for any recent activity that's still missing
+ * one. The `/athlete/activities` list endpoint returns an empty polyline,
+ * so we hit the detail endpoint per activity to pull the full encoded
+ * route. Mirrors `scripts/backfill-polylines.mjs` but scoped to recent
+ * rows so it's cheap enough to run after every sync.
+ */
+export async function backfillPolylines(athleteId: string, limit = 50) {
+  const supabase = createServiceRoleSupabase();
+  const { data: needs } = await supabase
+    .from("activities")
+    .select("id")
+    .eq("athlete_id", athleteId)
+    .or("summary_polyline.is.null,summary_polyline.eq.")
+    .eq("trainer", false)
+    .eq("manual", false)
+    .order("start_date", { ascending: false })
+    .limit(limit);
+
+  let updated = 0;
+  let skipped = 0;
+  for (const a of needs ?? []) {
+    try {
+      const detail = await stravaFetch<StravaSummaryActivity>(
+        athleteId,
+        `/activities/${a.id}`
+      );
+      const poly = detail.map?.polyline || detail.map?.summary_polyline || null;
+      if (!poly) {
+        skipped++;
+        continue;
+      }
+      await supabase
+        .from("activities")
+        .update({ summary_polyline: poly, map_id: detail.map?.id ?? null })
+        .eq("id", a.id);
+      updated++;
+    } catch (e) {
+      if (String(e).includes("strava_rate_limited")) break;
+      skipped++;
+    }
+    // Stay well under Strava's 200 req / 15 min short-term limit.
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  return { updated, skipped };
+}
+
+/**
  * Fetch a single activity (for webhook create/update events).
  */
 export async function upsertActivity(athleteId: string, activityId: number) {

@@ -66,7 +66,8 @@ const WEEKS = [
   { wk: 15, done: false, tue: ["2026-07-07", 3.5, "interval"],thu: ["2026-07-09", 4,   "easy"],    sat: ["2026-07-11", 10,  "long"], note: "Double digits — milestone" },
   { wk: 16, done: false, tue: ["2026-07-14", 3,   "easy"],    thu: ["2026-07-16", 3,   "easy"],    sat: ["2026-07-18", 7.5, "long"], note: "Cutback week" },
   { wk: 17, done: false, tue: ["2026-07-21", 3.5, "interval"],thu: ["2026-07-23", 4,   "easy"],    sat: ["2026-07-25", 11,  "long"], note: "Longest training run · then Vegas" },
-  { wk: 18, done: false, tue: ["2026-07-28", 3,   "easy"],    thu: ["2026-07-30", 3,   "easy"],    sat: ["2026-08-01", 8,   "long"], note: "Taper" },
+  // Week 18 only: shifted short runs to Mon/Wed so Vegas trip doesn't clash.
+  { wk: 18, done: false, tue: ["2026-07-27", 3,   "easy"],    thu: ["2026-07-29", 3,   "easy"],    sat: ["2026-08-01", 8,   "long"], note: "Taper · Mon/Wed/Sat" },
   { wk: 19, done: false, tue: ["2026-08-04", 0,   "rest"],    thu: ["2026-08-06", 0,   "rest"],    sat: ["2026-08-08", 12,  "long"], note: "12-mile goal run · then race day" },
 ];
 
@@ -170,6 +171,33 @@ async function main() {
   // Wipe + reinsert so re-running the script is safe.
   const { error: delErr } = await sb.from("planned_runs").delete().eq("plan_id", planId);
   if (delErr) throw delErr;
+  // Vegas trip mid-taper — Wed has a run, Thu/Fri are rest days tagged Vegas.
+  rows.push({
+    plan_id: planId,
+    scheduled_date: "2026-07-30",
+    workout_type: "rest",
+    target_distance_m: null,
+    target_duration_s: null,
+    target_pace_s_per_km: null,
+    description: "Vegas",
+    notes: "Travel",
+    completion_status: "scheduled",
+  });
+  rows.push({
+    plan_id: planId,
+    scheduled_date: "2026-07-31",
+    workout_type: "rest",
+    target_distance_m: null,
+    target_duration_s: null,
+    target_pace_s_per_km: null,
+    description: "Vegas",
+    notes: "Travel",
+    completion_status: "scheduled",
+  });
+  // Tag the Wed run with Vegas so it shows on the calendar too.
+  const wedIdx = rows.findIndex((r) => r.scheduled_date === "2026-07-29");
+  if (wedIdx >= 0) rows[wedIdx].description = `${rows[wedIdx].description} · Vegas`;
+
   const { error: insErr, data: inserted } = await sb.from("planned_runs").insert(rows).select("id");
   if (insErr) throw insErr;
   console.log(`Inserted ${inserted?.length ?? 0} planned_runs`);

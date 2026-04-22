@@ -129,7 +129,7 @@ export async function getPlannedRunsBetween(
 
 /** This week's planned runs + matched actuals, in a UI-friendly shape. */
 export async function getWeekView(weekStartISO: string): Promise<PlanWeekDay[]> {
-  const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const TODAY = "2026-04-18"; // pinned for demo; swap for new Date() when live
 
@@ -151,7 +151,7 @@ export async function getWeekView(weekStartISO: string): Promise<PlanWeekDay[]> 
     else if (iso < TODAY) status = "missed";
 
     result.push({
-      day_short: DAYS_SHORT[i],
+      day_short: DAYS_SHORT[d.getDay()],
       date_label: `${MONTHS[d.getMonth()]} ${d.getDate()}`,
       date_iso: iso,
       planned,

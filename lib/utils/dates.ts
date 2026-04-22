@@ -88,3 +88,10 @@ export function mondayOfISO(iso: string): string {
   const diff = day === 0 ? -6 : 1 - day;
   return addDaysISO(iso, diff);
 }
+
+/** Sunday (week-start) of the week containing the given local date. */
+export function sundayOfISO(iso: string): string {
+  const d = new Date(iso + "T00:00:00");
+  const day = d.getDay(); // 0 = Sun
+  return addDaysISO(iso, -day);
+}

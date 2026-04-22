@@ -10,7 +10,7 @@ import {
   getWeekView,
 } from "@/lib/supabase/queries";
 import { metersToMiles } from "@/lib/utils/units";
-import { addDaysISO, mondayOfISO, todayLocalISO } from "@/lib/utils/dates";
+import { addDaysISO, sundayOfISO, todayLocalISO } from "@/lib/utils/dates";
 import type { PlannedRun, PlanWeekDay } from "@/lib/types";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -49,7 +49,7 @@ export default async function PlanPage({
   const weekMileage = await getWeekMileage();
 
   const todayISO = todayLocalISO();
-  const thisWeekStart = mondayOfISO(todayISO);
+  const thisWeekStart = sundayOfISO(todayISO);
   const nextWeekStart = addDays(thisWeekStart, 7);
 
   const [weekView, nextWeekRuns] = await Promise.all([
@@ -310,7 +310,9 @@ export default async function PlanPage({
             {Array.from({ length: 7 }).map((_, i) => {
               const date = addDays(nextWeekStart, i);
               const p = nextWeekRuns.find((r) => r.scheduled_date === date);
-              const label = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i];
+              const label = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
+                new Date(date + "T00:00:00").getDay()
+              ];
               const wt = p?.workout_type ?? "rest";
               const miles = p?.target_distance_m ? metersToMiles(p.target_distance_m) : 0;
               return (
@@ -359,6 +361,16 @@ function WeekDayCell({ day, todayISO }: { day: PlanWeekDay; todayISO: string }) 
   const planned = day.planned;
   const wt = planned?.workout_type ?? "rest";
   const miles = planned?.target_distance_m ? metersToMiles(planned.target_distance_m) : 0;
+  // Travel/event tag lifted out of description ("X · Vegas" or just "Vegas"
+  // on a rest day). Keeps the detection narrow so normal descriptions like
+  // "Rest" or "3 mi easy" aren't mis-tagged.
+  const desc = planned?.description?.trim() ?? "";
+  const sufMatch = desc.match(/·\s*([A-Z][A-Za-z ]+)$/);
+  const travelTag: string | null = sufMatch
+    ? sufMatch[1].trim()
+    : planned?.workout_type === "rest" && desc && desc !== "Rest"
+    ? desc
+    : null;
 
   return (
     <div
@@ -371,7 +383,7 @@ function WeekDayCell({ day, todayISO }: { day: PlanWeekDay; todayISO: string }) 
         display: "flex",
         flexDirection: "column",
         gap: 8,
-        opacity: isRest ? 0.6 : 1,
+        opacity: isRest && !travelTag ? 0.6 : 1,
       }}
     >
       <div className="row between" style={{ alignItems: "baseline" }}>
@@ -385,6 +397,20 @@ function WeekDayCell({ day, todayISO }: { day: PlanWeekDay; todayISO: string }) 
         </div>
         {isDone && <Icon name="check" size={14} />}
         {isToday && <span className="pill accent" style={{ padding: "2px 6px" }}>Today</span>}
+        {!isToday && travelTag && (
+          <span
+            className="pill"
+            style={{
+              padding: "2px 6px",
+              background: "var(--surface-3)",
+              color: "var(--text-2)",
+              fontSize: 10,
+              letterSpacing: "0.04em",
+            }}
+          >
+            ✈ {travelTag}
+          </span>
+        )}
       </div>
       <div className="col gap-4">
         <Pill kind={wt === "workout" || wt === "interval" ? "accent" : wt === "rest" ? "muted" : "default"}>

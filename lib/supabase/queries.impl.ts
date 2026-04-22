@@ -292,7 +292,7 @@ export async function getPlannedRunsBetween(startISO: string, endISO: string): P
 }
 
 export async function getWeekView(weekStartISO: string): Promise<PlanWeekDay[]> {
-  const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const today = todayLocalISO();
 
@@ -322,7 +322,9 @@ export async function getWeekView(weekStartISO: string): Promise<PlanWeekDay[]> 
     else if (iso < today) status = "missed";
 
     result.push({
-      day_short: DAYS_SHORT[i],
+      // Derive from the actual date so callers can pass any week-start day —
+      // the plan is seeded Sunday-first, but we want labels correct either way.
+      day_short: DAYS_SHORT[d.getDay()],
       date_label: `${MONTHS[d.getMonth()]} ${d.getDate()}`,
       date_iso: iso,
       planned: p,
