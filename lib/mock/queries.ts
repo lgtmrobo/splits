@@ -60,6 +60,12 @@ export async function getAllActivities(): Promise<Activity[]> {
   return ACTIVITIES;
 }
 
+export async function getAllPolylines(): Promise<string[]> {
+  return ACTIVITIES.map((a) => a.summary_polyline ?? "").filter(
+    (p) => p.length > 0,
+  );
+}
+
 export async function getActivityById(
   id: number | string,
 ): Promise<Activity | null> {

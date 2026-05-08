@@ -24,14 +24,34 @@ interface NavItem {
 
 const ITEMS: NavItem[] = [
   { href: "/", icon: "dash", label: "Dashboard" },
-  { href: "/activities", icon: "activities", label: "Activities", countKey: "activities", matchPrefix: "/activities" },
+  {
+    href: "/activities",
+    icon: "activities",
+    label: "Activities",
+    countKey: "activities",
+    matchPrefix: "/activities",
+  },
   { href: "/plan", icon: "plan", label: "Training Plan", matchPrefix: "/plan" },
   { href: "/shoes", icon: "shoe", label: "Shoes", countKey: "gear" },
   { href: "/races", icon: "race", label: "Races", countKey: "races" },
   { href: "/stats", icon: "stats", label: "Stats" },
+  { href: "/heatmap", icon: "heatmap", label: "Heatmap" },
 ];
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 function fmtMd(iso: string): string {
   const d = new Date(iso + "T00:00:00Z");
@@ -73,10 +93,16 @@ export function Sidebar({ summary }: { summary: ShellSummary }) {
           {ITEMS.map((it) => {
             const count = it.countKey ? summary[it.countKey] : undefined;
             return (
-              <Link key={it.href} href={it.href} className={`nav-item ${isActive(it) ? "active" : ""}`}>
+              <Link
+                key={it.href}
+                href={it.href}
+                className={`nav-item ${isActive(it) ? "active" : ""}`}
+              >
                 <Icon name={it.icon} className="ico" />
                 <span>{it.label}</span>
-                {count != null && count > 0 && <span className="nav-count">{count}</span>}
+                {count != null && count > 0 && (
+                  <span className="nav-count">{count}</span>
+                )}
               </Link>
             );
           })}
@@ -86,20 +112,64 @@ export function Sidebar({ summary }: { summary: ShellSummary }) {
       {summary.plan && (
         <div className="col gap-4">
           <div className="nav-group-label">Current Block</div>
-          <div style={{ padding: "6px 8px", display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ fontSize: 12, color: "var(--text-1)", lineHeight: 1.3 }}>
+          <div
+            style={{
+              padding: "6px 8px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            <div
+              style={{ fontSize: 12, color: "var(--text-1)", lineHeight: 1.3 }}
+            >
               {summary.nextRace?.name ?? summary.plan.name}
             </div>
             {summary.nextRace && (
-              <div className="num" style={{ fontSize: 11, color: "var(--text-3)", letterSpacing: "0.04em" }}>
-                {fmtMd(summary.nextRace.date)} · {summary.nextRace.weeksOut} weeks out
+              <div
+                className="num"
+                style={{
+                  fontSize: 11,
+                  color: "var(--text-3)",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                {fmtMd(summary.nextRace.date)} · {summary.nextRace.weeksOut}{" "}
+                weeks out
               </div>
             )}
-            <div style={{ position: "relative", height: 4, background: "var(--surface-2)", borderRadius: 2, marginTop: 4 }}>
-              <div style={{ position: "absolute", inset: 0, width: `${summary.plan.pct}%`, background: "var(--accent)", borderRadius: 2 }} />
+            <div
+              style={{
+                position: "relative",
+                height: 4,
+                background: "var(--surface-2)",
+                borderRadius: 2,
+                marginTop: 4,
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: `${summary.plan.pct}%`,
+                  background: "var(--accent)",
+                  borderRadius: 2,
+                }}
+              />
             </div>
-            <div className="row between" style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: 10, color: "var(--text-3)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-              <span>W{summary.plan.week}/{summary.plan.totalWeeks}</span>
+            <div
+              className="row between"
+              style={{
+                fontFamily: "var(--font-geist-mono), monospace",
+                fontSize: 10,
+                color: "var(--text-3)",
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+              }}
+            >
+              <span>
+                W{summary.plan.week}/{summary.plan.totalWeeks}
+              </span>
               <span>{summary.plan.pct}%</span>
             </div>
           </div>
@@ -109,10 +179,20 @@ export function Sidebar({ summary }: { summary: ShellSummary }) {
       <div className="sidebar-footer">
         {summary.lastSync ? (
           <>
-            <span className="pill-status">Strava synced · {relativeTime(summary.lastSync)}</span>
+            <span className="pill-status">
+              Strava synced · {relativeTime(summary.lastSync)}
+            </span>
             {summary.lastSyncCount > 0 && (
-              <div style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: 10, color: "var(--text-4)", letterSpacing: "0.04em" }}>
-                Last sync: {summary.lastSyncCount} {summary.lastSyncCount === 1 ? "activity" : "activities"}
+              <div
+                style={{
+                  fontFamily: "var(--font-geist-mono), monospace",
+                  fontSize: 10,
+                  color: "var(--text-4)",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                Last sync: {summary.lastSyncCount}{" "}
+                {summary.lastSyncCount === 1 ? "activity" : "activities"}
               </div>
             )}
           </>

@@ -80,6 +80,23 @@ export async function getAllActivities(): Promise<Activity[]> {
   return (data ?? []) as Activity[];
 }
 
+/**
+ * Returns every non-empty summary_polyline for the heatmap. We only need
+ * the encoded string — decoding happens client-side.
+ */
+export async function getAllPolylines(): Promise<string[]> {
+  const sb = createServerSupabase();
+  const { data, error } = await sb
+    .from("activities")
+    .select("summary_polyline")
+    .not("summary_polyline", "is", null)
+    .neq("summary_polyline", "");
+  if (error) throw error;
+  return (data ?? [])
+    .map((r: { summary_polyline: string | null }) => r.summary_polyline ?? "")
+    .filter((p) => p.length > 0);
+}
+
 export async function getActivityById(
   id: number | string,
 ): Promise<Activity | null> {
