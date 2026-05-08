@@ -16,6 +16,7 @@ const Q: Q = useMock ? (mock as unknown as Q) : real;
 export const getCurrentAthlete = Q.getCurrentAthlete;
 export const getRecentActivities = Q.getRecentActivities;
 export const getAllActivities = Q.getAllActivities;
+export const getAllPolylines = Q.getAllPolylines;
 export const getActivityById = Q.getActivityById;
 export const getActivityTotals = Q.getActivityTotals;
 export const getActivePlan = Q.getActivePlan;

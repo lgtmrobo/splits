@@ -41,7 +41,8 @@ _Mock data for the README — generated via `pnpm dev:mock` + `pnpm screenshots`
 - **WHOOP** REST (recovery / strain / per-workout zones; matched to Strava activities by start time)
 - **Anthropic** `claude-sonnet-4-6` for run analysis (planned)
 - **Vercel** Hobby tier (cron included)
-- Charts and maps are hand-drawn SVG — no chart library
+- Charts are hand-drawn SVG — no chart library
+- Map: **Mapbox GL JS** (dark style) for activity detail; route thumbs are SVG
 
 Font: Geist + Geist Mono. Accent: electric green `#8EF542` (swappable via the floating Tweaks panel; choice persists in localStorage and updates the favicon live).
 
@@ -144,6 +145,14 @@ You'll wire up four things: Supabase, Google OAuth, Strava, Anthropic. Then depl
 ### 4. Anthropic
 
 `ANTHROPIC_API_KEY` from [console.anthropic.com](https://console.anthropic.com).
+
+### 4b. Mapbox
+
+The activity detail page uses Mapbox GL JS for the route map. Grab a default
+public token from [account.mapbox.com](https://account.mapbox.com) and set
+`NEXT_PUBLIC_MAPBOX_TOKEN` in `.env`. In production, lock the token to your
+domain via the Mapbox dashboard's URL restrictions. The free tier covers
+~50K monthly map loads, which is plenty for single-user.
 
 ### 5. WHOOP (optional, recommended)
 
@@ -249,7 +258,6 @@ In priority order:
 4. **LLM run analysis** — Claude analyzes each run against its planned workout. Schema (`run_analyses`) and read-side query exist; the generation pipeline doesn't.
 
 Beyond v1:
-- Real map tiles (Mapbox or MapLibre + OSM) instead of hand-drawn SVG
 - Settings page (HR zones, max HR, units, Strava disconnect)
 - Mobile layout (currently desktop-only at 1440px)
 - Empty/loading states (currently happy-path only)
