@@ -20,7 +20,7 @@ import {
   PLANNED_RUNS,
   RACES,
   RESTING_HR_12W,
-  ROUTE_POINTS,
+  ROUTE_LNGLAT,
   SPLITS,
   STATS_MONTHLY,
   TOTAL_MILES_PLANNED_M,
@@ -60,7 +60,9 @@ export async function getAllActivities(): Promise<Activity[]> {
   return ACTIVITIES;
 }
 
-export async function getActivityById(id: number | string): Promise<Activity | null> {
+export async function getActivityById(
+  id: number | string,
+): Promise<Activity | null> {
   const numId = typeof id === "string" ? Number(id) : id;
   return ACTIVITIES.find((a) => a.id === numId) ?? null;
 }
@@ -106,7 +108,10 @@ export async function getPlanMeta(): Promise<{
   total_miles_actual_m: number;
   adherence_pct: number;
 }> {
-  const totalActual = WEEK_MILEAGE.reduce((acc, w) => acc + (w.actual_m ?? 0), 0);
+  const totalActual = WEEK_MILEAGE.reduce(
+    (acc, w) => acc + (w.actual_m ?? 0),
+    0,
+  );
   return {
     total_weeks: TOTAL_WEEKS,
     current_week_index: CURRENT_WEEK_INDEX,
@@ -122,15 +127,32 @@ export async function getWeekMileage(): Promise<WeekMileage[]> {
 
 export async function getPlannedRunsBetween(
   startISO: string,
-  endISO: string
+  endISO: string,
 ): Promise<PlannedRun[]> {
-  return PLANNED_RUNS.filter((p) => p.scheduled_date >= startISO && p.scheduled_date <= endISO);
+  return PLANNED_RUNS.filter(
+    (p) => p.scheduled_date >= startISO && p.scheduled_date <= endISO,
+  );
 }
 
 /** This week's planned runs + matched actuals, in a UI-friendly shape. */
-export async function getWeekView(weekStartISO: string): Promise<PlanWeekDay[]> {
+export async function getWeekView(
+  weekStartISO: string,
+): Promise<PlanWeekDay[]> {
   const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const MONTHS = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const TODAY = "2026-04-18"; // pinned for demo; swap for new Date() when live
 
   const start = new Date(weekStartISO + "T00:00:00");
@@ -142,7 +164,8 @@ export async function getWeekView(weekStartISO: string): Promise<PlanWeekDay[]> 
     const planned = PLANNED_RUNS.find((p) => p.scheduled_date === iso) ?? null;
     const actual =
       planned?.completed_activity_id != null
-        ? ACTIVITIES.find((a) => a.id === planned.completed_activity_id) ?? null
+        ? (ACTIVITIES.find((a) => a.id === planned.completed_activity_id) ??
+          null)
         : null;
     let status: PlanWeekDay["status"] = "upcoming";
     if (planned?.workout_type === "rest") status = "rest";
@@ -187,20 +210,24 @@ export async function getAllRaces(): Promise<Race[]> {
 }
 
 export async function getUpcomingRaces(): Promise<Race[]> {
-  return RACES.filter((r) => r.status === "upcoming").sort(
-    (a, b) => a.race_date.localeCompare(b.race_date)
+  return RACES.filter((r) => r.status === "upcoming").sort((a, b) =>
+    a.race_date.localeCompare(b.race_date),
   );
 }
 
 export async function getNextARace(): Promise<Race | null> {
-  return (await getUpcomingRaces()).find((r) => r.priority === "A-race") ?? null;
+  return (
+    (await getUpcomingRaces()).find((r) => r.priority === "A-race") ?? null
+  );
 }
 
 // =========================================================================
 // AI analyses
 // =========================================================================
 
-export async function getAnalysisForActivity(activityId: number): Promise<RunAnalysis | null> {
+export async function getAnalysisForActivity(
+  activityId: number,
+): Promise<RunAnalysis | null> {
   if (activityId === COACH.activity_id) return COACH;
   return null;
 }
@@ -214,7 +241,7 @@ export async function getActivityDetail(activityId: number): Promise<{
   hr_curve: number[];
   pace_curve: number[];
   splits: typeof SPLITS;
-  route_points: [number, number][];
+  route_lnglat: [number, number][];
   zones: HRZone[];
 } | null> {
   const activity = await getActivityById(activityId);
@@ -226,7 +253,7 @@ export async function getActivityDetail(activityId: number): Promise<{
     hr_curve: HR_CURVE,
     pace_curve: PACE_CURVE,
     splits: SPLITS,
-    route_points: ROUTE_POINTS,
+    route_lnglat: ROUTE_LNGLAT,
     zones: HR_ZONES,
   };
 }
@@ -297,9 +324,16 @@ export async function getShellSummary() {
     gear: GEAR.length,
     races: RACES.filter((r) => r.status === "upcoming").length,
     plan: PLAN
-      ? { name: PLAN.name, week: CURRENT_WEEK_INDEX + 1, totalWeeks: TOTAL_WEEKS, pct: 55 }
+      ? {
+          name: PLAN.name,
+          week: CURRENT_WEEK_INDEX + 1,
+          totalWeeks: TOTAL_WEEKS,
+          pct: 55,
+        }
       : null,
-    nextRace: RACES[0] ? { name: RACES[0].name, date: RACES[0].race_date, weeksOut: 9 } : null,
+    nextRace: RACES[0]
+      ? { name: RACES[0].name, date: RACES[0].race_date, weeksOut: 9 }
+      : null,
     lastSync: new Date(Date.now() - 4 * 60_000).toISOString(),
     lastSyncCount: 14,
   };

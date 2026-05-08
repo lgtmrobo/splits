@@ -50,9 +50,14 @@ function buildXLabels(durationS: number, count = 5): string[] {
   return out;
 }
 
-function activityKindLabel(planned: WorkoutType | undefined, name: string, sportType: string | null): string {
+function activityKindLabel(
+  planned: WorkoutType | undefined,
+  name: string,
+  sportType: string | null,
+): string {
   if (planned === "long") return "Long";
-  if (planned === "interval" || planned === "tempo" || planned === "workout") return "Workout";
+  if (planned === "interval" || planned === "tempo" || planned === "workout")
+    return "Workout";
   if (planned === "recovery") return "Recovery";
   if (planned === "race") return "Race";
   if (planned === "easy") return "Easy";
@@ -77,7 +82,10 @@ export default async function ActivityDetailPage({ params }: Props) {
     .maybeSingle();
   if (!cached) {
     try {
-      await fetchActivityStreams(detail.activity.athlete_id, detail.activity.id);
+      await fetchActivityStreams(
+        detail.activity.athlete_id,
+        detail.activity.id,
+      );
       const refreshed = await getActivityDetail(Number(params.id));
       if (refreshed) detail = refreshed;
     } catch (e) {
@@ -87,24 +95,61 @@ export default async function ActivityDetailPage({ params }: Props) {
 
   const [analysis, gear, planned, whoop] = await Promise.all([
     getAnalysisForActivity(detail.activity.id),
-    detail.activity.gear_id ? getGearById(detail.activity.gear_id) : Promise.resolve(null),
+    detail.activity.gear_id
+      ? getGearById(detail.activity.gear_id)
+      : Promise.resolve(null),
     getPlannedRunByDate(detail.activity.start_date_local.slice(0, 10)),
     getWhoopWorkoutForActivity(detail.activity.id),
   ]);
 
   // If we have WHOOP zones, replace the synthetic zone shape with real data.
-  const hrZones = whoop && whoop.total_min > 0
-    ? [
-        { zone: "Z1" as const, label: "Recover", bpm_range: "<60%", minutes: whoop.zones_min[0], pct: Math.round((whoop.zones_min[0] / whoop.total_min) * 100) },
-        { zone: "Z2" as const, label: "Aerobic", bpm_range: "60–70%", minutes: whoop.zones_min[1], pct: Math.round((whoop.zones_min[1] / whoop.total_min) * 100) },
-        { zone: "Z3" as const, label: "Tempo",   bpm_range: "70–80%", minutes: whoop.zones_min[2], pct: Math.round((whoop.zones_min[2] / whoop.total_min) * 100) },
-        { zone: "Z4" as const, label: "Thresh",  bpm_range: "80–90%", minutes: whoop.zones_min[3], pct: Math.round((whoop.zones_min[3] / whoop.total_min) * 100) },
-        { zone: "Z5" as const, label: "VO₂",     bpm_range: "90+%",   minutes: whoop.zones_min[4], pct: Math.round((whoop.zones_min[4] / whoop.total_min) * 100) },
-      ]
-    : detail.zones;
+  const hrZones =
+    whoop && whoop.total_min > 0
+      ? [
+          {
+            zone: "Z1" as const,
+            label: "Recover",
+            bpm_range: "<60%",
+            minutes: whoop.zones_min[0],
+            pct: Math.round((whoop.zones_min[0] / whoop.total_min) * 100),
+          },
+          {
+            zone: "Z2" as const,
+            label: "Aerobic",
+            bpm_range: "60–70%",
+            minutes: whoop.zones_min[1],
+            pct: Math.round((whoop.zones_min[1] / whoop.total_min) * 100),
+          },
+          {
+            zone: "Z3" as const,
+            label: "Tempo",
+            bpm_range: "70–80%",
+            minutes: whoop.zones_min[2],
+            pct: Math.round((whoop.zones_min[2] / whoop.total_min) * 100),
+          },
+          {
+            zone: "Z4" as const,
+            label: "Thresh",
+            bpm_range: "80–90%",
+            minutes: whoop.zones_min[3],
+            pct: Math.round((whoop.zones_min[3] / whoop.total_min) * 100),
+          },
+          {
+            zone: "Z5" as const,
+            label: "VO₂",
+            bpm_range: "90+%",
+            minutes: whoop.zones_min[4],
+            pct: Math.round((whoop.zones_min[4] / whoop.total_min) * 100),
+          },
+        ]
+      : detail.zones;
   const { activity } = detail;
 
-  const kindLabel = activityKindLabel(planned?.workout_type, activity.name, activity.sport_type);
+  const kindLabel = activityKindLabel(
+    planned?.workout_type,
+    activity.name,
+    activity.sport_type,
+  );
   const metaLine = [
     formatFullDate(activity.start_date_local.slice(0, 10)),
     activity.start_date_local.slice(11, 16),
@@ -115,9 +160,15 @@ export default async function ActivityDetailPage({ params }: Props) {
 
   const xLabels = buildXLabels(activity.elapsed_time_s, 5);
   const fastestSplit = detail.splits.length
-    ? detail.splits.reduce((best, s) =>
-        !best || parseFloat(s.pace.replace(":", ".")) < parseFloat(best.pace.replace(":", ".")) ? s : best
-      , detail.splits[0])
+    ? detail.splits.reduce(
+        (best, s) =>
+          !best ||
+          parseFloat(s.pace.replace(":", ".")) <
+            parseFloat(best.pace.replace(":", "."))
+            ? s
+            : best,
+        detail.splits[0],
+      )
     : null;
   const splitPaceSecs = detail.splits.map((s) => {
     const [m, sec] = s.pace.split(":").map(Number);
@@ -139,7 +190,10 @@ export default async function ActivityDetailPage({ params }: Props) {
           textTransform: "uppercase",
         }}
       >
-        <Link href="/activities" style={{ color: "inherit", cursor: "pointer" }}>
+        <Link
+          href="/activities"
+          style={{ color: "inherit", cursor: "pointer" }}
+        >
           ← Activities
         </Link>
         <span>/</span>
@@ -148,16 +202,43 @@ export default async function ActivityDetailPage({ params }: Props) {
         </span>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: 14 }}>
-        <div className="row between" style={{ padding: "18px 24px", borderBottom: "1px solid var(--hairline)" }}>
+      <div
+        className="card"
+        style={{ padding: 0, overflow: "hidden", marginBottom: 14 }}
+      >
+        <div
+          className="row between"
+          style={{
+            padding: "18px 24px",
+            borderBottom: "1px solid var(--hairline)",
+          }}
+        >
           <div className="col gap-6">
             <div className="row gap-10 baseline">
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 500, letterSpacing: "-0.01em", whiteSpace: "nowrap" }}>
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: 22,
+                  fontWeight: 500,
+                  letterSpacing: "-0.01em",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {activity.name}
               </h1>
-              <Pill kind={kindLabel === "Workout" || kindLabel === "Fartlek" ? "accent" : "muted"}>{kindLabel}</Pill>
+              <Pill
+                kind={
+                  kindLabel === "Workout" || kindLabel === "Fartlek"
+                    ? "accent"
+                    : "muted"
+                }
+              >
+                {kindLabel}
+              </Pill>
             </div>
-            <div className="muted num" style={{ fontSize: 12 }}>{metaLine}</div>
+            <div className="muted num" style={{ fontSize: 12 }}>
+              {metaLine}
+            </div>
           </div>
           <div className="row gap-8">
             <button type="button" className="btn">
@@ -171,27 +252,68 @@ export default async function ActivityDetailPage({ params }: Props) {
         </div>
 
         <div className="row" style={{ alignItems: "stretch" }}>
-          <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 18, minWidth: 280, borderRight: "1px solid var(--hairline)" }}>
+          <div
+            style={{
+              padding: "24px 28px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 18,
+              minWidth: 280,
+              borderRight: "1px solid var(--hairline)",
+            }}
+          >
             <div className="col gap-4">
-              <div className="stat-label" style={{ marginBottom: 0 }}>Distance</div>
+              <div className="stat-label" style={{ marginBottom: 0 }}>
+                Distance
+              </div>
               <div className="row baseline gap-4">
-                <span className="stat-num" style={{ fontSize: 64 }}>{formatMiles(activity.distance_m)}</span>
-                <span className="stat-unit" style={{ fontSize: 14 }}>mi</span>
+                <span className="stat-num" style={{ fontSize: 64 }}>
+                  {formatMiles(activity.distance_m)}
+                </span>
+                <span className="stat-unit" style={{ fontSize: 14 }}>
+                  mi
+                </span>
               </div>
             </div>
-            <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-              <Stat label="Duration" value={formatDuration(activity.moving_time_s)} />
-              <Stat label="Avg Pace" value={speedToPacePerMile(activity.average_speed_ms)} unit="/mi" />
-              <Stat label="Avg HR" value={activity.average_heartrate ?? "—"} unit="bpm" />
-              <Stat label="Max HR" value={activity.max_heartrate ?? "—"} unit="bpm" />
-              <Stat label="Elev" value={formatFeet(activity.total_elevation_gain_m)} unit="ft" />
-              <Stat label="Cadence" value={activity.average_cadence ?? "—"} unit="spm" />
+            <div
+              className="grid"
+              style={{ gridTemplateColumns: "1fr 1fr", gap: 18 }}
+            >
+              <Stat
+                label="Duration"
+                value={formatDuration(activity.moving_time_s)}
+              />
+              <Stat
+                label="Avg Pace"
+                value={speedToPacePerMile(activity.average_speed_ms)}
+                unit="/mi"
+              />
+              <Stat
+                label="Avg HR"
+                value={activity.average_heartrate ?? "—"}
+                unit="bpm"
+              />
+              <Stat
+                label="Max HR"
+                value={activity.max_heartrate ?? "—"}
+                unit="bpm"
+              />
+              <Stat
+                label="Elev"
+                value={formatFeet(activity.total_elevation_gain_m)}
+                unit="ft"
+              />
+              <Stat
+                label="Cadence"
+                value={activity.average_cadence ?? "—"}
+                unit="spm"
+              />
             </div>
           </div>
           <div style={{ flex: 1, padding: 14 }}>
-            {detail.route_points.length > 0 ? (
+            {detail.route_lnglat.length > 0 ? (
               <RouteMap
-                points={detail.route_points}
+                points={detail.route_lnglat}
                 height={300}
                 titleLabel={`${activity.name} · ${formatMiles(activity.distance_m)}mi`}
                 metaLabel={metaLine}
@@ -221,7 +343,10 @@ export default async function ActivityDetailPage({ params }: Props) {
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1.2fr 1fr", marginBottom: 14 }}>
+      <div
+        className="grid"
+        style={{ gridTemplateColumns: "1fr 1.2fr 1fr", marginBottom: 14 }}
+      >
         <div className="card">
           <CardHeader title="HR Zones · This run" />
           <div style={{ marginBottom: 14 }}>
@@ -240,7 +365,11 @@ export default async function ActivityDetailPage({ params }: Props) {
               {hrZones.map((z, i) => (
                 <tr key={z.zone}>
                   <td>
-                    <span style={{ color: `var(--zone-${i + 1})`, marginRight: 6 }}>■</span>
+                    <span
+                      style={{ color: `var(--zone-${i + 1})`, marginRight: 6 }}
+                    >
+                      ■
+                    </span>
                     {z.zone} <span className="muted">{z.label}</span>
                   </td>
                   <td className="num muted">{z.bpm_range}</td>
@@ -253,7 +382,10 @@ export default async function ActivityDetailPage({ params }: Props) {
         </div>
 
         <div className="card">
-          <CardHeader title="Splits · per mile" action={fastestSplit ? `Fastest mi · ${fastestSplit.pace}` : ""} />
+          <CardHeader
+            title="Splits · per mile"
+            action={fastestSplit ? `Fastest mi · ${fastestSplit.pace}` : ""}
+          />
           {detail.splits.length === 0 ? (
             <div className="muted" style={{ padding: 12, fontSize: 12 }}>
               No splits — streams not yet fetched for this activity.
@@ -273,7 +405,10 @@ export default async function ActivityDetailPage({ params }: Props) {
                 {detail.splits.map((s, i) => {
                   const totalSec = splitPaceSecs[i];
                   const range = maxSplitSec - minSplitSec || 1;
-                  const pct = Math.max(0.08, 1 - (totalSec - minSplitSec) / range);
+                  const pct = Math.max(
+                    0.08,
+                    1 - (totalSec - minSplitSec) / range,
+                  );
                   const isFastest = fastestSplit && s.mi === fastestSplit.mi;
                   return (
                     <tr key={s.mi}>
@@ -288,12 +423,20 @@ export default async function ActivityDetailPage({ params }: Props) {
                         {s.pace}
                       </td>
                       <td style={{ width: "40%" }}>
-                        <div style={{ height: 4, background: "var(--surface-3)", borderRadius: 2 }}>
+                        <div
+                          style={{
+                            height: 4,
+                            background: "var(--surface-3)",
+                            borderRadius: 2,
+                          }}
+                        >
                           <div
                             style={{
                               width: `${pct * 100}%`,
                               height: "100%",
-                              background: isFastest ? "var(--accent)" : "var(--text-3)",
+                              background: isFastest
+                                ? "var(--accent)"
+                                : "var(--text-3)",
                               borderRadius: 2,
                             }}
                           />
@@ -316,25 +459,57 @@ export default async function ActivityDetailPage({ params }: Props) {
             <div className="row between" style={{ marginBottom: 12 }}>
               <div className="row gap-6 baseline">
                 <Icon name="sparkle" size={12} />
-                <span className="card-title" style={{ color: "var(--accent)" }}>AI Coach · Analysis</span>
+                <span className="card-title" style={{ color: "var(--accent)" }}>
+                  AI Coach · Analysis
+                </span>
               </div>
               <span className="card-action">Regenerate</span>
             </div>
-            <div style={{ fontSize: 13, color: "var(--text-1)", lineHeight: 1.5, fontWeight: 500, marginBottom: 12 }}>
+            <div
+              style={{
+                fontSize: 13,
+                color: "var(--text-1)",
+                lineHeight: 1.5,
+                fontWeight: 500,
+                marginBottom: 12,
+              }}
+            >
               {analysis.summary}
             </div>
-            <div className="col gap-10" style={{ fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.55 }}>
+            <div
+              className="col gap-10"
+              style={{
+                fontSize: 12.5,
+                color: "var(--text-2)",
+                lineHeight: 1.55,
+              }}
+            >
               <p style={{ margin: 0 }}>{analysis.feedback_jsonb.pacing}</p>
               <p style={{ margin: 0 }}>{analysis.feedback_jsonb.effort}</p>
-              <p style={{ margin: 0 }}>{analysis.feedback_jsonb.plan_adherence}</p>
+              <p style={{ margin: 0 }}>
+                {analysis.feedback_jsonb.plan_adherence}
+              </p>
             </div>
-            <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--hairline)" }}>
+            <div
+              style={{
+                marginTop: 14,
+                paddingTop: 12,
+                borderTop: "1px solid var(--hairline)",
+              }}
+            >
               <div className="col gap-6">
                 {analysis.feedback_jsonb.flags.map((f, i) => (
-                  <div key={i} className="row gap-8" style={{ fontSize: 12, alignItems: "flex-start" }}>
+                  <div
+                    key={i}
+                    className="row gap-8"
+                    style={{ fontSize: 12, alignItems: "flex-start" }}
+                  >
                     <span
                       style={{
-                        color: f.kind === "positive" ? "var(--accent)" : "var(--amber)",
+                        color:
+                          f.kind === "positive"
+                            ? "var(--accent)"
+                            : "var(--amber)",
                         fontFamily: "var(--font-geist-mono), monospace",
                         fontSize: 10,
                         letterSpacing: "0.08em",
@@ -347,7 +522,15 @@ export default async function ActivityDetailPage({ params }: Props) {
                     >
                       {f.kind === "positive" ? "+ Good" : "! Note"}
                     </span>
-                    <span style={{ color: "var(--text-1)", flex: 1, lineHeight: 1.4 }}>{f.text}</span>
+                    <span
+                      style={{
+                        color: "var(--text-1)",
+                        flex: 1,
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {f.text}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -358,16 +541,35 @@ export default async function ActivityDetailPage({ params }: Props) {
 
       <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
         <HeartRateSummary
-          avgHR={activity.average_heartrate ?? whoop?.average_heart_rate ?? null}
+          avgHR={
+            activity.average_heartrate ?? whoop?.average_heart_rate ?? null
+          }
           maxHR={activity.max_heartrate ?? whoop?.max_heart_rate ?? null}
           strain={whoop?.strain ?? null}
         />
         <div className="card">
           <div className="row between" style={{ marginBottom: 10 }}>
             <div className="card-title">Pace · Full run</div>
-            <div className="row gap-10" style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: 11, color: "var(--text-2)" }}>
-              <span>avg <span style={{ color: "var(--text-1)" }}>{paceLabelFromSpeed(activity.average_speed_ms ?? 0)}</span></span>
-              <span>fastest <span style={{ color: "var(--accent)" }}>{paceLabelFromSpeed(activity.max_speed_ms ?? 0)}</span></span>
+            <div
+              className="row gap-10"
+              style={{
+                fontFamily: "var(--font-geist-mono), monospace",
+                fontSize: 11,
+                color: "var(--text-2)",
+              }}
+            >
+              <span>
+                avg{" "}
+                <span style={{ color: "var(--text-1)" }}>
+                  {paceLabelFromSpeed(activity.average_speed_ms ?? 0)}
+                </span>
+              </span>
+              <span>
+                fastest{" "}
+                <span style={{ color: "var(--accent)" }}>
+                  {paceLabelFromSpeed(activity.max_speed_ms ?? 0)}
+                </span>
+              </span>
             </div>
           </div>
           {detail.pace_curve.length > 0 ? (
@@ -384,7 +586,12 @@ export default async function ActivityDetailPage({ params }: Props) {
               xLabels={xLabels}
             />
           ) : (
-            <div className="muted" style={{ padding: 24, textAlign: "center", fontSize: 12 }}>No pace stream.</div>
+            <div
+              className="muted"
+              style={{ padding: 24, textAlign: "center", fontSize: 12 }}
+            >
+              No pace stream.
+            </div>
           )}
         </div>
       </div>
@@ -414,12 +621,12 @@ function HeartRateSummary({
     strain == null
       ? "—"
       : strain >= 18
-      ? "All-out"
-      : strain >= 14
-      ? "Strenuous"
-      : strain >= 10
-      ? "Moderate"
-      : "Light";
+        ? "All-out"
+        : strain >= 14
+          ? "Strenuous"
+          : strain >= 10
+            ? "Moderate"
+            : "Light";
 
   return (
     <div className="card">
@@ -428,7 +635,11 @@ function HeartRateSummary({
       </div>
       <div
         className="grid"
-        style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 18 }}
+        style={{
+          gridTemplateColumns: "1fr 1fr 1fr",
+          gap: 14,
+          marginBottom: 18,
+        }}
       >
         <Stat label="Avg HR" value={avgHR ?? "—"} unit="bpm" size="lg" />
         <Stat label="Max HR" value={maxHR ?? "—"} unit="bpm" size="lg" />
@@ -451,7 +662,9 @@ function HeartRateSummary({
           }}
         >
           <span>HR range</span>
-          <span>{LO}–{HI} bpm</span>
+          <span>
+            {LO}–{HI} bpm
+          </span>
         </div>
         <div
           style={{

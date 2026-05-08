@@ -1,5 +1,5 @@
 import { createServerSupabase } from "@/lib/supabase/server";
-import { decodePolyline, normalizePoints } from "@/lib/strava/polyline";
+import { decodePolyline } from "@/lib/strava/polyline";
 import { addDaysISO, dayDiff, todayLocalISO } from "@/lib/utils/dates";
 import type {
   Activity,
@@ -21,7 +21,14 @@ const M_PER_FT = 0.3048;
 // Index 0 = the user's primary/most-used shoe; uses the live accent so it
 // stays in sync with the Tweaks panel. Subsequent shoes get distinct hex
 // colors so they're visually distinguishable.
-const GEAR_PALETTE = ["var(--accent)", "#6BA8E8", "#E8B04D", "#B18EE8", "#F58EE8", "#8EF5E8"];
+const GEAR_PALETTE = [
+  "var(--accent)",
+  "#6BA8E8",
+  "#E8B04D",
+  "#B18EE8",
+  "#F58EE8",
+  "#8EF5E8",
+];
 
 function pickGearColor(idx: number, retired: boolean) {
   if (retired) return "#6B6B75";
@@ -43,7 +50,8 @@ export async function getCurrentAthlete(): Promise<Athlete> {
   const sb = createServerSupabase();
   const { data, error } = await sb.from("athletes").select("*").maybeSingle();
   if (error) throw error;
-  if (!data) throw new Error("No athlete row for current user — connect Strava first.");
+  if (!data)
+    throw new Error("No athlete row for current user — connect Strava first.");
   return data as Athlete;
 }
 
@@ -72,10 +80,16 @@ export async function getAllActivities(): Promise<Activity[]> {
   return (data ?? []) as Activity[];
 }
 
-export async function getActivityById(id: number | string): Promise<Activity | null> {
+export async function getActivityById(
+  id: number | string,
+): Promise<Activity | null> {
   const numId = typeof id === "string" ? Number(id) : id;
   const sb = createServerSupabase();
-  const { data, error } = await sb.from("activities").select("*").eq("id", numId).maybeSingle();
+  const { data, error } = await sb
+    .from("activities")
+    .select("*")
+    .eq("id", numId)
+    .maybeSingle();
   if (error) throw error;
   return (data as Activity) ?? null;
 }
@@ -104,7 +118,7 @@ export async function getActivityTotals(): Promise<{
   const { data, error } = await sb
     .from("activities")
     .select(
-      "distance_m, moving_time_s, average_speed_ms, average_heartrate, total_elevation_gain_m, start_date"
+      "distance_m, moving_time_s, average_speed_ms, average_heartrate, total_elevation_gain_m, start_date",
     );
   if (error) throw error;
   const rows = data ?? [];
@@ -182,12 +196,20 @@ export async function getPlanMeta(): Promise<{
 }> {
   const plan = await getActivePlan();
   if (!plan) {
-    return { total_weeks: 0, current_week_index: 0, total_miles_planned_m: 0, total_miles_actual_m: 0, adherence_pct: 0 };
+    return {
+      total_weeks: 0,
+      current_week_index: 0,
+      total_miles_planned_m: 0,
+      total_miles_actual_m: 0,
+      adherence_pct: 0,
+    };
   }
   const sb = createServerSupabase();
   const { data: planned, error: plannedErr } = await sb
     .from("planned_runs")
-    .select("scheduled_date, target_distance_m, completion_status, completed_activity_id")
+    .select(
+      "scheduled_date, target_distance_m, completion_status, completed_activity_id",
+    )
     .eq("plan_id", plan.id);
   if (plannedErr) throw plannedErr;
 
@@ -200,18 +222,32 @@ export async function getPlanMeta(): Promise<{
       .from("activities")
       .select("distance_m")
       .in("id", completedIds);
-    actualTotal = (acts ?? []).reduce((acc, a) => acc + Number(a.distance_m ?? 0), 0);
+    actualTotal = (acts ?? []).reduce(
+      (acc, a) => acc + Number(a.distance_m ?? 0),
+      0,
+    );
   }
-  const plannedTotal = (planned ?? []).reduce((acc, p) => acc + Number(p.target_distance_m ?? 0), 0);
+  const plannedTotal = (planned ?? []).reduce(
+    (acc, p) => acc + Number(p.target_distance_m ?? 0),
+    0,
+  );
 
-  const totalWeeks = Math.max(1, Math.ceil(dayDiff(plan.start_date, plan.end_date) / 7));
+  const totalWeeks = Math.max(
+    1,
+    Math.ceil(dayDiff(plan.start_date, plan.end_date) / 7),
+  );
   const today = todayLocalISO();
   const weeksElapsed = Math.floor(dayDiff(plan.start_date, today) / 7);
   const currentWeekIndex = Math.max(0, Math.min(totalWeeks - 1, weeksElapsed));
 
-  const completedCount = (planned ?? []).filter((p) => p.completion_status === "completed").length;
-  const dueCount = (planned ?? []).filter((p) => p.scheduled_date <= today).length;
-  const adherence = dueCount > 0 ? Math.round((completedCount / dueCount) * 100) : 0;
+  const completedCount = (planned ?? []).filter(
+    (p) => p.completion_status === "completed",
+  ).length;
+  const dueCount = (planned ?? []).filter(
+    (p) => p.scheduled_date <= today,
+  ).length;
+  const adherence =
+    dueCount > 0 ? Math.round((completedCount / dueCount) * 100) : 0;
 
   return {
     total_weeks: totalWeeks,
@@ -242,7 +278,8 @@ export async function getWeekMileage(): Promise<WeekMileage[]> {
       .from("activities")
       .select("id, distance_m")
       .in("id", completedIds);
-    for (const a of acts ?? []) actualsById.set(Number(a.id), Number(a.distance_m ?? 0));
+    for (const a of acts ?? [])
+      actualsById.set(Number(a.id), Number(a.distance_m ?? 0));
   }
 
   const buckets = new Map<number, WeekMileage>();
@@ -258,7 +295,9 @@ export async function getWeekMileage(): Promise<WeekMileage[]> {
     };
     existing.planned_m += Number(p.target_distance_m ?? 0);
     if (p.completed_activity_id != null) {
-      existing.actual_m = (existing.actual_m ?? 0) + (actualsById.get(p.completed_activity_id) ?? 0);
+      existing.actual_m =
+        (existing.actual_m ?? 0) +
+        (actualsById.get(p.completed_activity_id) ?? 0);
     }
     buckets.set(week, existing);
   }
@@ -268,7 +307,9 @@ export async function getWeekMileage(): Promise<WeekMileage[]> {
     .map((w) => ({ ...w, actual_m: w.start_date > today ? null : w.actual_m }));
 }
 
-export async function getPlannedRunByDate(dateISO: string): Promise<PlannedRun | null> {
+export async function getPlannedRunByDate(
+  dateISO: string,
+): Promise<PlannedRun | null> {
   const sb = createServerSupabase();
   const { data, error } = await sb
     .from("planned_runs")
@@ -279,7 +320,10 @@ export async function getPlannedRunByDate(dateISO: string): Promise<PlannedRun |
   return (data as PlannedRun) ?? null;
 }
 
-export async function getPlannedRunsBetween(startISO: string, endISO: string): Promise<PlannedRun[]> {
+export async function getPlannedRunsBetween(
+  startISO: string,
+  endISO: string,
+): Promise<PlannedRun[]> {
   const sb = createServerSupabase();
   const { data, error } = await sb
     .from("planned_runs")
@@ -291,9 +335,24 @@ export async function getPlannedRunsBetween(startISO: string, endISO: string): P
   return (data ?? []) as PlannedRun[];
 }
 
-export async function getWeekView(weekStartISO: string): Promise<PlanWeekDay[]> {
+export async function getWeekView(
+  weekStartISO: string,
+): Promise<PlanWeekDay[]> {
   const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const MONTHS = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const today = todayLocalISO();
 
   const endISO = addDaysISO(weekStartISO, 6);
@@ -312,8 +371,12 @@ export async function getWeekView(weekStartISO: string): Promise<PlanWeekDay[]> 
     const p = planned.find((pl) => pl.scheduled_date === iso) ?? null;
     const actual =
       p?.completed_activity_id != null
-        ? ((weekActs ?? []).find((a: any) => Number(a.id) === p.completed_activity_id) as Activity | undefined) ?? null
-        : ((weekActs ?? []).find((a: any) => a.start_date_local?.slice(0, 10) === iso) as Activity | undefined) ?? null;
+        ? (((weekActs ?? []).find(
+            (a: any) => Number(a.id) === p.completed_activity_id,
+          ) as Activity | undefined) ?? null)
+        : (((weekActs ?? []).find(
+            (a: any) => a.start_date_local?.slice(0, 10) === iso,
+          ) as Activity | undefined) ?? null);
 
     let status: PlanWeekDay["status"] = "upcoming";
     if (p?.workout_type === "rest") status = "rest";
@@ -344,28 +407,39 @@ function decorateGear(rows: any[]): Gear[] {
     ...g,
     color: pickGearColor(i, !!g.retired),
     purpose: g.description ?? "",
-    cap_m: g.cap_m != null ? Number(g.cap_m) : defaultCapM(g.description ?? null),
+    cap_m:
+      g.cap_m != null ? Number(g.cap_m) : defaultCapM(g.description ?? null),
     last_run: null,
   })) as Gear[];
 }
 
 export async function getAllGear(): Promise<Gear[]> {
   const sb = createServerSupabase();
-  const { data, error } = await sb.from("gear").select("*").order("retired", { ascending: true });
+  const { data, error } = await sb
+    .from("gear")
+    .select("*")
+    .order("retired", { ascending: true });
   if (error) throw error;
   return decorateGear(data ?? []);
 }
 
 export async function getActiveGear(): Promise<Gear[]> {
   const sb = createServerSupabase();
-  const { data, error } = await sb.from("gear").select("*").eq("retired", false);
+  const { data, error } = await sb
+    .from("gear")
+    .select("*")
+    .eq("retired", false);
   if (error) throw error;
   return decorateGear(data ?? []);
 }
 
 export async function getGearById(id: string): Promise<Gear | null> {
   const sb = createServerSupabase();
-  const { data, error } = await sb.from("gear").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await sb
+    .from("gear")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
   if (error) throw error;
   if (!data) return null;
   return decorateGear([data])[0];
@@ -385,7 +459,10 @@ function decorateRace(r: any): Race {
 
 export async function getAllRaces(): Promise<Race[]> {
   const sb = createServerSupabase();
-  const { data, error } = await sb.from("races").select("*").order("race_date", { ascending: false });
+  const { data, error } = await sb
+    .from("races")
+    .select("*")
+    .order("race_date", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(decorateRace);
 }
@@ -410,7 +487,9 @@ export async function getNextARace(): Promise<Race | null> {
 // AI analyses
 // =========================================================================
 
-export async function getAnalysisForActivity(activityId: number): Promise<RunAnalysis | null> {
+export async function getAnalysisForActivity(
+  activityId: number,
+): Promise<RunAnalysis | null> {
   const sb = createServerSupabase();
   const { data, error } = await sb
     .from("run_analyses")
@@ -433,8 +512,19 @@ function downsample<T>(arr: T[], target: number): T[] {
   return out;
 }
 
-function computeSplits(distance: number[], time: number[], hr: number[], altitude: number[]) {
-  const splits: { mi: number; pace: string; hr: number; elev_ft: number; partial?: boolean }[] = [];
+function computeSplits(
+  distance: number[],
+  time: number[],
+  hr: number[],
+  altitude: number[],
+) {
+  const splits: {
+    mi: number;
+    pace: string;
+    hr: number;
+    elev_ft: number;
+    partial?: boolean;
+  }[] = [];
   if (!distance || distance.length === 0) return splits;
   const totalMi = distance[distance.length - 1] / M_PER_MILE;
   let lastIdx = 0;
@@ -444,7 +534,9 @@ function computeSplits(distance: number[], time: number[], hr: number[], altitud
     while (i < distance.length && distance[i] < targetM) i++;
     const segTime = time[i] - time[lastIdx];
     const segHr = hr.length ? Math.round(avg(hr.slice(lastIdx, i))) : 0;
-    const segElev = altitude.length ? (altitude[i] - altitude[lastIdx]) / M_PER_FT : 0;
+    const segElev = altitude.length
+      ? (altitude[i] - altitude[lastIdx]) / M_PER_FT
+      : 0;
     splits.push({
       mi: m,
       pace: secsToPace(segTime),
@@ -458,9 +550,13 @@ function computeSplits(distance: number[], time: number[], hr: number[], altitud
     const finalMi = distance[distance.length - 1] / M_PER_MILE;
     splits.push({
       mi: Math.round(finalMi * 10) / 10,
-      pace: secsToPace((segTime / (finalMi - Math.floor(totalMi))) || 0),
+      pace: secsToPace(segTime / (finalMi - Math.floor(totalMi)) || 0),
       hr: hr.length ? Math.round(avg(hr.slice(lastIdx))) : 0,
-      elev_ft: altitude.length ? Math.round((altitude[altitude.length - 1] - altitude[lastIdx]) / M_PER_FT) : 0,
+      elev_ft: altitude.length
+        ? Math.round(
+            (altitude[altitude.length - 1] - altitude[lastIdx]) / M_PER_FT,
+          )
+        : 0,
       partial: true,
     });
   }
@@ -483,8 +579,14 @@ export async function getActivityDetail(activityId: number): Promise<{
   activity: Activity;
   hr_curve: number[];
   pace_curve: number[];
-  splits: { mi: number; pace: string; hr: number; elev_ft: number; partial?: boolean }[];
-  route_points: [number, number][];
+  splits: {
+    mi: number;
+    pace: string;
+    hr: number;
+    elev_ft: number;
+    partial?: boolean;
+  }[];
+  route_lnglat: [number, number][];
   zones: HRZone[];
 } | null> {
   const activity = await getActivityById(activityId);
@@ -508,19 +610,19 @@ export async function getActivityDetail(activityId: number): Promise<{
   const pace_curve = velocity.length
     ? downsample(velocity, 60).map((v) => (v > 0 ? M_PER_MILE / v / 60 : 0))
     : [];
-  const splits = distance.length && time.length ? computeSplits(distance, time, hr, altitude) : [];
+  const splits =
+    distance.length && time.length
+      ? computeSplits(distance, time, hr, altitude)
+      : [];
 
-  let route_points: [number, number][] = [];
-  // Detail map renders at 800x300 (aspect 800/300). Pass that so the route
-  // keeps its true proportions inside the box (no horizontal stretching).
-  const detailAspect = 800 / 300;
+  // Mapbox/GeoJSON expects [lng, lat]. Strava polylines decode as [lat, lng].
+  let route_lnglat: [number, number][] = [];
   if (latlng.length) {
-    const sample = downsample(latlng, 200);
-    route_points = normalizePoints(sample, { aspect: detailAspect });
+    route_lnglat = downsample(latlng, 200).map(([lat, lng]) => [lng, lat]);
   } else if (activity.summary_polyline) {
     const decoded = decodePolyline(activity.summary_polyline);
     if (decoded.length > 1) {
-      route_points = normalizePoints(downsample(decoded, 200), { aspect: detailAspect });
+      route_lnglat = downsample(decoded, 200).map(([lat, lng]) => [lng, lat]);
     }
   }
 
@@ -529,7 +631,7 @@ export async function getActivityDetail(activityId: number): Promise<{
     hr_curve,
     pace_curve,
     splits,
-    route_points,
+    route_lnglat,
     zones: defaultHRZones(),
   };
 }
@@ -557,7 +659,9 @@ export async function getWeekHRZones(): Promise<HRZone[]> {
   // Prefer WHOOP per-workout zones (real per-zone time, personalized to user).
   const { data: whoop } = await sb
     .from("whoop_workouts")
-    .select("zone_one_ms, zone_two_ms, zone_three_ms, zone_four_ms, zone_five_ms")
+    .select(
+      "zone_one_ms, zone_two_ms, zone_three_ms, zone_four_ms, zone_five_ms",
+    )
     .gte("start_at", since.toISOString());
 
   if (whoop && whoop.length > 0) {
@@ -585,12 +689,27 @@ export async function getWeekHRZones(): Promise<HRZone[]> {
     .gte("start_date", since.toISOString());
   if (!acts || acts.length === 0) return zones;
 
-  const minutesBy: Record<string, number> = { Z1: 0, Z2: 0, Z3: 0, Z4: 0, Z5: 0 };
+  const minutesBy: Record<string, number> = {
+    Z1: 0,
+    Z2: 0,
+    Z3: 0,
+    Z4: 0,
+    Z5: 0,
+  };
   for (const a of acts) {
     const hr = Number(a.average_heartrate ?? 0);
     const min = Number(a.moving_time_s ?? 0) / 60;
     if (!hr || !min) continue;
-    const key = hr < 130 ? "Z1" : hr < 149 ? "Z2" : hr < 163 ? "Z3" : hr < 176 ? "Z4" : "Z5";
+    const key =
+      hr < 130
+        ? "Z1"
+        : hr < 149
+          ? "Z2"
+          : hr < 163
+            ? "Z3"
+            : hr < 176
+              ? "Z4"
+              : "Z5";
     minutesBy[key] += min;
   }
   const total = Object.values(minutesBy).reduce((a, b) => a + b, 0) || 1;
@@ -617,7 +736,9 @@ export async function getDailyLoad28d(): Promise<number[]> {
     const dayDiff = Math.floor((today.getTime() - d.getTime()) / 86400_000);
     const idx = 27 - dayDiff;
     if (idx < 0 || idx > 27) continue;
-    const load = Number(a.suffer_score ?? Math.round(Number(a.moving_time_s ?? 0) / 60));
+    const load = Number(
+      a.suffer_score ?? Math.round(Number(a.moving_time_s ?? 0) / 60),
+    );
     out[idx] += load;
   }
   return out;
@@ -636,8 +757,24 @@ export async function getMonthlyStats() {
     .from("activities")
     .select("start_date_local, distance_m")
     .gte("start_date", since.toISOString());
-  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const buckets = new Map<string, { miles: number; runs: number; sortKey: string }>();
+  const MONTHS = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const buckets = new Map<
+    string,
+    { miles: number; runs: number; sortKey: string }
+  >();
   for (let i = 5; i >= 0; i--) {
     const d = new Date();
     d.setUTCMonth(d.getUTCMonth() - i);
@@ -670,7 +807,10 @@ export async function getPaceTrend12w(): Promise<number[]> {
     .from("activities")
     .select("start_date, distance_m, moving_time_s")
     .gte("start_date", since.toISOString());
-  const buckets: { dist: number; time: number }[] = Array.from({ length: 12 }, () => ({ dist: 0, time: 0 }));
+  const buckets: { dist: number; time: number }[] = Array.from(
+    { length: 12 },
+    () => ({ dist: 0, time: 0 }),
+  );
   const today = new Date();
   for (const a of acts ?? []) {
     const d = new Date(a.start_date);
@@ -680,7 +820,9 @@ export async function getPaceTrend12w(): Promise<number[]> {
     buckets[idx].dist += Number(a.distance_m ?? 0);
     buckets[idx].time += Number(a.moving_time_s ?? 0);
   }
-  return buckets.map((b) => (b.dist > 0 ? b.time / 60 / (b.dist / M_PER_MILE) : 0));
+  return buckets.map((b) =>
+    b.dist > 0 ? b.time / 60 / (b.dist / M_PER_MILE) : 0,
+  );
 }
 
 export async function getRestingHR12w(): Promise<number[]> {
@@ -703,7 +845,9 @@ export async function getRestingHR12w(): Promise<number[]> {
     const idx = 11 - wkAgo;
     if (idx >= 0 && idx < 12) buckets[idx].push(Number(r.resting_heart_rate));
   }
-  return buckets.map((b) => (b.length ? b.reduce((a, c) => a + c, 0) / b.length : 0));
+  return buckets.map((b) =>
+    b.length ? b.reduce((a, c) => a + c, 0) / b.length : 0,
+  );
 }
 
 export async function getLatestRecovery(): Promise<{
@@ -758,8 +902,10 @@ export async function getWhoopWorkoutForActivity(activityId: number): Promise<{
     strain: data.strain != null ? Number(data.strain) : null,
     zones_min: minutes,
     total_min: total,
-    average_heart_rate: data.average_heart_rate != null ? Number(data.average_heart_rate) : null,
-    max_heart_rate: data.max_heart_rate != null ? Number(data.max_heart_rate) : null,
+    average_heart_rate:
+      data.average_heart_rate != null ? Number(data.average_heart_rate) : null,
+    max_heart_rate:
+      data.max_heart_rate != null ? Number(data.max_heart_rate) : null,
   };
 }
 
@@ -780,7 +926,9 @@ export async function getWeekStats(weekStartISO: string): Promise<{
   end.setUTCDate(end.getUTCDate() + 7);
   const { data } = await sb
     .from("activities")
-    .select("distance_m, moving_time_s, total_elevation_gain_m, average_heartrate")
+    .select(
+      "distance_m, moving_time_s, total_elevation_gain_m, average_heartrate",
+    )
     .gte("start_date_local", start.toISOString())
     .lt("start_date_local", end.toISOString());
   let distance_m = 0;
@@ -797,7 +945,13 @@ export async function getWeekStats(weekStartISO: string): Promise<{
       hrN++;
     }
   }
-  return { distance_m, duration_s, elev_m, avg_hr: hrN > 0 ? Math.round(hrSum / hrN) : 0, runs: data?.length ?? 0 };
+  return {
+    distance_m,
+    duration_s,
+    elev_m,
+    avg_hr: hrN > 0 ? Math.round(hrSum / hrN) : 0,
+    runs: data?.length ?? 0,
+  };
 }
 
 export async function getStreakDays(): Promise<number> {
@@ -834,16 +988,33 @@ export async function getShellSummary(): Promise<{
   lastSyncCount: number;
 }> {
   const sb = createServerSupabase();
-  const [actCountRes, gearCountRes, raceCountRes, plan, planMeta, nextRace, lastSyncRes] = await Promise.all([
+  const [
+    actCountRes,
+    gearCountRes,
+    raceCountRes,
+    plan,
+    planMeta,
+    nextRace,
+    lastSyncRes,
+  ] = await Promise.all([
     sb.from("activities").select("id", { count: "exact", head: true }),
     sb.from("gear").select("id", { count: "exact", head: true }),
-    sb.from("races").select("id", { count: "exact", head: true }).eq("status", "upcoming"),
+    sb
+      .from("races")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "upcoming"),
     getActivePlan(),
     getPlanMeta(),
     getNextARace(),
-    sb.from("activities").select("synced_at").order("synced_at", { ascending: false }).limit(1).maybeSingle(),
+    sb
+      .from("activities")
+      .select("synced_at")
+      .order("synced_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
-  const lastSync = (lastSyncRes.data as { synced_at: string } | null)?.synced_at ?? null;
+  const lastSync =
+    (lastSyncRes.data as { synced_at: string } | null)?.synced_at ?? null;
   let lastSyncCount = 0;
   if (lastSync) {
     const since = new Date(new Date(lastSync).getTime() - 60_000).toISOString();
@@ -853,11 +1024,14 @@ export async function getShellSummary(): Promise<{
       .gte("synced_at", since);
     lastSyncCount = count ?? 0;
   }
-  let nextRaceOut: { name: string; date: string; weeksOut: number } | null = null;
+  let nextRaceOut: { name: string; date: string; weeksOut: number } | null =
+    null;
   if (nextRace) {
     const weeksOut = Math.max(
       0,
-      Math.round((new Date(nextRace.race_date).getTime() - Date.now()) / (7 * 86400_000))
+      Math.round(
+        (new Date(nextRace.race_date).getTime() - Date.now()) / (7 * 86400_000),
+      ),
     );
     nextRaceOut = { name: nextRace.name, date: nextRace.race_date, weeksOut };
   }
@@ -870,7 +1044,13 @@ export async function getShellSummary(): Promise<{
           name: plan.name,
           week: planMeta.current_week_index + 1,
           totalWeeks: planMeta.total_weeks,
-          pct: planMeta.total_weeks > 0 ? Math.round(((planMeta.current_week_index + 1) / planMeta.total_weeks) * 100) : 0,
+          pct:
+            planMeta.total_weeks > 0
+              ? Math.round(
+                  ((planMeta.current_week_index + 1) / planMeta.total_weeks) *
+                    100,
+                )
+              : 0,
         }
       : null,
     nextRace: nextRaceOut,
@@ -886,13 +1066,19 @@ export async function getPlanAdherenceBreakdown(): Promise<{
 }> {
   const plan = await getActivePlan();
   if (!plan) {
-    return { sessions: { done: 0, due: 0 }, volume: { actual_m: 0, planned_m: 0 }, workouts: { done: 0, due: 0 } };
+    return {
+      sessions: { done: 0, due: 0 },
+      volume: { actual_m: 0, planned_m: 0 },
+      workouts: { done: 0, due: 0 },
+    };
   }
   const sb = createServerSupabase();
   const today = new Date().toISOString().slice(0, 10);
   const { data: planned } = await sb
     .from("planned_runs")
-    .select("scheduled_date, workout_type, target_distance_m, completion_status, completed_activity_id")
+    .select(
+      "scheduled_date, workout_type, target_distance_m, completion_status, completed_activity_id",
+    )
     .eq("plan_id", plan.id)
     .lte("scheduled_date", today);
 
@@ -907,15 +1093,23 @@ export async function getPlanAdherenceBreakdown(): Promise<{
     sessionsDue++;
     plannedM += Number(p.target_distance_m ?? 0);
     if (p.completion_status === "completed") sessionsDone++;
-    if (p.completed_activity_id != null) completedIds.push(Number(p.completed_activity_id));
-    if (p.workout_type === "interval" || p.workout_type === "tempo" || p.workout_type === "workout") {
+    if (p.completed_activity_id != null)
+      completedIds.push(Number(p.completed_activity_id));
+    if (
+      p.workout_type === "interval" ||
+      p.workout_type === "tempo" ||
+      p.workout_type === "workout"
+    ) {
       workoutsDue++;
       if (p.completion_status === "completed") workoutsDone++;
     }
   }
   let actualM = 0;
   if (completedIds.length) {
-    const { data: acts } = await sb.from("activities").select("distance_m").in("id", completedIds);
+    const { data: acts } = await sb
+      .from("activities")
+      .select("distance_m")
+      .in("id", completedIds);
     actualM = (acts ?? []).reduce((a, b) => a + Number(b.distance_m ?? 0), 0);
   }
   return {

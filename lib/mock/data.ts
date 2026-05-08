@@ -409,20 +409,104 @@ export const PLAN: TrainingPlan = {
 
 // 18-week plan, simplified to 14 rows (first 4 weeks elided for the burndown)
 export const WEEK_MILEAGE: WeekMileage[] = [
-  { week_number: 1, label: "W1", start_date: "2026-02-09", planned_m: mi(28), actual_m: mi(27.6) },
-  { week_number: 2, label: "W2", start_date: "2026-02-16", planned_m: mi(32), actual_m: mi(33.1) },
-  { week_number: 3, label: "W3", start_date: "2026-02-23", planned_m: mi(36), actual_m: mi(35.0) },
-  { week_number: 4, label: "W4", start_date: "2026-03-02", planned_m: mi(24), actual_m: mi(24.2) },
-  { week_number: 5, label: "W5", start_date: "2026-03-09", planned_m: mi(40), actual_m: mi(40.8) },
-  { week_number: 6, label: "W6", start_date: "2026-03-16", planned_m: mi(44), actual_m: mi(43.1) },
-  { week_number: 7, label: "W7", start_date: "2026-03-23", planned_m: mi(48), actual_m: mi(46.9) },
-  { week_number: 8, label: "W8", start_date: "2026-03-30", planned_m: mi(30), actual_m: mi(29.0) },
-  { week_number: 9, label: "W9", start_date: "2026-04-06", planned_m: mi(50), actual_m: mi(48.2) },
-  { week_number: 10, label: "W10", start_date: "2026-04-13", planned_m: mi(54), actual_m: mi(42.3) }, // current
-  { week_number: 11, label: "W11", start_date: "2026-04-20", planned_m: mi(56), actual_m: null },
-  { week_number: 12, label: "W12", start_date: "2026-04-27", planned_m: mi(38), actual_m: null },
-  { week_number: 13, label: "W13", start_date: "2026-05-04", planned_m: mi(26), actual_m: null }, // taper
-  { week_number: 14, label: "W14", start_date: "2026-05-11", planned_m: mi(18), actual_m: null }, // race
+  {
+    week_number: 1,
+    label: "W1",
+    start_date: "2026-02-09",
+    planned_m: mi(28),
+    actual_m: mi(27.6),
+  },
+  {
+    week_number: 2,
+    label: "W2",
+    start_date: "2026-02-16",
+    planned_m: mi(32),
+    actual_m: mi(33.1),
+  },
+  {
+    week_number: 3,
+    label: "W3",
+    start_date: "2026-02-23",
+    planned_m: mi(36),
+    actual_m: mi(35.0),
+  },
+  {
+    week_number: 4,
+    label: "W4",
+    start_date: "2026-03-02",
+    planned_m: mi(24),
+    actual_m: mi(24.2),
+  },
+  {
+    week_number: 5,
+    label: "W5",
+    start_date: "2026-03-09",
+    planned_m: mi(40),
+    actual_m: mi(40.8),
+  },
+  {
+    week_number: 6,
+    label: "W6",
+    start_date: "2026-03-16",
+    planned_m: mi(44),
+    actual_m: mi(43.1),
+  },
+  {
+    week_number: 7,
+    label: "W7",
+    start_date: "2026-03-23",
+    planned_m: mi(48),
+    actual_m: mi(46.9),
+  },
+  {
+    week_number: 8,
+    label: "W8",
+    start_date: "2026-03-30",
+    planned_m: mi(30),
+    actual_m: mi(29.0),
+  },
+  {
+    week_number: 9,
+    label: "W9",
+    start_date: "2026-04-06",
+    planned_m: mi(50),
+    actual_m: mi(48.2),
+  },
+  {
+    week_number: 10,
+    label: "W10",
+    start_date: "2026-04-13",
+    planned_m: mi(54),
+    actual_m: mi(42.3),
+  }, // current
+  {
+    week_number: 11,
+    label: "W11",
+    start_date: "2026-04-20",
+    planned_m: mi(56),
+    actual_m: null,
+  },
+  {
+    week_number: 12,
+    label: "W12",
+    start_date: "2026-04-27",
+    planned_m: mi(38),
+    actual_m: null,
+  },
+  {
+    week_number: 13,
+    label: "W13",
+    start_date: "2026-05-04",
+    planned_m: mi(26),
+    actual_m: null,
+  }, // taper
+  {
+    week_number: 14,
+    label: "W14",
+    start_date: "2026-05-11",
+    planned_m: mi(18),
+    actual_m: null,
+  }, // race
 ];
 
 export const CURRENT_WEEK_INDEX = 9; // 0-indexed, W10
@@ -732,7 +816,8 @@ export const HR_ZONES: HRZone[] = [
 
 // Daily training load for the last 28 days (synthetic)
 export const DAILY_LOAD_28: number[] = [
-  0, 38, 0, 52, 28, 0, 88, 0, 42, 64, 0, 30, 0, 96, 22, 44, 0, 58, 34, 0, 92, 24, 48, 0, 62, 38, 0, 72,
+  0, 38, 0, 52, 28, 0, 88, 0, 42, 64, 0, 30, 0, 96, 22, 44, 0, 58, 34, 0, 92,
+  24, 48, 0, 62, 38, 0, 72,
 ];
 
 // ============================================================
@@ -767,18 +852,19 @@ export const SPLITS = [
   { mi: 8.3, pace: "7:22", hr: 152, elev_ft: 8, partial: true },
 ];
 
-// Stylized route — points in [0..1, 0..1] space
-export const ROUTE_POINTS: [number, number][] = (() => {
+// Stylized route in real-world coordinates [lng, lat] — a fake loop around
+// the Marina / Crissy Field in San Francisco for the demo.
+export const ROUTE_LNGLAT: [number, number][] = (() => {
   const pts: [number, number][] = [];
+  const centerLng = -122.45;
+  const centerLat = 37.806;
   const N = 140;
   for (let i = 0; i < N; i++) {
     const t = i / (N - 1);
-    const x = 0.1 + 0.8 * (0.5 + 0.45 * Math.sin(t * Math.PI * 2.1 + 0.3));
-    const y =
-      0.85 -
-      0.72 * (0.5 + 0.45 * Math.sin(t * Math.PI * 1.3 + 1.2)) +
-      Math.sin(t * 18) * 0.01;
-    pts.push([x, y]);
+    const dx = 0.012 * Math.sin(t * Math.PI * 2.1 + 0.3);
+    const dy =
+      0.006 * Math.sin(t * Math.PI * 1.3 + 1.2) + Math.sin(t * 18) * 0.0006;
+    pts.push([centerLng + dx, centerLat + dy]);
   }
   return pts;
 })();
@@ -827,10 +913,10 @@ export const STATS_MONTHLY = [
 
 export const PACE_TREND_12W: number[] = Array.from(
   { length: 12 },
-  (_, i) => 8.7 - i * 0.04 + Math.sin(i) * 0.05
+  (_, i) => 8.7 - i * 0.04 + Math.sin(i) * 0.05,
 );
 
 export const RESTING_HR_12W: number[] = Array.from(
   { length: 12 },
-  (_, i) => 52 - i * 0.25 + Math.sin(i * 0.9) * 1.2
+  (_, i) => 52 - i * 0.25 + Math.sin(i * 0.9) * 1.2,
 );

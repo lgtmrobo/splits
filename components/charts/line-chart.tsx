@@ -1,7 +1,10 @@
-import { useId } from "react";
+"use client";
+
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 interface LineChartProps {
   data: number[];
+  /** Fallback width if container measurement isn't available yet (SSR). */
   width?: number;
   height?: number;
   padL?: number;
@@ -18,7 +21,28 @@ interface LineChartProps {
   animate?: boolean;
   invertY?: boolean;
   smooth?: boolean;
+  /** Built-in Y-axis label formatters. "pace" renders decimal min/mile as m:ss. */
+  formatY?: "pace" | "int";
 }
+
+function paceLabel(v: number): string {
+  const m = Math.floor(v);
+  const s = Math.round((v - m) * 60);
+  if (s === 60) return `${m + 1}:00`;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function formatYValue(
+  v: number,
+  fmt: "pace" | "int" | undefined,
+  unit: string,
+): string {
+  if (fmt === "pace") return paceLabel(v);
+  return `${Math.round(v)}${unit}`;
+}
+
+const useIsoLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 export function LineChart({
   data,
@@ -38,9 +62,27 @@ export function LineChart({
   animate = true,
   invertY = false,
   smooth = true,
+  formatY,
 }: LineChartProps) {
   const gradId = useId();
-  const w = width;
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [measuredW, setMeasuredW] = useState<number>(width);
+
+  useIsoLayoutEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0) setMeasuredW(rect.width);
+    };
+    update();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const w = Math.max(measuredW, padL + padR + 10);
   const h = height;
   const innerW = w - padL - padR;
   const innerH = h - padT - padB;
@@ -70,11 +112,8 @@ export function LineChart({
 
   const yVals = Array.from(
     { length: yTicks },
-    (_, i) => mn + (range * i) / (yTicks - 1)
+    (_, i) => mn + (range * i) / (yTicks - 1),
   );
-  // Actual polyline length through the points, padded for bezier smoothing.
-  // Must exceed the real stroke length or the draw-in animation leaves a
-  // tail undrawn.
   let polyLen = 0;
   for (let i = 1; i < xs.length; i++) {
     polyLen += Math.hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1]);
@@ -82,68 +121,81 @@ export function LineChart({
   const approxLen = Math.ceil(polyLen * 1.3 + 20);
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="chart-frame">
-      <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={stroke} stopOpacity="0.22" />
-          <stop offset="1" stopColor={stroke} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {yVals.map((v, i) => {
-        const y = padT + (1 - (v - mn) / range) * innerH;
-        return (
-          <g key={i}>
-            <line
-              x1={padL}
-              y1={y}
-              x2={w - padR}
-              y2={y}
-              className="axis-line"
-              strokeDasharray={i === 0 ? "" : "2 3"}
-              opacity={i === 0 ? 0.6 : 0.4}
-            />
-            <text
-              x={padL - 8}
-              y={y + 3}
-              textAnchor="end"
-              className="axis-tick"
-            >
-              {Math.round(v)}
-              {unit}
-            </text>
-          </g>
-        );
-      })}
-      {xLabels &&
-        xLabels.map((lbl, i) => {
-          const x = padL + (i / (xLabels.length - 1)) * innerW;
+    <div
+      ref={wrapRef}
+      className="chart-frame"
+      style={{ width: "100%", height: h }}
+    >
+      <svg
+        viewBox={`0 0 ${w} ${h}`}
+        width={w}
+        height={h}
+        preserveAspectRatio="none"
+        style={{ display: "block", width: "100%", height: "100%" }}
+      >
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={stroke} stopOpacity="0.22" />
+            <stop offset="1" stopColor={stroke} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {yVals.map((v, i) => {
+          const t = (v - mn) / range;
+          const y = padT + (invertY ? t : 1 - t) * innerH;
           return (
-            <text
-              key={i}
-              x={x}
-              y={h - 6}
-              textAnchor="middle"
-              className="axis-tick"
-            >
-              {lbl}
-            </text>
+            <g key={i}>
+              <line
+                x1={padL}
+                y1={y}
+                x2={w - padR}
+                y2={y}
+                className="axis-line"
+                strokeDasharray={i === 0 ? "" : "2 3"}
+                opacity={i === 0 ? 0.6 : 0.4}
+              />
+              <text
+                x={padL - 8}
+                y={y + 3}
+                textAnchor="end"
+                className="axis-tick"
+              >
+                {formatYValue(v, formatY, unit)}
+              </text>
+            </g>
           );
         })}
-      {fill && <path d={area} fill={`url(#${gradId})`} />}
-      <path
-        d={path}
-        fill="none"
-        stroke={stroke}
-        strokeWidth="2"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        className={animate ? "draw" : ""}
-        style={
-          animate
-            ? ({ "--dash": approxLen } as React.CSSProperties)
-            : undefined
-        }
-      />
-    </svg>
+        {xLabels &&
+          xLabels.map((lbl, i) => {
+            const x = padL + (i / (xLabels.length - 1)) * innerW;
+            return (
+              <text
+                key={i}
+                x={x}
+                y={h - 6}
+                textAnchor="middle"
+                className="axis-tick"
+              >
+                {lbl}
+              </text>
+            );
+          })}
+        {fill && <path d={area} fill={`url(#${gradId})`} />}
+        <path
+          d={path}
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+          className={animate ? "draw" : ""}
+          style={
+            animate
+              ? ({ "--dash": approxLen } as React.CSSProperties)
+              : undefined
+          }
+        />
+      </svg>
+    </div>
   );
 }

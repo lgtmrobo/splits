@@ -1,254 +1,188 @@
-import { useId } from "react";
+"use client";
+
+import { useEffect, useRef } from "react";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 
 interface RouteMapProps {
-  /** Points in normalized 0..1 x 0..1 space. */
+  /** Real route coords as [lng, lat] pairs (GeoJSON order). */
   points: [number, number][];
   height?: number;
-  showLabels?: boolean;
-  showStats?: boolean;
-  dimmed?: boolean;
-  glow?: boolean;
   /** Optional header pill, e.g. "Riverside loop · 8.3mi" */
   titleLabel?: string;
   /** Optional bottom-right meta, e.g. "Portland, OR · 6:02 AM" */
   metaLabel?: string;
 }
 
+const STYLE = "mapbox://styles/mapbox/dark-v11";
+const ROUTE_SOURCE = "route";
+const ROUTE_LAYER_GLOW = "route-glow";
+const ROUTE_LAYER = "route-line";
+
+function getBounds(
+  points: [number, number][],
+): [[number, number], [number, number]] {
+  let minLng = Infinity;
+  let minLat = Infinity;
+  let maxLng = -Infinity;
+  let maxLat = -Infinity;
+  for (const [lng, lat] of points) {
+    if (lng < minLng) minLng = lng;
+    if (lng > maxLng) maxLng = lng;
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+  }
+  return [
+    [minLng, minLat],
+    [maxLng, maxLat],
+  ];
+}
+
+function readAccent(): string {
+  if (typeof window === "undefined") return "#8EF542";
+  const v = getComputedStyle(document.documentElement)
+    .getPropertyValue("--accent")
+    .trim();
+  return v || "#8EF542";
+}
+
 export function RouteMap({
   points,
   height = 360,
-  showLabels = true,
-  showStats = true,
-  dimmed = false,
-  glow = true,
   titleLabel,
   metaLabel,
 }: RouteMapProps) {
-  const glowId = useId();
-  const blob1 = useId();
-  const blob2 = useId();
-  const contour = useId();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
 
-  const w = 800;
-  const h = height;
-  const padding = 20;
-  const xs = points.map((p) => padding + p[0] * (w - 2 * padding));
-  const ys = points.map((p) => padding + p[1] * (h - 2 * padding));
-  const d = xs.map((x, i) => `${i ? "L" : "M"} ${x} ${ys[i]}`).join(" ");
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!containerRef.current || !token || points.length < 2) return;
+    mapboxgl.accessToken = token;
 
-  // mile markers — roughly one per 17 points of the 140-point demo route
-  const markers: { x: number; y: number; mi: number }[] = [];
-  const miEvery = 17;
-  for (let i = miEvery; i < points.length; i += miEvery) {
-    markers.push({ x: xs[i], y: ys[i], mi: Math.round(i / miEvery) });
+    const accent = readAccent();
+    const bounds = getBounds(points);
+
+    const map = new mapboxgl.Map({
+      container: containerRef.current,
+      style: STYLE,
+      bounds,
+      fitBoundsOptions: { padding: 32, animate: false },
+      attributionControl: false,
+      cooperativeGestures: false,
+    });
+    mapRef.current = map;
+
+    const geojson: GeoJSON.Feature<GeoJSON.LineString> = {
+      type: "Feature",
+      properties: {},
+      geometry: { type: "LineString", coordinates: points },
+    };
+
+    map.on("load", () => {
+      map.addSource(ROUTE_SOURCE, { type: "geojson", data: geojson });
+      map.addLayer({
+        id: ROUTE_LAYER_GLOW,
+        type: "line",
+        source: ROUTE_SOURCE,
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": accent,
+          "line-width": 8,
+          "line-opacity": 0.35,
+          "line-blur": 6,
+        },
+      });
+      map.addLayer({
+        id: ROUTE_LAYER,
+        type: "line",
+        source: ROUTE_SOURCE,
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": accent, "line-width": 3, "line-opacity": 1 },
+      });
+
+      // Start / finish markers
+      const start = points[0];
+      const end = points[points.length - 1];
+
+      const startEl = document.createElement("div");
+      startEl.style.cssText = `width:12px;height:12px;border-radius:50%;background:${accent};box-shadow:0 0 0 3px rgba(142,245,66,0.25);`;
+      new mapboxgl.Marker({ element: startEl })
+        .setLngLat(start as [number, number])
+        .addTo(map);
+
+      const endEl = document.createElement("div");
+      endEl.style.cssText = `width:12px;height:12px;border-radius:50%;background:#0A0A0C;border:2px solid ${accent};`;
+      new mapboxgl.Marker({ element: endEl })
+        .setLngLat(end as [number, number])
+        .addTo(map);
+    });
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, [points]);
+
+  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
+  if (!token) {
+    return (
+      <div
+        className="muted"
+        style={{
+          height,
+          display: "grid",
+          placeItems: "center",
+          fontSize: 12,
+          border: "1px dashed var(--hairline)",
+          borderRadius: 10,
+          textAlign: "center",
+          padding: 20,
+        }}
+      >
+        Map disabled — set NEXT_PUBLIC_MAPBOX_TOKEN to enable.
+      </div>
+    );
   }
 
-  const start: [number, number] = [xs[0], ys[0]];
-  const end: [number, number] = [xs[xs.length - 1], ys[ys.length - 1]];
-
   return (
-    <div className="map-frame" style={{ height: h }}>
-      <div className="map-grid" />
-      <svg
-        viewBox={`0 0 ${w} ${h}`}
-        className="map-terrain"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        <defs>
-          <radialGradient id={blob1} cx="30%" cy="40%" r="40%">
-            <stop offset="0" stopColor="#1a1a22" stopOpacity="0.8" />
-            <stop offset="1" stopColor="#0A0A0C" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id={blob2} cx="75%" cy="70%" r="35%">
-            <stop offset="0" stopColor="#14141a" stopOpacity="0.9" />
-            <stop offset="1" stopColor="#0A0A0C" stopOpacity="0" />
-          </radialGradient>
-          <pattern
-            id={contour}
-            x="0"
-            y="0"
-            width="180"
-            height="120"
-            patternUnits="userSpaceOnUse"
-          >
-            <path
-              d="M -20 40 Q 60 10 140 50 T 320 40"
-              stroke="rgba(255,255,255,0.025)"
-              fill="none"
-              strokeWidth="1"
-            />
-            <path
-              d="M -20 80 Q 60 50 140 90 T 320 80"
-              stroke="rgba(255,255,255,0.025)"
-              fill="none"
-              strokeWidth="1"
-            />
-          </pattern>
-        </defs>
-        <rect width={w} height={h} fill={`url(#${blob1})`} />
-        <rect width={w} height={h} fill={`url(#${blob2})`} />
-        <rect width={w} height={h} fill={`url(#${contour})`} />
-        {/* river */}
-        <path
-          d="M 0 260 Q 200 210 400 250 T 800 220"
-          stroke="rgba(107, 168, 232, 0.08)"
-          strokeWidth="24"
-          fill="none"
-          strokeLinecap="round"
-        />
-        <path
-          d="M 0 260 Q 200 210 400 250 T 800 220"
-          stroke="rgba(107, 168, 232, 0.18)"
-          strokeWidth="1.5"
-          fill="none"
-        />
-      </svg>
-
-      <svg
-        viewBox={`0 0 ${w} ${h}`}
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-        preserveAspectRatio="xMidYMid meet"
-      >
-        <defs>
-          <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="4" />
-          </filter>
-        </defs>
-        {glow && (
-          <path
-            d={d}
-            stroke="var(--accent)"
-            strokeWidth="8"
-            fill="none"
-            opacity={dimmed ? 0.25 : 0.45}
-            filter={`url(#${glowId})`}
-          />
-        )}
-        <path
-          d={d}
-          stroke="var(--accent)"
-          strokeWidth="3"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={dimmed ? 0.7 : 1}
-        />
-        <path
-          d={d}
-          stroke="rgba(255,255,255,0.3)"
-          strokeWidth="1"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {showLabels &&
-          markers.map((m, i) => (
-            <g key={i}>
-              <circle
-                cx={m.x}
-                cy={m.y}
-                r="3"
-                fill="var(--bg)"
-                stroke="var(--accent)"
-                strokeWidth="1"
-              />
-              <text
-                x={m.x + 7}
-                y={m.y + 3}
-                fontSize="9"
-                fontFamily="var(--font-geist-mono), monospace"
-                fill="var(--text-2)"
-              >
-                {m.mi}
-              </text>
-            </g>
-          ))}
-
-        <circle
-          cx={start[0]}
-          cy={start[1]}
-          r="7"
-          fill="none"
-          stroke="var(--accent)"
-          strokeWidth="1"
-          opacity="0.5"
-        />
-        <circle cx={start[0]} cy={start[1]} r="3.5" fill="var(--accent)" />
-        {showLabels && (
-          <text
-            x={start[0] + 10}
-            y={start[1] + 4}
-            fontSize="10"
-            fontFamily="var(--font-geist-mono), monospace"
-            fill="var(--text-1)"
-            letterSpacing="0.06em"
-            style={{ textTransform: "uppercase" }}
-          >
-            Start
-          </text>
-        )}
-
-        <circle
-          cx={end[0]}
-          cy={end[1]}
-          r="4"
-          fill="var(--bg)"
-          stroke="var(--accent)"
-          strokeWidth="1.5"
-        />
-        {showLabels && (
-          <text
-            x={end[0] + 10}
-            y={end[1] + 4}
-            fontSize="10"
-            fontFamily="var(--font-geist-mono), monospace"
-            fill="var(--text-1)"
-            letterSpacing="0.06em"
-            style={{ textTransform: "uppercase" }}
-          >
-            Finish
-          </text>
-        )}
-      </svg>
-
-      {showStats && titleLabel && (
-        <div
-          style={{
-            position: "absolute",
-            left: 16,
-            top: 16,
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
-          }}
-        >
+    <div
+      className="map-frame"
+      style={{ height, position: "relative", borderRadius: 10 }}
+    >
+      <div
+        ref={containerRef}
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: 10,
+          overflow: "hidden",
+        }}
+      />
+      {titleLabel && (
+        <div style={{ position: "absolute", left: 16, top: 16, zIndex: 1 }}>
           <span className="pill accent">{titleLabel}</span>
         </div>
       )}
-      {showStats && metaLabel && (
+      {metaLabel && (
         <div
           style={{
             position: "absolute",
             right: 16,
             bottom: 16,
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-            alignItems: "flex-end",
+            zIndex: 1,
+            fontFamily: "var(--font-geist-mono), monospace",
+            fontSize: 10,
+            color: "var(--text-3)",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            background: "rgba(10,10,12,0.6)",
+            padding: "4px 8px",
+            borderRadius: 6,
           }}
         >
-          <span
-            style={{
-              fontFamily: "var(--font-geist-mono), monospace",
-              fontSize: 10,
-              color: "var(--text-3)",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-            }}
-          >
-            {metaLabel}
-          </span>
+          {metaLabel}
         </div>
       )}
     </div>
