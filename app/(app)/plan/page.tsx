@@ -14,7 +14,11 @@ import {
   getWeekMileage,
   getWeekView,
 } from "@/lib/supabase/queries";
-import { formatMilesCompact, metersToMiles } from "@/lib/utils/units";
+import {
+  formatDuration,
+  formatMilesCompact,
+  metersToMiles,
+} from "@/lib/utils/units";
 import { addDaysISO, sundayOfISO, todayLocalISO } from "@/lib/utils/dates";
 import type { PlannedRun, PlanWeekDay } from "@/lib/types";
 
@@ -212,33 +216,21 @@ export default async function PlanPage({
           </Link>
         </div>
       )}
-      <div className="row between" style={{ marginBottom: 14 }}>
-        <div className="col gap-4">
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 22,
-              fontWeight: 500,
-              letterSpacing: "-0.01em",
-            }}
-          >
-            {plan.name}
-          </h1>
-          <div className="muted num" style={{ fontSize: 12 }}>
-            {fmtMd(plan.start_date)} → {fmtMd(plan.end_date)} ·{" "}
-            {meta.total_weeks} weeks
-            {isViewingActive ? (
-              <>
-                {" "}
-                · Week{" "}
-                <span style={{ color: "var(--accent)" }}>
-                  {meta.current_week_index + 1}
-                </span>{" "}
-                of {meta.total_weeks} · {meta.adherence_pct}% adherence
-              </>
-            ) : null}
-          </div>
-        </div>
+      <div
+        className="row between"
+        style={{ marginBottom: 14, alignItems: "center" }}
+      >
+        <h1
+          style={{
+            margin: 0,
+            fontSize: 18,
+            fontWeight: 500,
+            color: "var(--text-2)",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {plan.name}
+        </h1>
         <div className="row gap-10">
           <PlanViewSwitcher />
           <button type="button" className="btn">
@@ -249,6 +241,151 @@ export default async function PlanPage({
           </button>
         </div>
       </div>
+
+      {goalRace && (
+        <div className="card" style={{ marginBottom: 14, padding: 18 }}>
+          <div
+            className="grid"
+            style={{
+              gridTemplateColumns: "1.05fr 1fr",
+              gap: 20,
+              alignItems: "stretch",
+            }}
+          >
+            <div
+              className="col"
+              style={{
+                gap: 14,
+                justifyContent: "space-between",
+                minHeight: 200,
+              }}
+            >
+              <div className="col gap-6">
+                <div className="stat-label" style={{ marginBottom: 0 }}>
+                  Goal race
+                </div>
+                <div
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 500,
+                    letterSpacing: "-0.01em",
+                    lineHeight: 1.15,
+                  }}
+                >
+                  {goalRace.name}
+                </div>
+                <div
+                  className="row gap-10 baseline num"
+                  style={{
+                    fontSize: 13,
+                    color: "var(--text-2)",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span>{fmtMd(goalRace.race_date)}</span>
+                  <span className="muted">·</span>
+                  <span>
+                    {metersToMiles(goalRace.distance_m).toFixed(1)} mi
+                  </span>
+                  {goalRace.goal_time_s ? (
+                    <>
+                      <span className="muted">·</span>
+                      <span>
+                        target{" "}
+                        <span style={{ color: "var(--accent)" }}>
+                          {formatDuration(goalRace.goal_time_s)}
+                        </span>{" "}
+                        @ {goalPaceLabel(goalRace)}/mi
+                      </span>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+              <div className="row gap-24" style={{ flexWrap: "wrap" }}>
+                <HeroStat
+                  label="Block"
+                  value={`${fmtMd(plan.start_date)} → ${fmtMd(plan.end_date)}`}
+                  sub={`${meta.total_weeks} wks`}
+                />
+                {peakWeek && (
+                  <HeroStat
+                    label="Peak"
+                    value={`${formatMilesCompact(peakWeek.miles)} mi`}
+                    sub={peakWeek.label}
+                  />
+                )}
+                {taperStart && (
+                  <HeroStat
+                    label="Taper"
+                    value={fmtMd(taperStart.date)}
+                    sub={taperStart.label}
+                  />
+                )}
+                {isViewingActive ? (
+                  <HeroStat
+                    label="Now"
+                    value={`W${meta.current_week_index + 1} of ${meta.total_weeks}`}
+                    sub={`${meta.adherence_pct}% adherence`}
+                  />
+                ) : (
+                  <HeroStat
+                    label="Starts"
+                    value={`in ${Math.max(
+                      0,
+                      Math.ceil(
+                        (new Date(plan.start_date + "T00:00:00").getTime() -
+                          Date.now()) /
+                          (7 * 86400_000),
+                      ),
+                    )} wks`}
+                    sub={fmtMd(plan.start_date)}
+                  />
+                )}
+                {goalRace.course_elevation_gain_m != null && (
+                  <HeroStat
+                    label="Elev"
+                    value={`${Math.round(
+                      goalRace.course_elevation_gain_m / 0.3048,
+                    )} ft`}
+                  />
+                )}
+              </div>
+            </div>
+            <div>
+              {coursePoints.length > 1 ? (
+                <RouteMap
+                  points={coursePoints}
+                  height={200}
+                  titleLabel={goalRace.location ?? undefined}
+                  metaLabel={
+                    goalRace.course_elevation_gain_m != null
+                      ? `${Math.round(
+                          goalRace.course_elevation_gain_m / 0.3048,
+                        )} ft elev`
+                      : undefined
+                  }
+                />
+              ) : (
+                <div
+                  className="muted"
+                  style={{
+                    height: 200,
+                    display: "grid",
+                    placeItems: "center",
+                    border: "1px dashed var(--hairline)",
+                    borderRadius: 10,
+                    fontSize: 12,
+                    textAlign: "center",
+                    padding: 16,
+                  }}
+                >
+                  No course map yet.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card" style={{ marginBottom: 14 }}>
         <div className="row between" style={{ marginBottom: 6 }}>
@@ -323,27 +460,6 @@ export default async function PlanPage({
           height={260}
         />
       </div>
-
-      {goalRace && coursePoints.length > 1 && (
-        <div className="card" style={{ marginBottom: 14 }}>
-          <CardHeader
-            title={`Race Course · ${goalRace.name}`}
-            action={
-              goalRace.course_elevation_gain_m != null
-                ? `${Math.round((goalRace.course_elevation_gain_m / 0.3048) * 1) / 1} ft elev`
-                : (goalRace.location ?? "")
-            }
-          />
-          <RouteMap
-            points={coursePoints}
-            height={320}
-            titleLabel={goalRace.location ? `${goalRace.location}` : undefined}
-            metaLabel={`${fmtMd(goalRace.race_date)} · ${(
-              goalRace.distance_m / 1609.344
-            ).toFixed(1)} mi`}
-          />
-        </div>
-      )}
 
       {view === "block" && (
         <div className="card" style={{ marginBottom: 14 }}>
@@ -620,6 +736,46 @@ export default async function PlanPage({
       )}
     </div>
   );
+}
+
+function HeroStat({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+}) {
+  return (
+    <div className="col gap-2" style={{ minWidth: 90 }}>
+      <span className="stat-label" style={{ marginBottom: 0 }}>
+        {label}
+      </span>
+      <span
+        className="num"
+        style={{ fontSize: 14, color: "var(--text-1)", lineHeight: 1.2 }}
+      >
+        {value}
+      </span>
+      {sub && (
+        <span className="muted num" style={{ fontSize: 11 }}>
+          {sub}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function goalPaceLabel(race: {
+  distance_m: number;
+  goal_time_s: number | null;
+}): string {
+  if (!race.goal_time_s) return "—";
+  const sec = race.goal_time_s / metersToMiles(race.distance_m);
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function WeekDayCell({

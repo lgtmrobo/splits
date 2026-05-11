@@ -84,7 +84,7 @@ const ROSE_BOWL_RACE = {
   race_date: "2027-01-17",
   distance_m: Math.round(13.1094 * M_PER_MILE),
   location: "Rose Bowl, Pasadena, CA",
-  goal_time_s: 2 * 3600 + 5 * 60, // 2:05:00 at ~9:30/mi
+  goal_time_s: 1 * 3600 + 59 * 60, // sub-2: 1:59:00 at ~9:05/mi
   status: "upcoming",
 };
 
@@ -233,7 +233,10 @@ async function main() {
   let rbRaceId;
   if (rbRace) {
     rbRaceId = rbRace.id;
-    console.log(`Rose Bowl race exists: ${rbRaceId}`);
+    // Keep the row in sync with the constants above so goal/distance/etc.
+    // can be updated by editing this file and re-running the seed.
+    await sb.from("races").update(ROSE_BOWL_RACE).eq("id", rbRaceId);
+    console.log(`Rose Bowl race updated: ${rbRaceId}`);
   } else {
     const { data: r, error: rErr } = await sb
       .from("races")
