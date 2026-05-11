@@ -415,6 +415,7 @@ export const WEEK_MILEAGE: WeekMileage[] = [
     start_date: "2026-02-09",
     planned_m: mi(28),
     actual_m: mi(27.6),
+    is_cutback: false,
   },
   {
     week_number: 2,
@@ -422,6 +423,7 @@ export const WEEK_MILEAGE: WeekMileage[] = [
     start_date: "2026-02-16",
     planned_m: mi(32),
     actual_m: mi(33.1),
+    is_cutback: false,
   },
   {
     week_number: 3,
@@ -429,6 +431,7 @@ export const WEEK_MILEAGE: WeekMileage[] = [
     start_date: "2026-02-23",
     planned_m: mi(36),
     actual_m: mi(35.0),
+    is_cutback: false,
   },
   {
     week_number: 4,
@@ -436,6 +439,7 @@ export const WEEK_MILEAGE: WeekMileage[] = [
     start_date: "2026-03-02",
     planned_m: mi(24),
     actual_m: mi(24.2),
+    is_cutback: true,
   },
   {
     week_number: 5,
@@ -443,6 +447,7 @@ export const WEEK_MILEAGE: WeekMileage[] = [
     start_date: "2026-03-09",
     planned_m: mi(40),
     actual_m: mi(40.8),
+    is_cutback: false,
   },
   {
     week_number: 6,
@@ -450,6 +455,7 @@ export const WEEK_MILEAGE: WeekMileage[] = [
     start_date: "2026-03-16",
     planned_m: mi(44),
     actual_m: mi(43.1),
+    is_cutback: false,
   },
   {
     week_number: 7,
@@ -457,6 +463,7 @@ export const WEEK_MILEAGE: WeekMileage[] = [
     start_date: "2026-03-23",
     planned_m: mi(48),
     actual_m: mi(46.9),
+    is_cutback: false,
   },
   {
     week_number: 8,
@@ -464,6 +471,7 @@ export const WEEK_MILEAGE: WeekMileage[] = [
     start_date: "2026-03-30",
     planned_m: mi(30),
     actual_m: mi(29.0),
+    is_cutback: true,
   },
   {
     week_number: 9,
@@ -471,6 +479,7 @@ export const WEEK_MILEAGE: WeekMileage[] = [
     start_date: "2026-04-06",
     planned_m: mi(50),
     actual_m: mi(48.2),
+    is_cutback: false,
   },
   {
     week_number: 10,
@@ -478,6 +487,7 @@ export const WEEK_MILEAGE: WeekMileage[] = [
     start_date: "2026-04-13",
     planned_m: mi(54),
     actual_m: mi(42.3),
+    is_cutback: false,
   }, // current
   {
     week_number: 11,
@@ -485,6 +495,7 @@ export const WEEK_MILEAGE: WeekMileage[] = [
     start_date: "2026-04-20",
     planned_m: mi(56),
     actual_m: null,
+    is_cutback: false,
   },
   {
     week_number: 12,
@@ -492,6 +503,7 @@ export const WEEK_MILEAGE: WeekMileage[] = [
     start_date: "2026-04-27",
     planned_m: mi(38),
     actual_m: null,
+    is_cutback: false,
   },
   {
     week_number: 13,
@@ -499,6 +511,7 @@ export const WEEK_MILEAGE: WeekMileage[] = [
     start_date: "2026-05-04",
     planned_m: mi(26),
     actual_m: null,
+    is_cutback: false,
   }, // taper
   {
     week_number: 14,
@@ -506,6 +519,7 @@ export const WEEK_MILEAGE: WeekMileage[] = [
     start_date: "2026-05-11",
     planned_m: mi(18),
     actual_m: null,
+    is_cutback: false,
   }, // race
 ];
 
@@ -732,6 +746,8 @@ export const RACES: Race[] = [
     result_activity_id: null,
     plan_id: PLAN_ID,
     notes: null,
+    course_polyline: null,
+    course_elevation_gain_m: null,
     created_at: "2026-02-01T00:00:00Z",
     priority: "A-race",
     confidence: 78,
@@ -748,6 +764,8 @@ export const RACES: Race[] = [
     result_activity_id: null,
     plan_id: PLAN_ID,
     notes: null,
+    course_polyline: null,
+    course_elevation_gain_m: null,
     created_at: "2026-02-01T00:00:00Z",
     priority: "Tune-up",
     confidence: 86,
@@ -764,6 +782,8 @@ export const RACES: Race[] = [
     result_activity_id: null,
     plan_id: PLAN_ID,
     notes: null,
+    course_polyline: null,
+    course_elevation_gain_m: null,
     created_at: "2026-02-01T00:00:00Z",
     priority: "Tune-up",
     confidence: 91,
@@ -780,6 +800,8 @@ export const RACES: Race[] = [
     result_activity_id: null,
     plan_id: null,
     notes: "1:34:22",
+    course_polyline: null,
+    course_elevation_gain_m: null,
     created_at: "2025-09-01T00:00:00Z",
     priority: null,
     confidence: null,
@@ -796,6 +818,8 @@ export const RACES: Race[] = [
     result_activity_id: null,
     plan_id: null,
     notes: "1:08:14",
+    course_polyline: null,
+    course_elevation_gain_m: null,
     created_at: "2025-06-01T00:00:00Z",
     priority: null,
     confidence: null,

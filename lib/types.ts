@@ -164,6 +164,8 @@ export interface Race {
   result_activity_id: number | null;
   plan_id: UUID | null;
   notes: string | null;
+  course_polyline: string | null;
+  course_elevation_gain_m: number | null;
   created_at: string;
   // Derived / UI-only:
   priority: "A-race" | "Tune-up" | null;
@@ -178,6 +180,7 @@ export interface WeekMileage {
   start_date: string;
   planned_m: number;
   actual_m: number | null; // null = future
+  is_cutback: boolean;
 }
 
 export interface HRZone {

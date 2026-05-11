@@ -12,7 +12,11 @@ import {
   getRestingHR12w,
   getWeekHRZones,
 } from "@/lib/supabase/queries";
-import { formatDuration, metersToMiles, milesToMeters } from "@/lib/utils/units";
+import {
+  formatDuration,
+  metersToMiles,
+  milesToMeters,
+} from "@/lib/utils/units";
 
 const M_PER_MILE = 1609.344;
 const M_PER_FT = 0.3048;
@@ -29,8 +33,17 @@ export default async function StatsPage({
 }: {
   searchParams: { range?: string };
 }) {
-  const range = (searchParams.range as "ytd" | "12w" | "all" | undefined) ?? "ytd";
-  const [monthly, paceTrend, zones, totals, allActivities, restingHR12w, latestRec] = await Promise.all([
+  const range =
+    (searchParams.range as "ytd" | "12w" | "all" | undefined) ?? "ytd";
+  const [
+    monthly,
+    paceTrend,
+    zones,
+    totals,
+    allActivities,
+    restingHR12w,
+    latestRec,
+  ] = await Promise.all([
     getMonthlyStats(),
     getPaceTrend12w(),
     getWeekHRZones(),
@@ -41,19 +54,32 @@ export default async function StatsPage({
   ]);
 
   // Apply range filter to activities used by Longest, Best 10K, Elevation cards
-  const yearStartISO = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1)).toISOString();
-  const twelveWeeksAgoISO = new Date(Date.now() - 12 * 7 * 86400_000).toISOString();
+  const yearStartISO = new Date(
+    Date.UTC(new Date().getUTCFullYear(), 0, 1),
+  ).toISOString();
+  const twelveWeeksAgoISO = new Date(
+    Date.now() - 12 * 7 * 86400_000,
+  ).toISOString();
   const activities =
-    range === "12w" ? allActivities.filter((a) => a.start_date >= twelveWeeksAgoISO)
-    : range === "all" ? allActivities
-    : allActivities.filter((a) => a.start_date >= yearStartISO);
-  const rangeLabel = range === "12w" ? "12w" : range === "all" ? "All-time" : "YTD";
+    range === "12w"
+      ? allActivities.filter((a) => a.start_date >= twelveWeeksAgoISO)
+      : range === "all"
+        ? allActivities
+        : allActivities.filter((a) => a.start_date >= yearStartISO);
+  const rangeLabel =
+    range === "12w" ? "12w" : range === "all" ? "All-time" : "YTD";
   const rhrVals = restingHR12w.filter((r) => r > 0);
-  const rhrCurrent = latestRec?.resting_heart_rate != null
-    ? Math.round(Number(latestRec.resting_heart_rate))
-    : (rhrVals.length ? Math.round(rhrVals[rhrVals.length - 1]) : null);
+  const rhrCurrent =
+    latestRec?.resting_heart_rate != null
+      ? Math.round(Number(latestRec.resting_heart_rate))
+      : rhrVals.length
+        ? Math.round(rhrVals[rhrVals.length - 1])
+        : null;
   const rhrFirst = rhrVals[0] ?? null;
-  const rhrDelta = rhrFirst != null && rhrCurrent != null ? rhrCurrent - Math.round(rhrFirst) : null;
+  const rhrDelta =
+    rhrFirst != null && rhrCurrent != null
+      ? rhrCurrent - Math.round(rhrFirst)
+      : null;
 
   const monthlyBars = monthly.map((m, i) => ({
     week_number: i + 1,
@@ -61,19 +87,34 @@ export default async function StatsPage({
     start_date: "",
     planned_m: milesToMeters(m.miles),
     actual_m: milesToMeters(m.miles),
+    is_cutback: false,
   }));
 
   // Pace trend stats
   const paceVals = paceTrend.filter((p) => p > 0);
   const paceCurrent = paceVals[paceVals.length - 1] ?? 0;
   const paceFirst = paceVals[0] ?? 0;
-  const paceDeltaSec = paceFirst > 0 && paceCurrent > 0 ? Math.round((paceFirst - paceCurrent) * 60) : null;
+  const paceDeltaSec =
+    paceFirst > 0 && paceCurrent > 0
+      ? Math.round((paceFirst - paceCurrent) * 60)
+      : null;
 
   // Header totals (for the chosen range)
-  const sortedByDate = [...allActivities].sort((a, b) => a.start_date.localeCompare(b.start_date));
-  const firstYear = sortedByDate[0] ? new Date(sortedByDate[0].start_date).getUTCFullYear() : null;
-  const scopedMi = Math.round(metersToMiles(activities.reduce((a, b) => a + Number(b.distance_m ?? 0), 0)));
-  const scopedDur = activities.reduce((a, b) => a + Number(b.moving_time_s ?? 0), 0);
+  const sortedByDate = [...allActivities].sort((a, b) =>
+    a.start_date.localeCompare(b.start_date),
+  );
+  const firstYear = sortedByDate[0]
+    ? new Date(sortedByDate[0].start_date).getUTCFullYear()
+    : null;
+  const scopedMi = Math.round(
+    metersToMiles(
+      activities.reduce((a, b) => a + Number(b.distance_m ?? 0), 0),
+    ),
+  );
+  const scopedDur = activities.reduce(
+    (a, b) => a + Number(b.moving_time_s ?? 0),
+    0,
+  );
   const headerLine = `${rangeLabel} · ${scopedMi.toLocaleString()} mi · ${formatDuration(scopedDur)}${firstYear ? ` · since ${firstYear}` : ""}`;
 
   // Zones total (use minutes as-is from getWeekHRZones, already real)
@@ -82,72 +123,146 @@ export default async function StatsPage({
   const zonesTotalRem = zonesTotalMin % 60;
 
   // Elevation (for the chosen range)
-  const totalElevFt = Math.round(activities.reduce((a, b) => a + Number(b.total_elevation_gain_m ?? 0), 0) / M_PER_FT);
-  const perRunFt = activities.length ? Math.round(totalElevFt / activities.length) : 0;
-  const biggestDayFt = activities.reduce((max, a) => Math.max(max, Math.round(Number(a.total_elevation_gain_m ?? 0) / M_PER_FT)), 0);
+  const totalElevFt = Math.round(
+    activities.reduce((a, b) => a + Number(b.total_elevation_gain_m ?? 0), 0) /
+      M_PER_FT,
+  );
+  const perRunFt = activities.length
+    ? Math.round(totalElevFt / activities.length)
+    : 0;
+  const biggestDayFt = activities.reduce(
+    (max, a) =>
+      Math.max(
+        max,
+        Math.round(Number(a.total_elevation_gain_m ?? 0) / M_PER_FT),
+      ),
+    0,
+  );
   const everestFt = 29032;
   const everestX = totalElevFt > 0 ? +(totalElevFt / everestFt).toFixed(2) : 0;
-  const flatRunsPct = activities.length ? Math.round((activities.filter((a) => (Number(a.total_elevation_gain_m ?? 0) / M_PER_FT) < 50).length / activities.length) * 100) : 0;
+  const flatRunsPct = activities.length
+    ? Math.round(
+        (activities.filter(
+          (a) => Number(a.total_elevation_gain_m ?? 0) / M_PER_FT < 50,
+        ).length /
+          activities.length) *
+          100,
+      )
+    : 0;
 
   // Longest run
-  const longest = activities.reduce<typeof activities[number] | null>(
-    (best, a) => (!best || Number(a.distance_m ?? 0) > Number(best.distance_m ?? 0)) ? a : best,
-    null
+  const longest = activities.reduce<(typeof activities)[number] | null>(
+    (best, a) =>
+      !best || Number(a.distance_m ?? 0) > Number(best.distance_m ?? 0)
+        ? a
+        : best,
+    null,
   );
 
   // Best 10K effort: closest run >= 10K with best avg pace
   const tenK = M_PER_MILE * 6.214;
-  const tenKCandidates = activities.filter((a) => Number(a.distance_m ?? 0) >= tenK && a.average_speed_ms);
-  const bestTenK = tenKCandidates.reduce<typeof activities[number] | null>(
-    (best, a) => (!best || (a.average_speed_ms ?? 0) > (best.average_speed_ms ?? 0)) ? a : best,
-    null
+  const tenKCandidates = activities.filter(
+    (a) => Number(a.distance_m ?? 0) >= tenK && a.average_speed_ms,
   );
-  const bestTenKTime = bestTenK?.average_speed_ms ? Math.round(tenK / bestTenK.average_speed_ms) : null;
+  const bestTenK = tenKCandidates.reduce<(typeof activities)[number] | null>(
+    (best, a) =>
+      !best || (a.average_speed_ms ?? 0) > (best.average_speed_ms ?? 0)
+        ? a
+        : best,
+    null,
+  );
+  const bestTenKTime = bestTenK?.average_speed_ms
+    ? Math.round(tenK / bestTenK.average_speed_ms)
+    : null;
 
   // YTD vs last year
   const lastYear = new Date().getUTCFullYear() - 1;
   const lastYearStart = new Date(Date.UTC(lastYear, 0, 1)).toISOString();
   const lastYearEnd = new Date(Date.UTC(lastYear + 1, 0, 1)).toISOString();
   const today = new Date();
-  const dayOfYear = Math.floor((today.getTime() - new Date(Date.UTC(today.getUTCFullYear(), 0, 1)).getTime()) / 86400_000);
+  const dayOfYear = Math.floor(
+    (today.getTime() -
+      new Date(Date.UTC(today.getUTCFullYear(), 0, 1)).getTime()) /
+      86400_000,
+  );
   const lastYTDCutoff = new Date(Date.UTC(lastYear, 0, 1));
   lastYTDCutoff.setUTCDate(lastYTDCutoff.getUTCDate() + dayOfYear);
   const lastYearMi = Math.round(
     metersToMiles(
       activities
-        .filter((a) => a.start_date >= lastYearStart && a.start_date < lastYTDCutoff.toISOString())
-        .reduce((a, b) => a + Number(b.distance_m ?? 0), 0)
-    )
+        .filter(
+          (a) =>
+            a.start_date >= lastYearStart &&
+            a.start_date < lastYTDCutoff.toISOString(),
+        )
+        .reduce((a, b) => a + Number(b.distance_m ?? 0), 0),
+    ),
   );
   const ytdMi = Math.round(metersToMiles(totals.distance_ytd_m));
-  const ytdDeltaPct = lastYearMi > 0 ? Math.round(((ytdMi - lastYearMi) / lastYearMi) * 100) : null;
+  const ytdDeltaPct =
+    lastYearMi > 0
+      ? Math.round(((ytdMi - lastYearMi) / lastYearMi) * 100)
+      : null;
 
   // x-labels for trend chart from monthly stats
-  const trendXLabels = paceVals.length === 12
-    ? Array.from({ length: 12 }, (_, i) => {
-        if (i === 0 || i === 4 || i === 8) {
-          const d = new Date();
-          d.setUTCDate(d.getUTCDate() - (11 - i) * 7);
-          return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getUTCMonth()];
-        }
-        return i === 11 ? "Now" : "";
-      })
-    : [];
+  const trendXLabels =
+    paceVals.length === 12
+      ? Array.from({ length: 12 }, (_, i) => {
+          if (i === 0 || i === 4 || i === 8) {
+            const d = new Date();
+            d.setUTCDate(d.getUTCDate() - (11 - i) * 7);
+            return [
+              "Jan",
+              "Feb",
+              "Mar",
+              "Apr",
+              "May",
+              "Jun",
+              "Jul",
+              "Aug",
+              "Sep",
+              "Oct",
+              "Nov",
+              "Dec",
+            ][d.getUTCMonth()];
+          }
+          return i === 11 ? "Now" : "";
+        })
+      : [];
 
   return (
     <div className="content fadein">
       <div className="row between" style={{ marginBottom: 14 }}>
         <div className="col gap-4">
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 500, letterSpacing: "-0.01em" }}>Stats</h1>
-          <div className="muted num" style={{ fontSize: 12 }}>{headerLine}</div>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 22,
+              fontWeight: 500,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Stats
+          </h1>
+          <div className="muted num" style={{ fontSize: 12 }}>
+            {headerLine}
+          </div>
         </div>
         <StatsRangeSwitcher />
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "2fr 1fr", marginBottom: 14 }}>
+      <div
+        className="grid"
+        style={{ gridTemplateColumns: "2fr 1fr", marginBottom: 14 }}
+      >
         <div className="card">
           <CardHeader title="Monthly Mileage · Last 6 months" />
-          <MileageBars weeks={monthlyBars} width={820} height={180} currentIndex={5} />
+          <MileageBars
+            weeks={monthlyBars}
+            width={820}
+            height={180}
+            currentIndex={5}
+          />
         </div>
         <div className="card">
           <CardHeader title="Pace Trend · 12w Easy Pace" />
@@ -156,8 +271,14 @@ export default async function StatsPage({
             value={paceFromDecimal(paceCurrent)}
             unit="/mi"
             size="lg"
-            delta={paceDeltaSec != null ? `${paceDeltaSec >= 0 ? "−" : "+"}${Math.abs(paceDeltaSec)}s` : undefined}
-            deltaKind={paceDeltaSec != null && paceDeltaSec >= 0 ? "up" : "down"}
+            delta={
+              paceDeltaSec != null
+                ? `${paceDeltaSec >= 0 ? "−" : "+"}${Math.abs(paceDeltaSec)}s`
+                : undefined
+            }
+            deltaKind={
+              paceDeltaSec != null && paceDeltaSec >= 0 ? "up" : "down"
+            }
           />
           <div style={{ marginTop: 14 }}>
             <LineChart
@@ -173,15 +294,25 @@ export default async function StatsPage({
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr 1fr", marginBottom: 14 }}>
+      <div
+        className="grid"
+        style={{ gridTemplateColumns: "1fr 1fr 1fr", marginBottom: 14 }}
+      >
         <div className="card">
-          <CardHeader title="Resting HR · 12w" action={latestRec?.date ? `from ${latestRec.date}` : undefined} />
+          <CardHeader
+            title="Resting HR · 12w"
+            action={latestRec?.date ? `from ${latestRec.date}` : undefined}
+          />
           <Stat
             label="Current"
             value={rhrCurrent != null ? String(rhrCurrent) : "—"}
             unit="bpm"
             size="lg"
-            delta={rhrDelta != null ? `${rhrDelta >= 0 ? "+" : ""}${rhrDelta} bpm vs 12w` : undefined}
+            delta={
+              rhrDelta != null
+                ? `${rhrDelta >= 0 ? "+" : ""}${rhrDelta} bpm vs 12w`
+                : undefined
+            }
             deltaKind={rhrDelta != null && rhrDelta < 0 ? "up" : "down"}
           />
           {restingHR12w.length === 0 ? (
@@ -202,16 +333,25 @@ export default async function StatsPage({
           )}
         </div>
         <div className="card">
-          <CardHeader title="Time in HR Zones · 7d" action={`${zonesTotalH}:${String(zonesTotalRem).padStart(2, "0")}:00`} />
+          <CardHeader
+            title="Time in HR Zones · 7d"
+            action={`${zonesTotalH}:${String(zonesTotalRem).padStart(2, "0")}:00`}
+          />
           <div style={{ marginTop: 12, marginBottom: 14 }}>
             <ZoneBar zones={zones} />
           </div>
-          <div className="col gap-6" style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: 11 }}>
+          <div
+            className="col gap-6"
+            style={{
+              fontFamily: "var(--font-geist-mono), monospace",
+              fontSize: 11,
+            }}
+          >
             {zones.map((z, i) => (
               <div key={z.zone} className="row between">
                 <span>
-                  <span style={{ color: `var(--zone-${i + 1})` }}>■</span> {z.zone}{" "}
-                  <span className="muted">{z.label}</span>
+                  <span style={{ color: `var(--zone-${i + 1})` }}>■</span>{" "}
+                  {z.zone} <span className="muted">{z.label}</span>
                 </span>
                 <span>{z.minutes}m</span>
               </div>
@@ -220,11 +360,32 @@ export default async function StatsPage({
         </div>
         <div className="card">
           <CardHeader title={`Elevation · ${rangeLabel}`} />
-          <Stat label="Total climb" value={totalElevFt.toLocaleString()} unit="ft" size="lg" />
-          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--hairline)" }}>
+          <Stat
+            label="Total climb"
+            value={totalElevFt.toLocaleString()}
+            unit="ft"
+            size="lg"
+          />
+          <div
+            className="grid"
+            style={{
+              gridTemplateColumns: "1fr 1fr",
+              gap: 10,
+              marginTop: 12,
+              paddingTop: 12,
+              borderTop: "1px solid var(--hairline)",
+            }}
+          >
             <Stat label="Per run avg" value={String(perRunFt)} unit="ft" />
-            <Stat label="Biggest day" value={biggestDayFt.toLocaleString()} unit="ft" />
-            <Stat label="vs Mt Everest" value={everestX > 0 ? `${everestX}×` : "—"} />
+            <Stat
+              label="Biggest day"
+              value={biggestDayFt.toLocaleString()}
+              unit="ft"
+            />
+            <Stat
+              label="vs Mt Everest"
+              value={everestX > 0 ? `${everestX}×` : "—"}
+            />
             <Stat label="Flat runs" value={`${flatRunsPct}%`} />
           </div>
         </div>
@@ -233,18 +394,32 @@ export default async function StatsPage({
       <div className="grid" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr" }}>
         <div className="card">
           <Stat
-            label={range === "all" ? "All-time" : range === "12w" ? "Last 12w" : "Year to Date"}
+            label={
+              range === "all"
+                ? "All-time"
+                : range === "12w"
+                  ? "Last 12w"
+                  : "Year to Date"
+            }
             value={scopedMi.toLocaleString()}
             unit="mi"
             size="lg"
-            delta={range === "ytd" && ytdDeltaPct != null ? `${ytdDeltaPct >= 0 ? "+" : ""}${ytdDeltaPct}% vs last yr` : undefined}
+            delta={
+              range === "ytd" && ytdDeltaPct != null
+                ? `${ytdDeltaPct >= 0 ? "+" : ""}${ytdDeltaPct}% vs last yr`
+                : undefined
+            }
             deltaKind={ytdDeltaPct != null && ytdDeltaPct >= 0 ? "up" : "down"}
           />
         </div>
         <div className="card">
           <Stat
             label="Longest run"
-            value={longest ? metersToMiles(Number(longest.distance_m ?? 0)).toFixed(1) : "—"}
+            value={
+              longest
+                ? metersToMiles(Number(longest.distance_m ?? 0)).toFixed(1)
+                : "—"
+            }
             unit="mi"
             size="lg"
             delta={longest ? longest.start_date_local.slice(0, 10) : undefined}
@@ -255,7 +430,9 @@ export default async function StatsPage({
             label="Best 10K effort"
             value={bestTenKTime ? formatDuration(bestTenKTime) : "—"}
             size="lg"
-            delta={bestTenK ? bestTenK.start_date_local.slice(0, 10) : undefined}
+            delta={
+              bestTenK ? bestTenK.start_date_local.slice(0, 10) : undefined
+            }
           />
         </div>
         <div className="card">

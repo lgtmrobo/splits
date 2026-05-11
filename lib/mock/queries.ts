@@ -107,7 +107,15 @@ export async function getActivePlan(): Promise<TrainingPlan | null> {
   return PLAN;
 }
 
-export async function getPlanMeta(): Promise<{
+export async function getPlanById(_id: string): Promise<TrainingPlan | null> {
+  return PLAN;
+}
+
+export async function getUpcomingPlan(): Promise<TrainingPlan | null> {
+  return null;
+}
+
+export async function getPlanMeta(_planId?: string): Promise<{
   total_weeks: number;
   current_week_index: number;
   total_miles_planned_m: number;
@@ -127,13 +135,14 @@ export async function getPlanMeta(): Promise<{
   };
 }
 
-export async function getWeekMileage(): Promise<WeekMileage[]> {
+export async function getWeekMileage(_planId?: string): Promise<WeekMileage[]> {
   return WEEK_MILEAGE;
 }
 
 export async function getPlannedRunsBetween(
   startISO: string,
   endISO: string,
+  _planId?: string,
 ): Promise<PlannedRun[]> {
   return PLANNED_RUNS.filter(
     (p) => p.scheduled_date >= startISO && p.scheduled_date <= endISO,
@@ -143,6 +152,7 @@ export async function getPlannedRunsBetween(
 /** This week's planned runs + matched actuals, in a UI-friendly shape. */
 export async function getWeekView(
   weekStartISO: string,
+  _planId?: string,
 ): Promise<PlanWeekDay[]> {
   const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const MONTHS = [
@@ -225,6 +235,10 @@ export async function getNextARace(): Promise<Race | null> {
   return (
     (await getUpcomingRaces()).find((r) => r.priority === "A-race") ?? null
   );
+}
+
+export async function getRaceById(id: string): Promise<Race | null> {
+  return RACES.find((r) => r.id === id) ?? null;
 }
 
 // =========================================================================
@@ -340,6 +354,7 @@ export async function getShellSummary() {
     nextRace: RACES[0]
       ? { name: RACES[0].name, date: RACES[0].race_date, weeksOut: 9 }
       : null,
+    upcomingBlock: null,
     lastSync: new Date(Date.now() - 4 * 60_000).toISOString(),
     lastSyncCount: 14,
   };

@@ -10,6 +10,14 @@ interface ShellSummary {
   races: number;
   plan: { name: string; week: number; totalWeeks: number; pct: number } | null;
   nextRace: { name: string; date: string; weeksOut: number } | null;
+  upcomingBlock: {
+    id: string;
+    name: string;
+    startDate: string;
+    endDate: string;
+    raceName: string | null;
+    raceDate: string | null;
+  } | null;
   lastSync: string | null;
   lastSyncCount: number;
 }
@@ -173,6 +181,39 @@ export function Sidebar({ summary }: { summary: ShellSummary }) {
               <span>{summary.plan.pct}%</span>
             </div>
           </div>
+        </div>
+      )}
+
+      {summary.upcomingBlock && (
+        <div className="col gap-4">
+          <div className="nav-group-label">Next Block</div>
+          <Link
+            href={`/plan?plan=${summary.upcomingBlock.id}`}
+            className="nav-item"
+            style={{
+              alignItems: "flex-start",
+              padding: "8px 8px",
+              flexDirection: "column",
+              gap: 4,
+            }}
+          >
+            <div
+              style={{ fontSize: 12, color: "var(--text-1)", lineHeight: 1.3 }}
+            >
+              {summary.upcomingBlock.raceName ?? summary.upcomingBlock.name}
+            </div>
+            <div
+              className="num"
+              style={{
+                fontSize: 11,
+                color: "var(--text-3)",
+                letterSpacing: "0.04em",
+              }}
+            >
+              {fmtMd(summary.upcomingBlock.startDate)} →{" "}
+              {fmtMd(summary.upcomingBlock.endDate)}
+            </div>
+          </Link>
         </div>
       )}
 

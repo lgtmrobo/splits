@@ -191,27 +191,84 @@ export async function getActivityTotals(): Promise<{
 // Training plan
 // =========================================================================
 
+/**
+ * The plan that "today" lives in: active and the current date falls between
+ * start_date and end_date. Falls back to the most recent active plan when
+ * no plan straddles today (e.g., between phases).
+ */
 export async function getActivePlan(): Promise<TrainingPlan | null> {
   const sb = createServerSupabase();
-  const { data, error } = await sb
+  const today = todayLocalISO();
+  const { data: current, error: curErr } = await sb
+    .from("training_plans")
+    .select("*")
+    .eq("active", true)
+    .lte("start_date", today)
+    .gte("end_date", today)
+    .order("start_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (curErr) throw curErr;
+  if (current) return current as TrainingPlan;
+
+  const { data: fallback, error: fbErr } = await sb
     .from("training_plans")
     .select("*")
     .eq("active", true)
     .order("start_date", { ascending: false })
     .limit(1)
     .maybeSingle();
+  if (fbErr) throw fbErr;
+  return (fallback as TrainingPlan) ?? null;
+}
+
+export async function getPlanById(
+  planId: string,
+): Promise<TrainingPlan | null> {
+  const sb = createServerSupabase();
+  const { data, error } = await sb
+    .from("training_plans")
+    .select("*")
+    .eq("id", planId)
+    .maybeSingle();
   if (error) throw error;
   return (data as TrainingPlan) ?? null;
 }
 
-export async function getPlanMeta(): Promise<{
+/**
+ * The next active plan that hasn't started yet. Returns null when no
+ * future block is scheduled. Used by the sidebar's "Next Block" card.
+ */
+export async function getUpcomingPlan(): Promise<TrainingPlan | null> {
+  const sb = createServerSupabase();
+  const today = todayLocalISO();
+  const { data, error } = await sb
+    .from("training_plans")
+    .select("*")
+    .eq("active", true)
+    .gt("start_date", today)
+    .order("start_date", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as TrainingPlan) ?? null;
+}
+
+async function resolvePlan(
+  planId?: string | null,
+): Promise<TrainingPlan | null> {
+  if (planId) return getPlanById(planId);
+  return getActivePlan();
+}
+
+export async function getPlanMeta(planId?: string): Promise<{
   total_weeks: number;
   current_week_index: number;
   total_miles_planned_m: number;
   total_miles_actual_m: number;
   adherence_pct: number;
 }> {
-  const plan = await getActivePlan();
+  const plan = await resolvePlan(planId);
   if (!plan) {
     return {
       total_weeks: 0,
@@ -275,8 +332,8 @@ export async function getPlanMeta(): Promise<{
   };
 }
 
-export async function getWeekMileage(): Promise<WeekMileage[]> {
-  const plan = await getActivePlan();
+export async function getWeekMileage(planId?: string): Promise<WeekMileage[]> {
+  const plan = await resolvePlan(planId);
   if (!plan) return [];
   const sb = createServerSupabase();
   const { data: planned, error } = await sb
@@ -309,6 +366,7 @@ export async function getWeekMileage(): Promise<WeekMileage[]> {
       start_date: wkStartISO,
       planned_m: 0,
       actual_m: 0,
+      is_cutback: false,
     };
     existing.planned_m += Number(p.target_distance_m ?? 0);
     if (p.completed_activity_id != null) {
@@ -319,9 +377,29 @@ export async function getWeekMileage(): Promise<WeekMileage[]> {
     buckets.set(week, existing);
   }
   const today = todayLocalISO();
-  return Array.from(buckets.values())
-    .sort((a, b) => a.week_number - b.week_number)
-    .map((w) => ({ ...w, actual_m: w.start_date > today ? null : w.actual_m }));
+  const ordered = Array.from(buckets.values()).sort(
+    (a, b) => a.week_number - b.week_number,
+  );
+  // Cutback = planned mileage drops meaningfully from the previous week and
+  // we're not on race week. 12% threshold tolerates rounding while catching
+  // real ~20–25% cutbacks. Race week (the last week) is excluded so taper
+  // doesn't show up as a cutback.
+  // Cutback = a temporary dip — mileage drops ≥12% from the prior week AND
+  // the next week climbs back above this week. That distinguishes a real
+  // cutback from the start of taper (where mileage stays low through race).
+  for (let i = 1; i < ordered.length - 1; i++) {
+    const prev = ordered[i - 1].planned_m;
+    const next = ordered[i + 1].planned_m;
+    if (prev <= 0) continue;
+    const drop = (prev - ordered[i].planned_m) / prev;
+    if (drop >= 0.12 && next > ordered[i].planned_m) {
+      ordered[i].is_cutback = true;
+    }
+  }
+  return ordered.map((w) => ({
+    ...w,
+    actual_m: w.start_date > today ? null : w.actual_m,
+  }));
 }
 
 export async function getPlannedRunByDate(
@@ -340,20 +418,24 @@ export async function getPlannedRunByDate(
 export async function getPlannedRunsBetween(
   startISO: string,
   endISO: string,
+  planId?: string,
 ): Promise<PlannedRun[]> {
   const sb = createServerSupabase();
-  const { data, error } = await sb
+  let q = sb
     .from("planned_runs")
     .select("*")
     .gte("scheduled_date", startISO)
     .lte("scheduled_date", endISO)
     .order("scheduled_date", { ascending: true });
+  if (planId) q = q.eq("plan_id", planId);
+  const { data, error } = await q;
   if (error) throw error;
   return (data ?? []) as PlannedRun[];
 }
 
 export async function getWeekView(
   weekStartISO: string,
+  planId?: string,
 ): Promise<PlanWeekDay[]> {
   const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const MONTHS = [
@@ -373,7 +455,7 @@ export async function getWeekView(
   const today = todayLocalISO();
 
   const endISO = addDaysISO(weekStartISO, 6);
-  const planned = await getPlannedRunsBetween(weekStartISO, endISO);
+  const planned = await getPlannedRunsBetween(weekStartISO, endISO, planId);
   const sb = createServerSupabase();
   const { data: weekActs } = await sb
     .from("activities")
@@ -500,6 +582,17 @@ export async function getNextARace(): Promise<Race | null> {
   return upcoming[0] ?? null;
 }
 
+export async function getRaceById(raceId: string): Promise<Race | null> {
+  const sb = createServerSupabase();
+  const { data, error } = await sb
+    .from("races")
+    .select("*")
+    .eq("id", raceId)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? decorateRace(data) : null;
+}
+
 // =========================================================================
 // AI analyses
 // =========================================================================
@@ -526,6 +619,18 @@ function downsample<T>(arr: T[], target: number): T[] {
   const step = arr.length / target;
   const out: T[] = [];
   for (let i = 0; i < target; i++) out.push(arr[Math.floor(i * step)]);
+  return out;
+}
+
+function fillZeroGaps(arr: number[]): number[] {
+  const first = arr.find((v) => v > 0);
+  if (first === undefined) return arr;
+  const out = arr.slice();
+  let last = first;
+  for (let i = 0; i < out.length; i++) {
+    if (out[i] > 0) last = out[i];
+    else out[i] = last;
+  }
   return out;
 }
 
@@ -624,8 +729,13 @@ export async function getActivityDetail(activityId: number): Promise<{
   const latlng = (streams.latlng_data as [number, number][] | null) ?? [];
 
   const hr_curve = hr.length ? downsample(hr, 60) : [];
+  // Stationary samples (v <= 0) become 0 here and would dip far below the
+  // chart's min if rendered raw. Fill them from the nearest valid neighbor so
+  // the pace line stays inside its bounds.
   const pace_curve = velocity.length
-    ? downsample(velocity, 60).map((v) => (v > 0 ? M_PER_MILE / v / 60 : 0))
+    ? fillZeroGaps(
+        downsample(velocity, 60).map((v) => (v > 0 ? M_PER_MILE / v / 60 : 0)),
+      )
     : [];
   const splits =
     distance.length && time.length
@@ -1001,6 +1111,14 @@ export async function getShellSummary(): Promise<{
   races: number;
   plan: { name: string; week: number; totalWeeks: number; pct: number } | null;
   nextRace: { name: string; date: string; weeksOut: number } | null;
+  upcomingBlock: {
+    id: string;
+    name: string;
+    startDate: string;
+    endDate: string;
+    raceName: string | null;
+    raceDate: string | null;
+  } | null;
   lastSync: string | null;
   lastSyncCount: number;
 }> {
@@ -1012,6 +1130,7 @@ export async function getShellSummary(): Promise<{
     plan,
     planMeta,
     nextRace,
+    upcomingPlan,
     lastSyncRes,
   ] = await Promise.all([
     sb.from("activities").select("id", { count: "exact", head: true }),
@@ -1023,6 +1142,7 @@ export async function getShellSummary(): Promise<{
     getActivePlan(),
     getPlanMeta(),
     getNextARace(),
+    getUpcomingPlan(),
     sb
       .from("activities")
       .select("synced_at")
@@ -1052,6 +1172,37 @@ export async function getShellSummary(): Promise<{
     );
     nextRaceOut = { name: nextRace.name, date: nextRace.race_date, weeksOut };
   }
+
+  let upcomingBlockOut: {
+    id: string;
+    name: string;
+    startDate: string;
+    endDate: string;
+    raceName: string | null;
+    raceDate: string | null;
+  } | null = null;
+  if (upcomingPlan) {
+    let raceName: string | null = null;
+    let raceDate: string | null = null;
+    if (upcomingPlan.goal_race_id) {
+      const { data: r } = await sb
+        .from("races")
+        .select("name, race_date")
+        .eq("id", upcomingPlan.goal_race_id)
+        .maybeSingle();
+      raceName = r?.name ?? null;
+      raceDate = r?.race_date ?? null;
+    }
+    upcomingBlockOut = {
+      id: upcomingPlan.id,
+      name: upcomingPlan.name,
+      startDate: upcomingPlan.start_date,
+      endDate: upcomingPlan.end_date,
+      raceName,
+      raceDate,
+    };
+  }
+
   return {
     activities: actCountRes.count ?? 0,
     gear: gearCountRes.count ?? 0,
@@ -1071,6 +1222,7 @@ export async function getShellSummary(): Promise<{
         }
       : null,
     nextRace: nextRaceOut,
+    upcomingBlock: upcomingBlockOut,
     lastSync,
     lastSyncCount,
   };
