@@ -47,17 +47,19 @@ const PHASE_A_PLAN_NAME = "Surf City 10 Miler Build";
 const PHASE_A_NEW_END = "2026-09-20";
 const PHASE_A_RANGE = { start: "2026-08-09", end: "2026-09-20" };
 
+// Race pace = 9:00/mi (1:30:00 goal). Intervals run 20–30 s/mi faster than
+// race pace to build speed reserve; tempo work sits at race pace.
 const PHASE_A = [
   // A1 — Recovery week after the 12-miler
   ["2026-08-11", 3, "easy",    "3 mi easy"],
   ["2026-08-13", 3, "easy",    "3 mi easy"],
   ["2026-08-15", 6, "long",    "6 mi easy long"],
   // A2 — Intro race-pace
-  ["2026-08-18", 4, "interval","4 mi w/ 4×400m @ 9:00 + jog rec"],
+  ["2026-08-18", 4, "interval","4 mi w/ 4×400m @ 8:30 + jog rec"],
   ["2026-08-20", 4, "easy",    "4 mi easy"],
   ["2026-08-22", 8, "workout", "8 mi w/ 3 mi @ race pace (9:00)"],
   // A3
-  ["2026-08-25", 5, "tempo",   "5 mi w/ 2×1 mi tempo @ 9:00–9:15"],
+  ["2026-08-25", 5, "tempo",   "5 mi w/ 2×1 mi tempo @ 9:00"],
   ["2026-08-27", 4, "easy",    "4 mi easy"],
   ["2026-08-29", 9, "workout", "9 mi w/ 4 mi @ race pace"],
   // A4 — Peak race rehearsal
@@ -65,7 +67,7 @@ const PHASE_A = [
   ["2026-09-03", 4, "easy",    "4 mi easy"],
   ["2026-09-05",10, "workout", "10 mi w/ 5 mi @ race pace"],
   // A5 — Cutback
-  ["2026-09-08", 4, "interval","4 mi w/ 4×800 @ 9:00 + jog"],
+  ["2026-09-08", 4, "interval","4 mi w/ 4×800 @ 8:30 + jog"],
   ["2026-09-10", 3, "easy",    "3 mi easy"],
   ["2026-09-12", 8, "workout", "8 mi w/ 3 mi @ race pace"],
   // A6 — Race week
@@ -88,6 +90,8 @@ const ROSE_BOWL_RACE = {
   status: "upcoming",
 };
 
+// Goal pace = 9:05/mi (sub-2 half). Tempo sits at race pace; mile reps run
+// ~30 s/mi faster (8:35) and 800s ~35 s/mi faster (8:30) to seed VO2max.
 const PHASE_B = [
   // B1 — Recovery
   ["2026-09-22", 3, "easy",    "3 mi easy"],
@@ -114,43 +118,43 @@ const PHASE_B = [
   ["2026-10-29", 4, "easy",    "4 mi easy"],
   ["2026-10-31", 9, "long",    "9 mi long run"],
   // B7 — Build 2 (first half-specific tempo)
-  ["2026-11-03", 5, "tempo",   "5 mi w/ 3 mi tempo @ 9:30"],
+  ["2026-11-03", 5, "tempo",   "5 mi w/ 3 mi tempo @ 9:05"],
   ["2026-11-05", 4, "easy",    "4 mi easy"],
   ["2026-11-07",10, "long",    "10 mi long run"],
   // B8 — Build 3
-  ["2026-11-10", 5, "tempo",   "5 mi w/ 4 mi tempo @ 9:30"],
+  ["2026-11-10", 5, "tempo",   "5 mi w/ 4 mi tempo @ 9:05"],
   ["2026-11-12", 4, "easy",    "4 mi easy"],
   ["2026-11-14",11, "workout", "11 mi, last 2 mi @ goal pace"],
   // B9 — Cutback
-  ["2026-11-17", 4, "interval","4 mi w/ 4×800m @ 9:00"],
+  ["2026-11-17", 4, "interval","4 mi w/ 4×800m @ 8:30"],
   ["2026-11-19", 3, "easy",    "3 mi easy"],
   ["2026-11-21", 8, "long",    "8 mi easy long"],
   // B10 — Specific 1
-  ["2026-11-24", 6, "tempo",   "6 mi w/ 4 mi tempo @ 9:30"],
+  ["2026-11-24", 6, "tempo",   "6 mi w/ 4 mi tempo @ 9:05"],
   ["2026-11-26", 4, "easy",    "4 mi easy"],
   ["2026-11-28",11, "workout", "11 mi w/ 3 mi @ goal pace"],
   // B11 — Specific 2
-  ["2026-12-01", 6, "tempo",   "6 mi w/ 2×2 mi tempo @ 9:30"],
+  ["2026-12-01", 6, "tempo",   "6 mi w/ 2×2 mi tempo @ 9:05"],
   ["2026-12-03", 5, "easy",    "5 mi easy"],
   ["2026-12-05",12, "workout", "12 mi w/ 4 mi @ goal pace"],
   // B12 — Specific 3
-  ["2026-12-08", 6, "tempo",   "6 mi w/ 5 mi continuous tempo"],
+  ["2026-12-08", 6, "tempo",   "6 mi w/ 5 mi continuous tempo @ 9:05"],
   ["2026-12-10", 5, "easy",    "5 mi easy"],
   ["2026-12-12",12, "long",    "12 mi long run easy"],
   // B13 — Cutback
-  ["2026-12-15", 4, "interval","4 mi w/ 4×800m @ 9:00"],
+  ["2026-12-15", 4, "interval","4 mi w/ 4×800m @ 8:30"],
   ["2026-12-17", 4, "easy",    "4 mi easy"],
   ["2026-12-19", 8, "long",    "8 mi easy long"],
   // B14 — Peak 1 (longest training run)
-  ["2026-12-22", 6, "tempo",   "6 mi w/ 5 mi tempo @ 9:30"],
+  ["2026-12-22", 6, "tempo",   "6 mi w/ 5 mi tempo @ 9:05"],
   ["2026-12-24", 5, "easy",    "5 mi easy"],
   ["2026-12-26",13, "workout", "13 mi w/ 6 mi @ goal pace"],
   // B15 — Peak 2
-  ["2026-12-29", 6, "interval","6 mi w/ 3×1 mi @ 9:00"],
+  ["2026-12-29", 6, "interval","6 mi w/ 3×1 mi @ 8:35"],
   ["2026-12-31", 4, "easy",    "4 mi easy"],
   ["2027-01-02",12, "workout", "12 mi w/ 8 mi @ goal pace"],
   // B16 — Taper 1
-  ["2027-01-05", 5, "tempo",   "5 mi w/ 3 mi tempo @ 9:30"],
+  ["2027-01-05", 5, "tempo",   "5 mi w/ 3 mi tempo @ 9:05"],
   ["2027-01-07", 4, "easy",    "4 mi easy"],
   ["2027-01-09", 9, "workout", "9 mi w/ 3 mi @ goal pace"],
   // B17 — Race week
@@ -220,6 +224,16 @@ async function main() {
     .select("id");
   if (insAErr) throw insAErr;
   console.log(`Phase A: ${aIns?.length ?? 0} planned_runs inserted`);
+
+  // Re-aim the Surf City race goal at 1:30:00 (9:00/mi) — the sub-2 build
+  // logic upstream assumes ambitious goal times, so align the older row too.
+  const SURF_CITY_GOAL_S = 1 * 3600 + 30 * 60;
+  await sb
+    .from("races")
+    .update({ goal_time_s: SURF_CITY_GOAL_S })
+    .eq("athlete_id", athleteId)
+    .eq("name", "Surf City 10 Miler");
+  console.log(`Surf City race goal → ${SURF_CITY_GOAL_S}s (1:30:00 @ 9:00/mi)`);
 
   // ---------- Phase B: new Rose Bowl race + plan ----------
   let { data: rbRace } = await sb
