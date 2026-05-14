@@ -32,6 +32,7 @@ import {
   formatDurationShort,
   formatFeet,
   formatMiles,
+  formatMilesHalf,
   metersToMiles,
   speedToPacePerMile,
 } from "@/lib/utils/units";
@@ -840,8 +841,8 @@ export default async function DashboardPage() {
                     <span style={{ fontSize: 13 }}>{s.name}</span>
                   </div>
                   <span className="num muted" style={{ fontSize: 11 }}>
-                    {Math.round(metersToMiles(s.distance_m))}/
-                    {Math.round(metersToMiles(s.cap_m))} mi
+                    {formatMilesHalf(metersToMiles(s.distance_m))}/
+                    {formatMilesHalf(metersToMiles(s.cap_m))} mi
                   </span>
                 </div>
                 <MilesBar

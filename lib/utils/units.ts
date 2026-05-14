@@ -19,7 +19,10 @@ export function metersToFeet(m: number): number {
 }
 
 /** Distance in miles, rounded to 1 decimal. */
-export function formatMiles(m: number | null | undefined, decimals = 1): string {
+export function formatMiles(
+  m: number | null | undefined,
+  decimals = 1,
+): string {
   if (m == null) return "—";
   return metersToMiles(m).toFixed(decimals);
 }
@@ -27,6 +30,12 @@ export function formatMiles(m: number | null | undefined, decimals = 1): string 
 /** Compact miles: "1.5", "7", "10.5" — 1 decimal, trailing .0 stripped. */
 export function formatMilesCompact(mi: number): string {
   const rounded = Math.round(mi * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+/** Miles rounded to nearest 0.5: "2.5", "3", "10.5" — trailing .0 stripped. */
+export function formatMilesHalf(mi: number): string {
+  const rounded = Math.round(mi * 2) / 2;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
 
@@ -52,7 +61,8 @@ export function formatDuration(s: number | null | undefined): string {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const sec = Math.floor(s % 60);
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  if (h > 0)
+    return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
@@ -66,7 +76,9 @@ export function formatDurationShort(s: number | null | undefined): string {
 }
 
 /** Pace as decimal minutes per mile (e.g. 7.05 = 7:03/mi) for charting. */
-export function speedToDecimalPacePerMile(ms: number | null | undefined): number | null {
+export function speedToDecimalPacePerMile(
+  ms: number | null | undefined,
+): number | null {
   if (!ms || ms <= 0) return null;
   const secPerMile = M_PER_MILE / ms;
   return secPerMile / 60;
