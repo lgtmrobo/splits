@@ -1,3 +1,4 @@
+import { createServiceRoleSupabase } from "@/lib/supabase/server";
 import type { Activity, PlannedRun, WorkoutType } from "@/lib/types";
 
 const M_PER_MILE = 1609.344;
@@ -28,7 +29,7 @@ export interface MatchScore {
  */
 export function scoreMatch(
   activity: Activity,
-  planned: PlannedRun
+  planned: PlannedRun,
 ): MatchScore | null {
   const compat = COMPATIBLE[planned.workout_type];
   if (compat !== "any" && compat.length === 0) return null;
@@ -38,8 +39,8 @@ export function scoreMatch(
   const dateDeltaDays = Math.abs(
     Math.round(
       (new Date(actDate).getTime() - new Date(planDate).getTime()) /
-        (1000 * 60 * 60 * 24)
-    )
+        (1000 * 60 * 60 * 24),
+    ),
   );
   if (dateDeltaDays > 1) return null;
 
@@ -69,7 +70,7 @@ export function scoreMatch(
  */
 export function bestMatch(
   activity: Activity,
-  candidates: PlannedRun[]
+  candidates: PlannedRun[],
 ): MatchScore | null {
   let best: MatchScore | null = null;
   for (const p of candidates) {
@@ -88,7 +89,7 @@ export function bestMatch(
  */
 export function findMissedPlannedRuns(
   planned: PlannedRun[],
-  today: string
+  today: string,
 ): PlannedRun[] {
   const todayTime = new Date(today).getTime();
   return planned.filter((p) => {
@@ -99,4 +100,84 @@ export function findMissedPlannedRuns(
     const daysPast = (todayTime - planTime) / (1000 * 60 * 60 * 24);
     return daysPast > 2;
   });
+}
+
+/**
+ * Link recent activities to scheduled planned runs and flag stale ones as
+ * missed. Mirrors `/api/cron/match-plan` but scoped to a single athlete so it
+ * can run inside the user-triggered sync. Without this step, charts that
+ * read `planned_runs.completed_activity_id` (Plan vs Actual mileage, Plan
+ * Adherence) stay stale even after new activities are ingested.
+ */
+export async function matchPlannedRunsForAthlete(
+  athleteId: string,
+): Promise<{ linked: number; marked_missed: number }> {
+  const admin = createServiceRoleSupabase();
+  const today = new Date().toISOString().slice(0, 10);
+  const fourteenAgo = new Date(Date.now() - 14 * 24 * 3600 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  const { data: plans } = await admin
+    .from("training_plans")
+    .select("id")
+    .eq("athlete_id", athleteId);
+  const planIds = (plans ?? []).map((p) => p.id as string);
+  if (planIds.length === 0) return { linked: 0, marked_missed: 0 };
+
+  const [{ data: activities }, { data: planned }] = await Promise.all([
+    admin
+      .from("activities")
+      .select("*")
+      .eq("athlete_id", athleteId)
+      .gte("start_date_local", fourteenAgo),
+    admin
+      .from("planned_runs")
+      .select("*")
+      .in("plan_id", planIds)
+      .gte("scheduled_date", fourteenAgo)
+      .eq("completion_status", "scheduled"),
+  ]);
+
+  let linked = 0;
+  if (activities && planned) {
+    const claimed = new Set<string>();
+    for (const a of activities as Activity[]) {
+      const candidates = (planned as PlannedRun[]).filter(
+        (p) =>
+          !claimed.has(p.id) &&
+          Math.abs(
+            new Date(p.scheduled_date).getTime() -
+              new Date(a.start_date_local.slice(0, 10)).getTime(),
+          ) <=
+            1 * 24 * 3600 * 1000,
+      );
+      const m = bestMatch(a, candidates);
+      if (!m) continue;
+      claimed.add(m.planned.id);
+      await admin
+        .from("planned_runs")
+        .update({
+          completed_activity_id: a.id,
+          completion_status: "completed",
+        })
+        .eq("id", m.planned.id);
+      linked += 1;
+    }
+  }
+
+  const missed = planned
+    ? findMissedPlannedRuns(planned as PlannedRun[], today)
+    : [];
+  if (missed.length > 0) {
+    await admin
+      .from("planned_runs")
+      .update({ completion_status: "missed" })
+      .in(
+        "id",
+        missed.map((m) => m.id),
+      );
+  }
+
+  return { linked, marked_missed: missed.length };
 }
