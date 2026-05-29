@@ -39,6 +39,11 @@ export interface StravaSummaryActivity {
   max_heartrate?: number;
   has_heartrate: boolean;
   average_cadence?: number;
+  average_watts?: number;
+  weighted_average_watts?: number;
+  max_watts?: number;
+  kilojoules?: number;
+  device_watts?: boolean;
   calories?: number;
   suffer_score?: number;
   gear_id: string | null;

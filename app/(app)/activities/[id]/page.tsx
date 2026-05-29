@@ -454,6 +454,52 @@ export default async function ActivityDetailPage({ params }: Props) {
           )}
         </div>
 
+        {activity.average_watts != null && (
+          <div className="card">
+            <CardHeader
+              title="Power · This run"
+              action={activity.device_watts ? "Device" : "Estimated"}
+            />
+            <div
+              className="grid"
+              style={{ gridTemplateColumns: "1fr 1fr", gap: 18, marginTop: 4 }}
+            >
+              <Stat
+                label="Avg Power"
+                value={Math.round(activity.average_watts)}
+                unit="W"
+              />
+              <Stat
+                label="Normalized"
+                value={
+                  activity.weighted_average_watts != null
+                    ? Math.round(activity.weighted_average_watts)
+                    : "—"
+                }
+                unit="W"
+              />
+              <Stat
+                label="Max Power"
+                value={
+                  activity.max_watts != null
+                    ? Math.round(activity.max_watts)
+                    : "—"
+                }
+                unit="W"
+              />
+              <Stat
+                label="Work"
+                value={
+                  activity.kilojoules != null
+                    ? Math.round(activity.kilojoules)
+                    : "—"
+                }
+                unit="kJ"
+              />
+            </div>
+          </div>
+        )}
+
         {analysis && (
           <div className="card" style={{ background: "var(--surface-2)" }}>
             <div className="row between" style={{ marginBottom: 12 }}>

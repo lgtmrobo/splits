@@ -48,6 +48,11 @@ export interface Activity {
   max_heartrate: number | null;
   has_heartrate: boolean;
   average_cadence: number | null;
+  average_watts: number | null;
+  weighted_average_watts: number | null;
+  max_watts: number | null;
+  kilojoules: number | null;
+  device_watts: boolean | null;
   calories: number | null;
   suffer_score: number | null;
   gear_id: string | null;
