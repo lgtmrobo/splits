@@ -13,15 +13,18 @@ export async function GET(_req: NextRequest, { params }: Context) {
   if (!user) return NextResponse.json({ error: "unauth" }, { status: 401 });
 
   const activityId = Number(params.id);
+  const force = _req.nextUrl.searchParams.get("force") === "1";
   const admin = createServiceRoleSupabase();
 
   // Cache hit?
-  const { data: cached } = await admin
-    .from("activity_streams")
-    .select("*")
-    .eq("activity_id", activityId)
-    .maybeSingle();
-  if (cached) return NextResponse.json(cached);
+  if (!force) {
+    const { data: cached } = await admin
+      .from("activity_streams")
+      .select("*")
+      .eq("activity_id", activityId)
+      .maybeSingle();
+    if (cached) return NextResponse.json(cached);
+  }
 
   // Miss — find the owning athlete, fetch, cache.
   const { data: activity } = await admin

@@ -6,6 +6,16 @@ export function isDevAuthBypass(): boolean {
   return process.env.DEV_AUTH_BYPASS === "true";
 }
 
+// Supabase-js issues its requests with plain `fetch`, which Next.js's App
+// Router patches to cache by default (persisted to disk, surviving restarts).
+// That silently froze rows like `activity_streams` at whatever they looked
+// like on first read — e.g. missing, if a page rendered before the lazy
+// stream fetch landed — so later writes never showed up. Force every
+// Supabase request to bypass that cache; Supabase's own data is source of
+// truth per-request, not something Next should cache on our behalf.
+const noStoreFetch: typeof fetch = (input, init) =>
+  fetch(input, { ...init, cache: "no-store" });
+
 /**
  * Session-scoped client for App Router server components / route handlers.
  * Uses the caller's cookies, so RLS policies apply.
@@ -39,6 +49,7 @@ export function createServerSupabase() {
           }
         },
       },
+      global: { fetch: noStoreFetch },
     }
   );
 }
@@ -58,5 +69,6 @@ export function createServiceRoleSupabase() {
   }
   return createAdminClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: noStoreFetch },
   });
 }

@@ -5,6 +5,7 @@ import { ZoneBar } from "@/components/charts/zone-bar";
 import { RouteMap } from "@/components/maps/route-map";
 import { Icon } from "@/components/ui/icon";
 import { CardHeader, Pill, Stat } from "@/components/ui/primitives";
+import { ResyncButton } from "@/components/activities/resync-button";
 import {
   getActivityDetail,
   getAnalysisForActivity,
@@ -12,6 +13,7 @@ import {
   getPlannedRunByDate,
   getWhoopWorkoutForActivity,
 } from "@/lib/supabase/queries";
+import { buildActivityDetail } from "@/lib/supabase/queries.impl";
 import type { WorkoutType } from "@/lib/types";
 import { fetchActivityStreams } from "@/lib/strava/sync";
 import { createServiceRoleSupabase } from "@/lib/supabase/server";
@@ -81,16 +83,36 @@ export default async function ActivityDetailPage({ params }: Props) {
     .eq("activity_id", detail.activity.id)
     .maybeSingle();
   if (!cached) {
+    // Build straight off the row `fetchActivityStreams` just wrote instead
+    // of re-querying — a read-after-write isn't guaranteed to see it within
+    // the same request.
+    let streamRow: Awaited<ReturnType<typeof fetchActivityStreams>> | null =
+      null;
     try {
-      await fetchActivityStreams(
+      streamRow = await fetchActivityStreams(
         detail.activity.athlete_id,
         detail.activity.id,
       );
-      const refreshed = await getActivityDetail(Number(params.id));
-      if (refreshed) detail = refreshed;
     } catch (e) {
-      console.error("stream fetch failed for", detail.activity.id, e);
+      // Strava sometimes hasn't finished processing streams for a
+      // just-uploaded activity yet (or the request got rate-limited
+      // during a bulk sync) — wait a beat and try once more, unless
+      // we know we're rate-limited and a retry can't help.
+      if (!String(e).includes("strava_rate_limited")) {
+        await new Promise((r) => setTimeout(r, 2000));
+        try {
+          streamRow = await fetchActivityStreams(
+            detail.activity.athlete_id,
+            detail.activity.id,
+          );
+        } catch (e2) {
+          console.error("stream fetch failed for", detail.activity.id, e2);
+        }
+      } else {
+        console.error("stream fetch failed for", detail.activity.id, e);
+      }
     }
+    if (streamRow) detail = buildActivityDetail(detail.activity, streamRow);
   }
 
   const [analysis, gear, planned, whoop] = await Promise.all([
@@ -241,10 +263,7 @@ export default async function ActivityDetailPage({ params }: Props) {
             </div>
           </div>
           <div className="row gap-8">
-            <button type="button" className="btn">
-              <Icon name="sync" size={12} />
-              Re-sync
-            </button>
+            <ResyncButton activityId={detail.activity.id} />
             <button type="button" className="btn">
               <Icon name="more" size={12} />
             </button>

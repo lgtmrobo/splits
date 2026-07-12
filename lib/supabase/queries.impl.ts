@@ -697,7 +697,7 @@ function secsToPace(s: number): string {
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
-export async function getActivityDetail(activityId: number): Promise<{
+export interface ActivityDetail {
   activity: Activity;
   hr_curve: number[];
   pace_curve: number[];
@@ -710,17 +710,20 @@ export async function getActivityDetail(activityId: number): Promise<{
   }[];
   route_lnglat: [number, number][];
   zones: HRZone[];
-} | null> {
-  const activity = await getActivityById(activityId);
-  if (!activity) return null;
-  const sb = createServerSupabase();
-  const { data: streamRow } = await sb
-    .from("activity_streams")
-    .select("*")
-    .eq("activity_id", activityId)
-    .maybeSingle();
+}
 
-  const streams = (streamRow ?? {}) as Partial<ActivityStreams>;
+/**
+ * Derive the detail-page view (curves/splits/route) from an activity plus its
+ * (possibly absent) stream row. Exported so callers that just wrote a stream
+ * row via `fetchActivityStreams` can build the detail from that row directly
+ * instead of re-querying — a fresh read-after-write isn't guaranteed to see
+ * the row within the same request.
+ */
+export function buildActivityDetail(
+  activity: Activity,
+  streamRow: Partial<ActivityStreams> | null,
+): ActivityDetail {
+  const streams = streamRow ?? {};
   const hr = (streams.heartrate_data as number[] | null) ?? [];
   const time = (streams.time_data as number[] | null) ?? [];
   const distance = (streams.distance_data as number[] | null) ?? [];
@@ -761,6 +764,21 @@ export async function getActivityDetail(activityId: number): Promise<{
     route_lnglat,
     zones: defaultHRZones(),
   };
+}
+
+export async function getActivityDetail(
+  activityId: number,
+): Promise<ActivityDetail | null> {
+  const activity = await getActivityById(activityId);
+  if (!activity) return null;
+  const sb = createServerSupabase();
+  const { data: streamRow } = await sb
+    .from("activity_streams")
+    .select("*")
+    .eq("activity_id", activityId)
+    .maybeSingle();
+
+  return buildActivityDetail(activity, streamRow as Partial<ActivityStreams> | null);
 }
 
 // =========================================================================
