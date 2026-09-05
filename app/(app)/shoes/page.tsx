@@ -1,13 +1,36 @@
 import { MilesBar } from "@/components/charts/miles-bar";
 import { Sparkline } from "@/components/charts/sparkline";
 import { Pill, Stat } from "@/components/ui/primitives";
-import { getAllActivities, getAllGear } from "@/lib/supabase/queries";
+import {
+  getAllActivities,
+  getAllGear,
+  getUpcomingGearProjections,
+} from "@/lib/supabase/queries";
 import {
   formatMilesHalf,
   metersToMiles,
   speedToPacePerMile,
 } from "@/lib/utils/units";
 import { AddShoeButton, EditShoeButton } from "./shoes-actions-bar";
+
+function fmtRaceDate(iso: string): string {
+  const d = new Date(iso + "T00:00:00Z");
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  return `${months[d.getUTCMonth()]} ${d.getUTCDate()}`;
+}
 
 const M_PER_MILE = 1609.344;
 
@@ -20,9 +43,10 @@ function paceFromSpeed(ms: number): string {
 }
 
 export default async function ShoesPage() {
-  const [gear, activities] = await Promise.all([
+  const [gear, activities, projectionsByGear] = await Promise.all([
     getAllGear(),
     getAllActivities(),
+    getUpcomingGearProjections(),
   ]);
   const active = gear.filter((g) => !g.retired);
   const retired = gear.filter((g) => g.retired);
@@ -278,6 +302,26 @@ export default async function ShoesPage() {
                 </span>
               </div>
               <MilesBar miles={mi} cap={capMi} color={s.color} />
+              {(projectionsByGear.get(s.id) ?? []).length > 0 && (
+                <div className="col gap-4" style={{ marginTop: 10 }}>
+                  {(projectionsByGear.get(s.id) ?? []).map(
+                    ({ race, projected_m }) => (
+                      <div
+                        key={race.id}
+                        className="row between"
+                        style={{ fontSize: 11 }}
+                      >
+                        <span className="muted">
+                          By {race.name} ({fmtRaceDate(race.race_date)})
+                        </span>
+                        <span className="num" style={{ fontWeight: 500 }}>
+                          {formatMilesHalf(metersToMiles(projected_m))} mi
+                        </span>
+                      </div>
+                    ),
+                  )}
+                </div>
+              )}
               <div
                 className="grid"
                 style={{

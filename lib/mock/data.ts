@@ -582,6 +582,7 @@ export const PLANNED_RUNS: PlannedRun[] = [
     notes: null,
     completed_activity_id: 10_000_000_009,
     completion_status: "completed",
+    expected_gear_id: null,
     created_at: "2026-02-09T00:00:00Z",
   },
   {
@@ -596,6 +597,7 @@ export const PLANNED_RUNS: PlannedRun[] = [
     notes: null,
     completed_activity_id: 10_000_000_010,
     completion_status: "completed",
+    expected_gear_id: null,
     created_at: "2026-02-09T00:00:00Z",
   },
   {
@@ -610,6 +612,7 @@ export const PLANNED_RUNS: PlannedRun[] = [
     notes: null,
     completed_activity_id: null,
     completion_status: "scheduled",
+    expected_gear_id: null,
     created_at: "2026-02-09T00:00:00Z",
   },
   {
@@ -624,6 +627,7 @@ export const PLANNED_RUNS: PlannedRun[] = [
     notes: null,
     completed_activity_id: 10_000_000_011,
     completion_status: "completed",
+    expected_gear_id: null,
     created_at: "2026-02-09T00:00:00Z",
   },
   {
@@ -638,6 +642,7 @@ export const PLANNED_RUNS: PlannedRun[] = [
     notes: null,
     completed_activity_id: 10_000_000_012,
     completion_status: "completed",
+    expected_gear_id: null,
     created_at: "2026-02-09T00:00:00Z",
   },
   {
@@ -652,6 +657,7 @@ export const PLANNED_RUNS: PlannedRun[] = [
     notes: null,
     completed_activity_id: null,
     completion_status: "scheduled",
+    expected_gear_id: null,
     created_at: "2026-02-09T00:00:00Z",
   },
   {
@@ -666,6 +672,7 @@ export const PLANNED_RUNS: PlannedRun[] = [
     notes: null,
     completed_activity_id: null,
     completion_status: "scheduled",
+    expected_gear_id: null,
     created_at: "2026-02-09T00:00:00Z",
   },
   // Week 11 (next)
@@ -681,6 +688,7 @@ export const PLANNED_RUNS: PlannedRun[] = [
     notes: null,
     completed_activity_id: null,
     completion_status: "scheduled",
+    expected_gear_id: null,
     created_at: "2026-02-09T00:00:00Z",
   },
   {
@@ -695,6 +703,7 @@ export const PLANNED_RUNS: PlannedRun[] = [
     notes: null,
     completed_activity_id: null,
     completion_status: "scheduled",
+    expected_gear_id: null,
     created_at: "2026-02-09T00:00:00Z",
   },
   {
@@ -709,6 +718,7 @@ export const PLANNED_RUNS: PlannedRun[] = [
     notes: null,
     completed_activity_id: null,
     completion_status: "scheduled",
+    expected_gear_id: null,
     created_at: "2026-02-09T00:00:00Z",
   },
   {
@@ -723,6 +733,7 @@ export const PLANNED_RUNS: PlannedRun[] = [
     notes: null,
     completed_activity_id: null,
     completion_status: "scheduled",
+    expected_gear_id: null,
     created_at: "2026-02-09T00:00:00Z",
   },
   {
@@ -737,6 +748,7 @@ export const PLANNED_RUNS: PlannedRun[] = [
     notes: null,
     completed_activity_id: null,
     completion_status: "scheduled",
+    expected_gear_id: null,
     created_at: "2026-02-09T00:00:00Z",
   },
   {
@@ -751,6 +763,7 @@ export const PLANNED_RUNS: PlannedRun[] = [
     notes: null,
     completed_activity_id: null,
     completion_status: "scheduled",
+    expected_gear_id: null,
     created_at: "2026-02-09T00:00:00Z",
   },
   {
@@ -765,6 +778,7 @@ export const PLANNED_RUNS: PlannedRun[] = [
     notes: null,
     completed_activity_id: null,
     completion_status: "scheduled",
+    expected_gear_id: null,
     created_at: "2026-02-09T00:00:00Z",
   },
 ];

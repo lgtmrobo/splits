@@ -30,6 +30,7 @@ export const getWeekView = Q.getWeekView;
 export const getAllGear = Q.getAllGear;
 export const getActiveGear = Q.getActiveGear;
 export const getGearById = Q.getGearById;
+export const getUpcomingGearProjections = Q.getUpcomingGearProjections;
 export const getAllRaces = Q.getAllRaces;
 export const getUpcomingRaces = Q.getUpcomingRaces;
 export const getNextARace = Q.getNextARace;

@@ -593,6 +593,47 @@ export async function getRaceById(raceId: string): Promise<Race | null> {
   return data ? decorateRace(data) : null;
 }
 
+export interface GearRaceProjection {
+  race: Race;
+  projected_m: number;
+}
+
+// Current odometer + still-scheduled planned miles assigned to this shoe,
+// summed up to each upcoming race date. Lets the Shoes page show "X mi by
+// [race]" without the athlete having to re-derive it by hand each time.
+export async function getUpcomingGearProjections(): Promise<
+  Map<string, GearRaceProjection[]>
+> {
+  const [gear, races] = await Promise.all([getAllGear(), getUpcomingRaces()]);
+  const result = new Map<string, GearRaceProjection[]>();
+  if (races.length === 0) {
+    for (const g of gear) result.set(g.id, []);
+    return result;
+  }
+
+  const sb = createServerSupabase();
+  const { data: planned, error } = await sb
+    .from("planned_runs")
+    .select("scheduled_date, target_distance_m, expected_gear_id")
+    .eq("completion_status", "scheduled")
+    .not("expected_gear_id", "is", null);
+  if (error) throw error;
+
+  for (const g of gear) {
+    const projections = races.map((race) => {
+      const upcomingM = (planned ?? [])
+        .filter(
+          (p) =>
+            p.expected_gear_id === g.id && p.scheduled_date <= race.race_date,
+        )
+        .reduce((acc, p) => acc + Number(p.target_distance_m ?? 0), 0);
+      return { race, projected_m: g.distance_m + upcomingM };
+    });
+    result.set(g.id, projections);
+  }
+  return result;
+}
+
 // =========================================================================
 // AI analyses
 // =========================================================================
@@ -778,7 +819,10 @@ export async function getActivityDetail(
     .eq("activity_id", activityId)
     .maybeSingle();
 
-  return buildActivityDetail(activity, streamRow as Partial<ActivityStreams> | null);
+  return buildActivityDetail(
+    activity,
+    streamRow as Partial<ActivityStreams> | null,
+  );
 }
 
 // =========================================================================

@@ -7,6 +7,7 @@ import { RouteMap } from "@/components/maps/route-map";
 import { decodePolyline } from "@/lib/strava/polyline";
 import {
   getActivePlan,
+  getAllGear,
   getPlanById,
   getPlanMeta,
   getPlannedRunsBetween,
@@ -20,7 +21,7 @@ import {
   metersToMiles,
 } from "@/lib/utils/units";
 import { addDaysISO, sundayOfISO, todayLocalISO } from "@/lib/utils/dates";
-import type { PlannedRun, PlanWeekDay } from "@/lib/types";
+import type { Gear, PlannedRun, PlanWeekDay } from "@/lib/types";
 
 const MONTHS = [
   "Jan",
@@ -93,10 +94,12 @@ export default async function PlanPage({
   const thisWeekStart = sundayOfISO(baseWeek);
   const nextWeekStart = addDays(thisWeekStart, 7);
 
-  const [weekView, nextWeekRuns] = await Promise.all([
+  const [weekView, nextWeekRuns, gear] = await Promise.all([
     getWeekView(thisWeekStart, plan.id),
     getPlannedRunsBetween(nextWeekStart, addDays(nextWeekStart, 6), plan.id),
+    getAllGear(),
   ]);
+  const gearById = new Map(gear.map((g) => [g.id, g]));
 
   const totalActualMi = metersToMiles(meta.total_miles_actual_m);
   const totalPlannedMi = metersToMiles(meta.total_miles_planned_m);
@@ -536,7 +539,12 @@ export default async function PlanPage({
                   style={{ gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}
                 >
                   {days.map((d) => (
-                    <WeekDayCell key={d.date_iso} day={d} todayISO={todayISO} />
+                    <WeekDayCell
+                      key={d.date_iso}
+                      day={d}
+                      todayISO={todayISO}
+                      gearById={gearById}
+                    />
                   ))}
                 </div>
               </div>
@@ -560,7 +568,12 @@ export default async function PlanPage({
               style={{ gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}
             >
               {weekView.map((d) => (
-                <WeekDayCell key={d.date_iso} day={d} todayISO={todayISO} />
+                <WeekDayCell
+                  key={d.date_iso}
+                  day={d}
+                  todayISO={todayISO}
+                  gearById={gearById}
+                />
               ))}
             </div>
           </div>
@@ -781,9 +794,11 @@ function goalPaceLabel(race: {
 function WeekDayCell({
   day,
   todayISO,
+  gearById,
 }: {
   day: PlanWeekDay;
   todayISO: string;
+  gearById?: Map<string, Gear>;
 }) {
   const isToday = day.date_iso === todayISO;
   const isDone = day.status === "done";
@@ -793,6 +808,10 @@ function WeekDayCell({
   const miles = planned?.target_distance_m
     ? metersToMiles(planned.target_distance_m)
     : 0;
+  const expectedShoe =
+    planned?.expected_gear_id && gearById
+      ? gearById.get(planned.expected_gear_id)
+      : null;
   // Travel/event tag lifted out of description ("X · Vegas" or just "Vegas"
   // on a rest day). Keeps the detection narrow so normal descriptions like
   // "Rest" or "3 mi easy" aren't mis-tagged.
@@ -881,6 +900,23 @@ function WeekDayCell({
       <div style={{ fontSize: 11, color: "var(--text-2)", lineHeight: 1.35 }}>
         {planned?.description}
       </div>
+      {expectedShoe && (
+        <div
+          className="row gap-6"
+          style={{ alignItems: "center", fontSize: 10, color: "var(--text-3)" }}
+        >
+          <div
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              background: expectedShoe.color,
+              flexShrink: 0,
+            }}
+          />
+          {expectedShoe.model_name ?? expectedShoe.name}
+        </div>
+      )}
       {isDone && day.actual && (
         <div
           style={{

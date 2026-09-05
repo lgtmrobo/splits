@@ -18,13 +18,7 @@ export interface Athlete {
 
 // "Run" | "Ride" | "Walk" | "Workout" — Strava's top-level type
 export type StravaActivityType =
-  | "Run"
-  | "Ride"
-  | "Walk"
-  | "Hike"
-  | "Workout"
-  | "WeightTraining"
-  | string;
+  "Run" | "Ride" | "Walk" | "Hike" | "Workout" | "WeightTraining" | string;
 
 // Strava's more specific sport_type, e.g. "Run" vs "TrailRun"
 export type StravaSportType = string;
@@ -133,6 +127,7 @@ export interface PlannedRun {
   notes: string | null;
   completed_activity_id: number | null;
   completion_status: CompletionStatus;
+  expected_gear_id: string | null;
   created_at: string;
 }
 

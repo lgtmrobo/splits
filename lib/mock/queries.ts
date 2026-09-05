@@ -217,6 +217,20 @@ export async function getGearById(id: string): Promise<Gear | null> {
   return GEAR.find((g) => g.id === id) ?? null;
 }
 
+export async function getUpcomingGearProjections(): Promise<
+  Map<string, { race: Race; projected_m: number }[]>
+> {
+  const upcoming = await getUpcomingRaces();
+  const result = new Map<string, { race: Race; projected_m: number }[]>();
+  for (const g of GEAR) {
+    result.set(
+      g.id,
+      upcoming.map((race) => ({ race, projected_m: g.distance_m })),
+    );
+  }
+  return result;
+}
+
 // =========================================================================
 // Races
 // =========================================================================
