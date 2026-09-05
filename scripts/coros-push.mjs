@@ -15,7 +15,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
-const env = readFileSync("/Users/1234/Documents/Repos/splits/.env", "utf8");
+const env = readFileSync(new URL("../.env.local", import.meta.url), "utf8");
 for (const line of env.split("\n")) {
   const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
@@ -173,31 +173,40 @@ async function detail() {
 }
 
 // ---- write -----------------------------------------------------------------
-// Cloned from a real scheduled "3 mi easy" run (probe ground truth). The
-// generic run block (originId/sid_run_training) + intensityType 8 pace zone
-// is server-validated; we override only name + distance (cm) per session.
+// Cloned from a real Training Hub-built "12 mi long run" (schedule/query ground
+// truth): one generic run exercise (originId/sid_run_training, no intensity
+// target) per 1 mi lap, so the watch records per-mile laps instead of one
+// block. Fractional miles become a final short lap (3.5 mi → 3×1 mi + 0.5 mi).
 const MI_M = 1609.344;
-function buildRunProgram(name, meters) {
-  const cm = Math.round(meters * 100); // targetValue is centimeters
-  const estTime = Math.round((meters / MI_M) * 10.5 * 60); // rough 10:30/mi
-  const exercise = {
+const MILE_CM = 160934; // 1 mi lap in cm, as Training Hub stores it
+function mileLapExercise(cm, index) {
+  return {
     access: 0, defaultOrder: 0, equipment: [1], exerciseType: 2, groupId: "0",
-    hrType: 0, id: 1, intensityCustom: 0, intensityDisplayUnit: 2,
-    intensityMultiplier: 1000, intensityPercent: 72000, intensityPercentExtend: 80000,
-    intensityType: 8, intensityValue: 372823, intensityValueExtend: 410105,
+    hrType: 0, id: index + 1, intensityCustom: 0, intensityDisplayUnit: 0,
+    intensityMultiplier: 0, intensityPercent: 0, intensityPercentExtend: 0,
+    intensityType: 0, intensityValue: 0, intensityValueExtend: 0,
     isDefaultAdd: 0, isGroup: false, isIntensityPercent: false, name: "T3001",
     originId: "426109589008859136", overview: "sid_run_training", part: [0],
-    restType: 3, restValue: 0, sets: 1, sortNo: 16777216, sourceId: "0",
+    restType: 3, restValue: 0, sets: 1, sortNo: (index + 1) * 16777216, sourceId: "0",
     sourceUrl: "", sportType: 1, status: 1, subType: 0, targetDisplayUnit: 3,
     targetType: 5, targetValue: cm, videoInfos: [], videoUrl: "",
   };
+}
+function buildRunProgram(name, meters) {
+  const miles = meters / MI_M;
+  const wholeMiles = Math.floor(miles + 1e-6);
+  const fracCm = Math.round((miles - wholeMiles) * MILE_CM);
+  const lapsCm = Array(wholeMiles).fill(MILE_CM);
+  if (fracCm >= 100) lapsCm.push(fracCm); // skip sub-1 m rounding dust
+  const totalCm = lapsCm.reduce((a, b) => a + b, 0);
+  const estTime = Math.round((meters / MI_M) * 10.5 * 60); // rough 10:30/mi
   return {
     access: 1, name, sportType: 1, unit: 1, subType: 65535,
-    targetType: 5, targetValue: cm, distance: cm, estimatedDistance: cm,
+    targetType: 5, targetValue: totalCm, distance: totalCm, estimatedDistance: totalCm,
     estimatedTime: estTime, duration: estTime, estimatedType: 6,
-    exerciseNum: 1, totalSets: 1, isTargetTypeConsistent: 1,
-    referExercise: { hrType: 0, intensityType: 8, valueType: 1 },
-    exercises: [exercise],
+    exerciseNum: lapsCm.length, totalSets: lapsCm.length, isTargetTypeConsistent: 1,
+    referExercise: { hrType: 0, intensityType: 0, valueType: 1 },
+    exercises: lapsCm.map(mileLapExercise),
   };
 }
 
