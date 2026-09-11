@@ -29,7 +29,9 @@ export function BurndownChart({
   // Cumulative mileage (in miles for axis readability)
   let cpl = 0;
   let cac = 0;
-  const cumPlan: number[] = weeks.map((wk) => (cpl += metersToMiles(wk.planned_m)));
+  const cumPlan: number[] = weeks.map(
+    (wk) => (cpl += metersToMiles(wk.planned_m)),
+  );
   const cumActual: (number | null)[] = weeks.map((wk) => {
     if (wk.actual_m == null) return null;
     cac += metersToMiles(wk.actual_m);
@@ -102,7 +104,12 @@ export function BurndownChart({
               strokeDasharray={i === 0 ? "" : "2 3"}
               opacity={i === 0 ? 0.6 : 0.35}
             />
-            <text x={padL - 10} y={y + 3} textAnchor="end" className="axis-tick">
+            <text
+              x={padL - 10}
+              y={y + 3}
+              textAnchor="end"
+              className="axis-tick"
+            >
               {v}
             </text>
           </g>
@@ -126,7 +133,12 @@ export function BurndownChart({
       {/* actual area (accent) */}
       {actualArea && <path d={actualArea} fill={`url(#${actualGradId})`} />}
       {actualPath && (
-        <path d={actualPath} stroke="var(--accent)" strokeWidth="2.5" fill="none" />
+        <path
+          d={actualPath}
+          stroke="var(--accent)"
+          strokeWidth="2.5"
+          fill="none"
+        />
       )}
 
       {/* today line */}
@@ -228,7 +240,7 @@ export function BurndownChart({
       )}
 
       {/* legend */}
-      <g transform={`translate(${w - padR - 180}, ${padT + 4})`}>
+      <g transform={`translate(${w - padR - 180}, ${h - padB - 42})`}>
         <rect
           x="0"
           y="-10"

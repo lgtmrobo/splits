@@ -246,6 +246,11 @@ export default async function DashboardPage() {
   const loadStripMid = new Date();
   loadStripMid.setUTCDate(loadStripMid.getUTCDate() - 14);
 
+  const gearById = new Map(gear.map((g) => [g.id, g]));
+  const nextUpShoe = nextUp?.expected_gear_id
+    ? gearById.get(nextUp.expected_gear_id)
+    : null;
+
   const sortedGear = [...gear].sort((a, b) => b.distance_m - a.distance_m);
   const nearRetirement = sortedGear.find((g) => g.distance_m / g.cap_m > 0.85);
   const remainingMi = nearRetirement
@@ -411,6 +416,28 @@ export default async function DashboardPage() {
                   {nextUp.target_distance_m && (
                     <span className="muted num" style={{ fontSize: 11 }}>
                       {formatMiles(nextUp.target_distance_m)} mi
+                    </span>
+                  )}
+                  {nextUpShoe && (
+                    <span
+                      className="row gap-6"
+                      style={{
+                        alignItems: "center",
+                        marginLeft: "auto",
+                        fontSize: 11,
+                        color: "var(--text-2)",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: 3,
+                          background: nextUpShoe.color,
+                          flexShrink: 0,
+                        }}
+                      />
+                      {nextUpShoe.model_name ?? nextUpShoe.name}
                     </span>
                   )}
                 </div>
