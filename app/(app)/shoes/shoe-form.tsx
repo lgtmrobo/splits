@@ -11,7 +11,14 @@ interface Props {
 
 const M_PER_MILE = 1609.344;
 
-const PURPOSE_OPTIONS = ["Daily", "Workouts / Race", "Long runs", "Recovery", "Trail", "Other"];
+const PURPOSE_OPTIONS = [
+  "Daily",
+  "Workouts / Race",
+  "Long runs",
+  "Recovery",
+  "Trail",
+  "Other",
+];
 
 export function ShoeForm({ initial, onClose }: Props) {
   const [pending, startTransition] = useTransition();
@@ -26,7 +33,7 @@ export function ShoeForm({ initial, onClose }: Props) {
       cap_miles: 500,
       primary_shoe: false,
       retired: false,
-    }
+    },
   );
 
   const submit = () => {
@@ -47,7 +54,12 @@ export function ShoeForm({ initial, onClose }: Props) {
 
   const remove = () => {
     if (!initial?.id) return;
-    if (!confirm(`Delete "${form.name}"? Activities currently using this shoe will be unlinked.`)) return;
+    if (
+      !confirm(
+        `Delete "${form.name}"? Activities currently using this shoe will be unlinked.`,
+      )
+    )
+      return;
     startTransition(async () => {
       try {
         await deleteShoe(initial.id);
@@ -84,15 +96,30 @@ export function ShoeForm({ initial, onClose }: Props) {
         }}
       >
         <div className="row between baseline">
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 500, letterSpacing: "-0.01em" }}>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 18,
+              fontWeight: 500,
+              letterSpacing: "-0.01em",
+            }}
+          >
             {initial ? "Edit shoe" : "Add shoe"}
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            style={{ background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", fontSize: 16 }}
-          >×</button>
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--text-3)",
+              cursor: "pointer",
+              fontSize: 16,
+            }}
+          >
+            ×
+          </button>
         </div>
 
         <Field label="Name *">
@@ -105,7 +132,10 @@ export function ShoeForm({ initial, onClose }: Props) {
           />
         </Field>
 
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div
+          className="grid"
+          style={{ gridTemplateColumns: "1fr 1fr", gap: 10 }}
+        >
           <Field label="Brand">
             <input
               type="text"
@@ -129,17 +159,26 @@ export function ShoeForm({ initial, onClose }: Props) {
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           >
-            {PURPOSE_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+            {PURPOSE_OPTIONS.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
           </select>
         </Field>
 
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <Field label="Current miles">
+        <div
+          className="grid"
+          style={{ gridTemplateColumns: "1fr 1fr", gap: 10 }}
+        >
+          <Field label="Starting miles">
             <input
               type="number"
               min={0}
               value={form.miles}
-              onChange={(e) => setForm({ ...form, miles: Number(e.target.value) })}
+              onChange={(e) =>
+                setForm({ ...form, miles: Number(e.target.value) })
+              }
             />
           </Field>
           <Field label="Retire at (mi)">
@@ -147,21 +186,35 @@ export function ShoeForm({ initial, onClose }: Props) {
               type="number"
               min={50}
               value={form.cap_miles}
-              onChange={(e) => setForm({ ...form, cap_miles: Number(e.target.value) })}
+              onChange={(e) =>
+                setForm({ ...form, cap_miles: Number(e.target.value) })
+              }
             />
           </Field>
         </div>
+        <div className="muted" style={{ fontSize: 11, marginTop: -6 }}>
+          Miles this shoe already had before tracking (bought used, no odometer,
+          etc). Any Strava-synced running miles are added on top.
+        </div>
 
         <div className="row gap-14">
-          <label className="row gap-6" style={{ fontSize: 12, cursor: "pointer" }}>
+          <label
+            className="row gap-6"
+            style={{ fontSize: 12, cursor: "pointer" }}
+          >
             <input
               type="checkbox"
               checked={form.primary_shoe}
-              onChange={(e) => setForm({ ...form, primary_shoe: e.target.checked })}
+              onChange={(e) =>
+                setForm({ ...form, primary_shoe: e.target.checked })
+              }
             />
             Primary shoe
           </label>
-          <label className="row gap-6" style={{ fontSize: 12, cursor: "pointer" }}>
+          <label
+            className="row gap-6"
+            style={{ fontSize: 12, cursor: "pointer" }}
+          >
             <input
               type="checkbox"
               checked={form.retired}
@@ -178,14 +231,32 @@ export function ShoeForm({ initial, onClose }: Props) {
         <div className="row between" style={{ marginTop: 6 }}>
           <div>
             {initial && (
-              <button type="button" className="btn" onClick={remove} disabled={pending} style={{ color: "var(--red)" }}>
+              <button
+                type="button"
+                className="btn"
+                onClick={remove}
+                disabled={pending}
+                style={{ color: "var(--red)" }}
+              >
                 <Icon name="more" size={12} /> Delete
               </button>
             )}
           </div>
           <div className="row gap-8">
-            <button type="button" className="btn" onClick={onClose} disabled={pending}>Cancel</button>
-            <button type="button" className="btn primary" onClick={submit} disabled={pending}>
+            <button
+              type="button"
+              className="btn"
+              onClick={onClose}
+              disabled={pending}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={submit}
+              disabled={pending}
+            >
               {pending ? "Saving…" : initial ? "Save" : "Add shoe"}
             </button>
           </div>
@@ -195,10 +266,18 @@ export function ShoeForm({ initial, onClose }: Props) {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="col gap-4">
-      <span className="stat-label" style={{ marginBottom: 0 }}>{label}</span>
+      <span className="stat-label" style={{ marginBottom: 0 }}>
+        {label}
+      </span>
       {children}
     </label>
   );

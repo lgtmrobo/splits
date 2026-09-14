@@ -275,7 +275,7 @@ export default async function ShoesPage() {
                       brand_name: s.brand_name ?? "",
                       model_name: s.model_name ?? "",
                       description: s.description ?? "",
-                      miles: Math.round(metersToMiles(s.distance_m)),
+                      miles: Math.round(metersToMiles(s.baseline_m)),
                       cap_miles: Math.round(metersToMiles(s.cap_m)),
                       primary_shoe: s.primary_shoe,
                       retired: s.retired,

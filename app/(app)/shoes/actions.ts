@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "node:crypto";
-import { createServiceRoleSupabase, isDevAuthBypass, createServerSupabase } from "@/lib/supabase/server";
+import {
+  createServiceRoleSupabase,
+  isDevAuthBypass,
+  createServerSupabase,
+} from "@/lib/supabase/server";
 
 const M_PER_MILE = 1609.344;
 const milesToM = (mi: number) => Math.round(mi * M_PER_MILE);
@@ -15,9 +19,15 @@ async function getCurrentAthleteId(): Promise<string> {
     return data[0].id;
   }
   const sb = createServerSupabase();
-  const { data: { user } } = await sb.auth.getUser();
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
   if (!user) throw new Error("unauth");
-  const { data } = await admin.from("athletes").select("id").eq("supabase_user_id", user.id).single();
+  const { data } = await admin
+    .from("athletes")
+    .select("id")
+    .eq("supabase_user_id", user.id)
+    .single();
   if (!data) throw new Error("athlete not found");
   return data.id;
 }
@@ -41,7 +51,29 @@ export async function saveShoe(payload: ShoePayload) {
 
   // Single primary at a time — clear the flag on others if this one's set
   if (payload.primary_shoe) {
-    await admin.from("gear").update({ primary_shoe: false }).eq("athlete_id", athleteId);
+    await admin
+      .from("gear")
+      .update({ primary_shoe: false })
+      .eq("athlete_id", athleteId);
+  }
+
+  // The "miles" field is always the baseline (manual starting mileage). For
+  // a Strava-synced shoe, distance_m = baseline_m + whatever Strava reports,
+  // so editing the baseline here must preserve the existing Strava-derived
+  // portion rather than overwrite the live total outright.
+  const baselineM = milesToM(payload.miles);
+  let distanceM = baselineM;
+  if (payload.id && !payload.id.startsWith("local_")) {
+    const { data: current } = await admin
+      .from("gear")
+      .select("distance_m, baseline_m")
+      .eq("id", payload.id)
+      .maybeSingle();
+    if (current) {
+      const stravaPortion =
+        Number(current.distance_m ?? 0) - Number(current.baseline_m ?? 0);
+      distanceM = baselineM + stravaPortion;
+    }
   }
 
   const row = {
@@ -51,7 +83,8 @@ export async function saveShoe(payload: ShoePayload) {
     brand_name: payload.brand_name || null,
     model_name: payload.model_name || null,
     description: payload.description || null,
-    distance_m: milesToM(payload.miles),
+    distance_m: distanceM,
+    baseline_m: baselineM,
     cap_m: milesToM(payload.cap_miles),
     retired: payload.retired,
     primary_shoe: payload.primary_shoe,

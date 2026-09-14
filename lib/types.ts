@@ -80,6 +80,7 @@ export interface Gear {
   model_name: string | null;
   description: string | null;
   distance_m: number;
+  baseline_m: number; // manual starting-mileage offset (bought used, etc.)
   retired: boolean;
   primary_shoe: boolean;
   nickname: string | null;

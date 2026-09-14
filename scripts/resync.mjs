@@ -8,8 +8,8 @@ import { register } from "node:module";
 import { pathToFileURL } from "node:url";
 import { readFileSync } from "node:fs";
 
-// Load .env into process.env so the imported modules pick them up.
-const env = readFileSync(".env", "utf8");
+// Load .env.local into process.env so the imported modules pick them up.
+const env = readFileSync(new URL("../.env.local", import.meta.url), "utf8");
 for (const line of env.split("\n")) {
   const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
@@ -127,7 +127,22 @@ for (;;) {
 
 console.log(`Activities synced: ${synced}, unique gear ids: ${gearIds.size}`);
 
-// Sync gear details
+// Also refresh every Strava-backed gear id already in our table, not just
+// ones referenced by activities synced above — otherwise a shoe's total
+// goes stale the moment it drops out of the athlete's active rotation.
+const { data: knownGear } = await sb
+  .from("gear")
+  .select("id, baseline_m")
+  .eq("athlete_id", athleteId)
+  .not("id", "like", "local_%");
+const baselineById = new Map();
+for (const g of knownGear ?? []) {
+  gearIds.add(g.id);
+  baselineById.set(g.id, Number(g.baseline_m ?? 0));
+}
+
+// Sync gear details. distance_m = baseline_m (manual starting mileage) +
+// whatever Strava reports, recomputed fresh every run.
 let gearOk = 0;
 for (const id of gearIds) {
   const r = await fetch(`https://www.strava.com/api/v3/gear/${id}`, {
@@ -138,6 +153,7 @@ for (const id of gearIds) {
     continue;
   }
   const g = await r.json();
+  const baseline = baselineById.get(id) ?? 0;
   const { error } = await sb.from("gear").upsert(
     {
       id: g.id,
@@ -146,7 +162,8 @@ for (const id of gearIds) {
       brand_name: g.brand_name,
       model_name: g.model_name,
       description: g.description,
-      distance_m: g.distance,
+      distance_m: baseline + Number(g.distance ?? 0),
+      baseline_m: baseline,
       retired: g.retired,
       primary_shoe: g.primary,
       nickname: g.nickname ?? null,
