@@ -1,5 +1,5 @@
 import { Pill, Stat } from "@/components/ui/primitives";
-import { getAllRaces } from "@/lib/supabase/queries";
+import { getActivityById, getAllRaces } from "@/lib/supabase/queries";
 import { formatDuration, metersToMiles } from "@/lib/utils/units";
 
 export default async function RacesPage() {
@@ -7,12 +7,28 @@ export default async function RacesPage() {
   const upcoming = races.filter((r) => r.status !== "completed");
   const past = races.filter((r) => r.status === "completed");
 
-  const goalPace = (distance_m: number, goal_s: number): string => {
-    const sec = goal_s / metersToMiles(distance_m);
+  const paceFromDuration = (distance_m: number, duration_s: number): string => {
+    const sec = duration_s / metersToMiles(distance_m);
     const m = Math.floor(sec / 60);
     const s = Math.round(sec % 60);
     return `${m}:${String(s).padStart(2, "0")}`;
   };
+  const goalPace = paceFromDuration;
+
+  const pastResults = await Promise.all(
+    past.map(async (r) => {
+      const activity = r.result_activity_id
+        ? await getActivityById(r.result_activity_id)
+        : null;
+      return {
+        race: r,
+        resultTime: activity ? formatDuration(activity.moving_time_s) : null,
+        pace: activity
+          ? paceFromDuration(r.distance_m, activity.moving_time_s)
+          : null,
+      };
+    }),
+  );
 
   const raceDistanceLabel = (m: number): string => {
     const mi = metersToMiles(m);
@@ -49,7 +65,11 @@ export default async function RacesPage() {
       </div>
       <div
         className="grid"
-        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, marginBottom: 20 }}
+        style={{
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: 14,
+          marginBottom: 20,
+        }}
       >
         {upcoming.map((r) => {
           const isA = r.priority === "A-race";
@@ -57,8 +77,8 @@ export default async function RacesPage() {
             0,
             Math.round(
               (new Date(r.race_date).getTime() - Date.now()) /
-                (1000 * 60 * 60 * 24 * 7)
-            )
+                (1000 * 60 * 60 * 24 * 7),
+            ),
           );
           return (
             <div
@@ -94,7 +114,10 @@ export default async function RacesPage() {
               >
                 {r.name}
               </div>
-              <div className="muted num" style={{ fontSize: 11, marginBottom: 14 }}>
+              <div
+                className="muted num"
+                style={{ fontSize: 11, marginBottom: 14 }}
+              >
                 {r.race_date} · {r.location}
               </div>
               <div
@@ -117,7 +140,9 @@ export default async function RacesPage() {
                 />
                 <Stat
                   label="Pace"
-                  value={r.goal_time_s ? goalPace(r.distance_m, r.goal_time_s) : "—"}
+                  value={
+                    r.goal_time_s ? goalPace(r.distance_m, r.goal_time_s) : "—"
+                  }
                   unit="/mi"
                 />
               </div>
@@ -174,19 +199,21 @@ export default async function RacesPage() {
             </tr>
           </thead>
           <tbody>
-            {past.map((r) => (
+            {pastResults.map(({ race: r, resultTime, pace }) => (
               <tr key={r.id} className="clickable">
                 <td className="num muted">{r.race_date}</td>
                 <td>{r.name}</td>
                 <td className="muted">{r.location}</td>
-                <td className="num">{metersToMiles(r.distance_m).toFixed(1)}</td>
+                <td className="num">
+                  {metersToMiles(r.distance_m).toFixed(1)}
+                </td>
                 <td
                   className="num"
                   style={{ color: "var(--text-1)", fontWeight: 500 }}
                 >
-                  {r.notes ?? "—"}
+                  {resultTime ?? r.notes ?? "—"}
                 </td>
-                <td className="num">—</td>
+                <td className="num">{pace ? `${pace}/mi` : "—"}</td>
                 <td></td>
               </tr>
             ))}
