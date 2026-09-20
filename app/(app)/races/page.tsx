@@ -20,12 +20,16 @@ export default async function RacesPage() {
       const activity = r.result_activity_id
         ? await getActivityById(r.result_activity_id)
         : null;
+      // Official time (chip/gun) takes priority over the linked activity's
+      // Strava moving_time_s, which can be off by a few seconds.
+      const finishTime = r.result_time_s ?? activity?.moving_time_s ?? null;
       return {
         race: r,
-        resultTime: activity ? formatDuration(activity.moving_time_s) : null,
-        pace: activity
-          ? paceFromDuration(r.distance_m, activity.moving_time_s)
-          : null,
+        resultTime: finishTime != null ? formatDuration(finishTime) : null,
+        pace:
+          finishTime != null
+            ? paceFromDuration(r.distance_m, finishTime)
+            : null,
       };
     }),
   );

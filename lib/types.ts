@@ -163,6 +163,7 @@ export interface Race {
   goal_time_s: number | null;
   status: RaceStatus;
   result_activity_id: number | null;
+  result_time_s: number | null; // official time, overrides linked activity's moving_time_s
   plan_id: UUID | null;
   notes: string | null;
   course_polyline: string | null;
