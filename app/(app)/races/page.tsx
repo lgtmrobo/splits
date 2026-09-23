@@ -1,9 +1,21 @@
 import { Pill, Stat } from "@/components/ui/primitives";
-import { getActivityById, getAllRaces } from "@/lib/supabase/queries";
+import {
+  getActivityById,
+  getAllPlans,
+  getAllRaces,
+} from "@/lib/supabase/queries";
 import { formatDuration, metersToMiles } from "@/lib/utils/units";
+import { RaceRow } from "@/app/(app)/races/race-row";
 
 export default async function RacesPage() {
-  const races = await getAllRaces();
+  const [races, plans] = await Promise.all([getAllRaces(), getAllPlans()]);
+  // Race → the training block built for it, so completed races can open
+  // their old block on the Plan page.
+  const planIdByRace = new Map(
+    plans
+      .filter((p) => p.goal_race_id != null)
+      .map((p) => [p.goal_race_id as string, p.id]),
+  );
   const upcoming = races.filter((r) => r.status !== "completed");
   const past = races.filter((r) => r.status === "completed");
 
@@ -70,7 +82,9 @@ export default async function RacesPage() {
       <div
         className="grid"
         style={{
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          // Cap at two columns so a lone race card stays half-width.
+          gridTemplateColumns:
+            "repeat(auto-fill, minmax(max(280px, calc(50% - 7px)), 1fr))",
           gap: 14,
           marginBottom: 20,
         }}
@@ -204,7 +218,14 @@ export default async function RacesPage() {
           </thead>
           <tbody>
             {pastResults.map(({ race: r, resultTime, pace }) => (
-              <tr key={r.id} className="clickable">
+              <RaceRow
+                key={r.id}
+                href={
+                  planIdByRace.has(r.id)
+                    ? `/plan?plan=${planIdByRace.get(r.id)}`
+                    : null
+                }
+              >
                 <td className="num muted">{r.race_date}</td>
                 <td>{r.name}</td>
                 <td className="muted">{r.location}</td>
@@ -218,8 +239,10 @@ export default async function RacesPage() {
                   {resultTime ?? r.notes ?? "—"}
                 </td>
                 <td className="num">{pace ? `${pace}/mi` : "—"}</td>
-                <td></td>
-              </tr>
+                <td className="muted" style={{ textAlign: "right" }}>
+                  {planIdByRace.has(r.id) ? "Block →" : ""}
+                </td>
+              </RaceRow>
             ))}
           </tbody>
         </table>

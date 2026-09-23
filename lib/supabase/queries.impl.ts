@@ -235,6 +235,16 @@ export async function getPlanById(
   return (data as TrainingPlan) ?? null;
 }
 
+export async function getAllPlans(): Promise<TrainingPlan[]> {
+  const sb = createServerSupabase();
+  const { data, error } = await sb
+    .from("training_plans")
+    .select("*")
+    .order("start_date", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as TrainingPlan[];
+}
+
 /**
  * The next active plan that hasn't started yet. Returns null when no
  * future block is scheduled. Used by the sidebar's "Next Block" card.

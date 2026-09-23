@@ -111,6 +111,10 @@ export async function getPlanById(_id: string): Promise<TrainingPlan | null> {
   return PLAN;
 }
 
+export async function getAllPlans(): Promise<TrainingPlan[]> {
+  return [PLAN];
+}
+
 export async function getUpcomingPlan(): Promise<TrainingPlan | null> {
   return null;
 }

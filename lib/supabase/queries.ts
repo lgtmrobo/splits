@@ -21,6 +21,7 @@ export const getActivityById = Q.getActivityById;
 export const getActivityTotals = Q.getActivityTotals;
 export const getActivePlan = Q.getActivePlan;
 export const getPlanById = Q.getPlanById;
+export const getAllPlans = Q.getAllPlans;
 export const getUpcomingPlan = Q.getUpcomingPlan;
 export const getPlanMeta = Q.getPlanMeta;
 export const getWeekMileage = Q.getWeekMileage;

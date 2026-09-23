@@ -2,11 +2,14 @@ import Link from "next/link";
 import { BurndownChart } from "@/components/charts/burndown-chart";
 import { Icon } from "@/components/ui/icon";
 import { PlanViewSwitcher } from "@/app/(app)/plan/view-switcher";
+import { BlockRecap } from "@/app/(app)/plan/block-recap";
 import { CardHeader, Pill } from "@/components/ui/primitives";
 import { RouteMap } from "@/components/maps/route-map";
 import { decodePolyline } from "@/lib/strava/polyline";
 import {
   getActivePlan,
+  getActivityById,
+  getAllActivities,
   getAllGear,
   getPlanById,
   getPlanMeta,
@@ -21,7 +24,7 @@ import {
   metersToMiles,
 } from "@/lib/utils/units";
 import { addDaysISO, sundayOfISO, todayLocalISO } from "@/lib/utils/dates";
-import type { Gear, PlannedRun, PlanWeekDay } from "@/lib/types";
+import type { Activity, Gear, PlannedRun, PlanWeekDay } from "@/lib/types";
 
 const MONTHS = [
   "Jan",
@@ -73,6 +76,8 @@ export default async function PlanPage({
     );
   }
   const isViewingActive = !requestedPlanId || plan.id === activePlan?.id;
+  const todayISO = todayLocalISO();
+  const isPastBlock = !isViewingActive && plan.end_date < todayISO;
 
   const meta = await getPlanMeta(plan.id);
   const weekMileage = await getWeekMileage(plan.id);
@@ -87,10 +92,14 @@ export default async function PlanPage({
         ]) as [number, number][])
       : [];
 
-  const todayISO = todayLocalISO();
   // When viewing a future block, "this week" anchors to the plan's start
-  // (which is in the future) so the week views show its first week.
-  const baseWeek = isViewingActive ? todayISO : plan.start_date;
+  // (which is in the future) so the week views show its first week. A
+  // completed block anchors to its final (race) week instead.
+  const baseWeek = isViewingActive
+    ? todayISO
+    : isPastBlock
+      ? plan.end_date
+      : plan.start_date;
   const thisWeekStart = sundayOfISO(baseWeek);
   const nextWeekStart = addDays(thisWeekStart, 7);
 
@@ -100,6 +109,24 @@ export default async function PlanPage({
     getAllGear(),
   ]);
   const gearById = new Map(gear.map((g) => [g.id, g]));
+
+  // Completed blocks swap the "what's left" summary for a recap, which
+  // needs the race's activity and every run logged inside the block.
+  const [raceActivity, blockRuns] = isPastBlock
+    ? await Promise.all([
+        goalRace?.result_activity_id
+          ? getActivityById(goalRace.result_activity_id)
+          : Promise.resolve(null),
+        getAllActivities().then((acts) =>
+          acts.filter((a) => {
+            const d = a.start_date_local.slice(0, 10);
+            return (
+              a.type === "Run" && d >= plan.start_date && d <= plan.end_date
+            );
+          }),
+        ),
+      ])
+    : [null, [] as Activity[]];
 
   const totalActualMi = metersToMiles(meta.total_miles_actual_m);
   const totalPlannedMi = metersToMiles(meta.total_miles_planned_m);
@@ -212,7 +239,9 @@ export default async function PlanPage({
           }}
         >
           <span className="muted">
-            Viewing upcoming block · starts {fmtMd(plan.start_date)}
+            {isPastBlock
+              ? `Viewing completed block · ended ${fmtMd(plan.end_date)}`
+              : `Viewing upcoming block · starts ${fmtMd(plan.start_date)}`}
           </span>
           <Link href="/plan" className="num" style={{ color: "var(--accent)" }}>
             ← Current block
@@ -328,6 +357,12 @@ export default async function PlanPage({
                   <HeroStat
                     label="Now"
                     value={`W${meta.current_week_index + 1} of ${meta.total_weeks}`}
+                    sub={`${meta.adherence_pct}% adherence`}
+                  />
+                ) : isPastBlock ? (
+                  <HeroStat
+                    label="Finished"
+                    value={`${meta.total_weeks} wks`}
                     sub={`${meta.adherence_pct}% adherence`}
                   />
                 ) : (
@@ -578,79 +613,91 @@ export default async function PlanPage({
             </div>
           </div>
 
-          <div className="card">
-            <CardHeader title="Block Summary" />
-            <div className="col gap-14">
-              <div className="col gap-6">
-                <div className="row between">
-                  <span className="stat-label" style={{ marginBottom: 0 }}>
-                    Weeks remaining
-                  </span>
-                  <span className="num">{weeksRemaining}</span>
-                </div>
-                <div className="row between">
-                  <span className="stat-label" style={{ marginBottom: 0 }}>
-                    Workouts remaining
-                  </span>
-                  <span className="num">{workoutsRemaining}</span>
-                </div>
-                <div className="row between">
-                  <span className="stat-label" style={{ marginBottom: 0 }}>
-                    Long runs remaining
-                  </span>
-                  <span className="num">{longRunsRemaining}</span>
-                </div>
-                {longestUpcoming && (
+          {isPastBlock ? (
+            <BlockRecap
+              race={goalRace}
+              raceActivity={raceActivity}
+              blockRuns={blockRuns}
+              totalWeeks={meta.total_weeks}
+              plannedMi={totalPlannedMi}
+              actualMi={totalActualMi}
+              adherencePct={meta.adherence_pct}
+            />
+          ) : (
+            <div className="card">
+              <CardHeader title="Block Summary" />
+              <div className="col gap-14">
+                <div className="col gap-6">
                   <div className="row between">
                     <span className="stat-label" style={{ marginBottom: 0 }}>
-                      Longest upcoming
+                      Weeks remaining
                     </span>
-                    <span className="num">
-                      {formatMilesCompact(
-                        metersToMiles(longestUpcoming.target_distance_m ?? 0),
-                      )}{" "}
-                      mi
-                      {longestUpcomingWeek
-                        ? ` · ${longestUpcomingWeek.label}`
-                        : ""}
-                    </span>
+                    <span className="num">{weeksRemaining}</span>
                   </div>
+                  <div className="row between">
+                    <span className="stat-label" style={{ marginBottom: 0 }}>
+                      Workouts remaining
+                    </span>
+                    <span className="num">{workoutsRemaining}</span>
+                  </div>
+                  <div className="row between">
+                    <span className="stat-label" style={{ marginBottom: 0 }}>
+                      Long runs remaining
+                    </span>
+                    <span className="num">{longRunsRemaining}</span>
+                  </div>
+                  {longestUpcoming && (
+                    <div className="row between">
+                      <span className="stat-label" style={{ marginBottom: 0 }}>
+                        Longest upcoming
+                      </span>
+                      <span className="num">
+                        {formatMilesCompact(
+                          metersToMiles(longestUpcoming.target_distance_m ?? 0),
+                        )}{" "}
+                        mi
+                        {longestUpcomingWeek
+                          ? ` · ${longestUpcomingWeek.label}`
+                          : ""}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {nextFour.length > 0 && (
+                  <>
+                    <div className="hr" />
+                    <div className="col gap-6">
+                      <div className="stat-label" style={{ marginBottom: 0 }}>
+                        Next workouts
+                      </div>
+                      {nextFour.map((p) => (
+                        <div
+                          key={p.id}
+                          className="row between gap-8"
+                          style={{ fontSize: 12 }}
+                        >
+                          <span
+                            style={{
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {fmtMd(p.scheduled_date)} ·{" "}
+                            {p.description ?? p.workout_type}
+                          </span>
+                          <span className="num muted" style={{ flexShrink: 0 }}>
+                            {metersToMiles(p.target_distance_m ?? 0).toFixed(1)}{" "}
+                            mi
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
-              {nextFour.length > 0 && (
-                <>
-                  <div className="hr" />
-                  <div className="col gap-6">
-                    <div className="stat-label" style={{ marginBottom: 0 }}>
-                      Next workouts
-                    </div>
-                    {nextFour.map((p) => (
-                      <div
-                        key={p.id}
-                        className="row between gap-8"
-                        style={{ fontSize: 12 }}
-                      >
-                        <span
-                          style={{
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {fmtMd(p.scheduled_date)} ·{" "}
-                          {p.description ?? p.workout_type}
-                        </span>
-                        <span className="num muted" style={{ flexShrink: 0 }}>
-                          {metersToMiles(p.target_distance_m ?? 0).toFixed(1)}{" "}
-                          mi
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
             </div>
-          </div>
+          )}
         </div>
       )}
 
