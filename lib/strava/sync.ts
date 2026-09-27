@@ -224,6 +224,59 @@ export async function fetchActivityStreams(
 }
 
 /**
+ * Meters logged per gear id, summed from our own activities table.
+ *
+ * Shoe totals come from here rather than Strava's /gear/{id} `distance`,
+ * which lags: right after a run is uploaded (or moved to another shoe) it
+ * still reports the old total for a while, so a sync that runs immediately
+ * would save a stale number until the next nightly cron.
+ */
+async function sumDistanceByGear(
+  supabase: ReturnType<typeof createServiceRoleSupabase>,
+  athleteId: string,
+): Promise<Map<string, number>> {
+  const { data, error } = await supabase
+    .from("activities")
+    .select("gear_id, distance_m")
+    .eq("athlete_id", athleteId)
+    .not("gear_id", "is", null);
+  if (error) throw error;
+  const sums = new Map<string, number>();
+  for (const r of data ?? []) {
+    const id = r.gear_id as string;
+    sums.set(id, (sums.get(id) ?? 0) + Number(r.distance_m ?? 0));
+  }
+  return sums;
+}
+
+/**
+ * Recompute distance_m (= baseline_m + logged activity meters) for every
+ * shoe the athlete owns. Cheap (two queries, no Strava calls), so the
+ * webhook runs it after each activity create/update/delete — that keeps
+ * totals right when a run lands or gets reassigned to a different shoe.
+ */
+export async function recomputeGearTotals(athleteId: string) {
+  const supabase = createServiceRoleSupabase();
+  const [{ data: gear, error }, sums] = await Promise.all([
+    supabase
+      .from("gear")
+      .select("id, baseline_m, distance_m")
+      .eq("athlete_id", athleteId),
+    sumDistanceByGear(supabase, athleteId),
+  ]);
+  if (error) throw error;
+  for (const g of gear ?? []) {
+    const next = Number(g.baseline_m ?? 0) + (sums.get(g.id) ?? 0);
+    if (Math.round(next) === Math.round(Number(g.distance_m ?? 0))) continue;
+    const { error: upErr } = await supabase
+      .from("gear")
+      .update({ distance_m: next })
+      .eq("id", g.id);
+    if (upErr) throw upErr;
+  }
+}
+
+/**
  * Sync gear (shoes) for the athlete. Strava returns gear refs on activities
  * but full details come from /gear/{id}.
  *
@@ -277,13 +330,16 @@ export async function syncGear(athleteId: string) {
   const localByKey = new Map<string, LocalShoe>();
   for (const l of localShoes ?? []) localByKey.set(matchKey(l), l);
 
+  const loggedByGear = await sumDistanceByGear(supabase, athleteId);
+
   for (const id of ids) {
     const g = await stravaFetch<StravaGear>(athleteId, `/gear/${id}`);
     const local = localByKey.get(matchKey(g));
 
     // distance_m is always baseline (manual starting mileage — bought used,
-    // or Strava won't let the athlete set an odometer) + whatever Strava
-    // reports for the gear, recomputed fresh every sync. First time a local
+    // or Strava won't let the athlete set an odometer) + the meters of our
+    // own activities on this gear, recomputed fresh every sync (see
+    // sumDistanceByGear for why not Strava's own total). First time a local
     // placeholder merges into a real Strava gear id, carry its baseline over
     // (falling back to its old manually-entered distance_m for rows created
     // before this field existed).
@@ -300,7 +356,10 @@ export async function syncGear(athleteId: string) {
         brand_name: g.brand_name,
         model_name: g.model_name,
         description: g.description,
-        distance_m: baseline + Number(g.distance ?? 0),
+        distance_m:
+          baseline +
+          (loggedByGear.get(g.id) ?? 0) +
+          (local ? (loggedByGear.get(local.id) ?? 0) : 0),
         baseline_m: baseline,
         retired: g.retired,
         primary_shoe: g.primary,

@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceRoleSupabase } from "@/lib/supabase/server";
-import { deleteActivity, upsertActivity } from "@/lib/strava/sync";
+import {
+  deleteActivity,
+  recomputeGearTotals,
+  upsertActivity,
+} from "@/lib/strava/sync";
 import type { StravaWebhookEvent } from "@/lib/strava/types";
 
 // Strava webhook handshake: expects echoing hub.challenge
@@ -52,6 +56,8 @@ export async function POST(req: NextRequest) {
       } else if (event.aspect_type === "delete") {
         await deleteActivity(event.object_id);
       }
+      // A new run, a shoe swap, or a deletion all change shoe totals.
+      await recomputeGearTotals(athlete.id);
     } else if (event.object_type === "athlete") {
       if (event.updates?.authorized === "false") {
         // Revoked — delete tokens so getValidStravaToken will fail loudly
