@@ -19,7 +19,6 @@ export interface MatchScore {
   planned: PlannedRun;
   activity: Activity;
   score: number; // 0..1
-  dateDeltaDays: number;
   distanceRatio: number;
 }
 
@@ -34,15 +33,11 @@ export function scoreMatch(
   const compat = COMPATIBLE[planned.workout_type];
   if (compat !== "any" && compat.length === 0) return null;
 
-  const actDate = activity.start_date_local.slice(0, 10);
-  const planDate = planned.scheduled_date;
-  const dateDeltaDays = Math.abs(
-    Math.round(
-      (new Date(actDate).getTime() - new Date(planDate).getTime()) /
-        (1000 * 60 * 60 * 24),
-    ),
-  );
-  if (dateDeltaDays > 1) return null;
+  // A run only ever counts for the day it happened. A ±1 day window let a
+  // run satisfy tomorrow's still-open workout too (e.g. Sunday's 2 mi
+  // showing as Monday's 4 mi easy).
+  if (activity.start_date_local.slice(0, 10) !== planned.scheduled_date)
+    return null;
 
   // Distance similarity: stricter for "long", looser for "easy"
   let distanceRatio = 1;
@@ -55,18 +50,17 @@ export function scoreMatch(
     if (planned.workout_type === "long" && distanceRatio < 0.8) return null;
   }
 
-  // Score: weight date proximity (0.5) + distance similarity (0.4) + type bonus (0.1)
-  const dateScore = dateDeltaDays === 0 ? 1 : 0.5;
-  const distScore = distanceRatio;
+  // Score: same day (0.5) + distance similarity (0.4) + type bonus (0.1).
+  // Only matters for picking between multiple planned runs on one day.
   const typeBonus = 0.1; // placeholder — refine later when we classify activities
-  const score = dateScore * 0.5 + distScore * 0.4 + typeBonus;
+  const score = 0.5 + distanceRatio * 0.4 + typeBonus;
 
-  return { planned, activity, score, dateDeltaDays, distanceRatio };
+  return { planned, activity, score, distanceRatio };
 }
 
 /**
  * For a single activity, pick the best planned run to link it to.
- * `candidates` should be all planned runs for the same plan within ±1 day.
+ * Only candidates scheduled on the activity's local date can match.
  */
 export function bestMatch(
   activity: Activity,
@@ -125,7 +119,11 @@ export async function matchPlannedRunsForAthlete(
   const planIds = (plans ?? []).map((p) => p.id as string);
   if (planIds.length === 0) return { linked: 0, marked_missed: 0 };
 
-  const [{ data: activities }, { data: planned }] = await Promise.all([
+  const [
+    { data: activities },
+    { data: planned },
+    { data: alreadyLinked, error: linkedErr },
+  ] = await Promise.all([
     admin
       .from("activities")
       .select("*")
@@ -137,20 +135,26 @@ export async function matchPlannedRunsForAthlete(
       .in("plan_id", planIds)
       .gte("scheduled_date", fourteenAgo)
       .eq("completion_status", "scheduled"),
+    // Activities already satisfying a planned run — never link one twice.
+    admin
+      .from("planned_runs")
+      .select("completed_activity_id")
+      .in("plan_id", planIds)
+      .not("completed_activity_id", "is", null),
   ]);
+  if (linkedErr) throw linkedErr;
+  const usedActivityIds = new Set(
+    (alreadyLinked ?? []).map((r) => Number(r.completed_activity_id)),
+  );
 
   let linked = 0;
   if (activities && planned) {
     const claimed = new Set<string>();
     for (const a of activities as Activity[]) {
+      if (usedActivityIds.has(Number(a.id))) continue;
+      const actDate = a.start_date_local.slice(0, 10);
       const candidates = (planned as PlannedRun[]).filter(
-        (p) =>
-          !claimed.has(p.id) &&
-          Math.abs(
-            new Date(p.scheduled_date).getTime() -
-              new Date(a.start_date_local.slice(0, 10)).getTime(),
-          ) <=
-            1 * 24 * 3600 * 1000,
+        (p) => !claimed.has(p.id) && p.scheduled_date === actDate,
       );
       const m = bestMatch(a, candidates);
       if (!m) continue;

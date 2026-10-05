@@ -52,17 +52,11 @@ export async function POST(req: NextRequest, { params }: Context) {
     .limit(5);
 
   // Find a candidate planned run (±1 day) and run the matcher
-  const dayBefore = (activity as Activity).start_date_local.slice(0, 10);
+  const activityDate = (activity as Activity).start_date_local.slice(0, 10);
   const { data: candidates } = await admin
     .from("planned_runs")
     .select("*")
-    .gte("scheduled_date", dayBefore)
-    .lte(
-      "scheduled_date",
-      new Date(new Date(dayBefore).getTime() + 24 * 3600 * 1000)
-        .toISOString()
-        .slice(0, 10)
-    );
+    .eq("scheduled_date", activityDate);
   const matched = candidates
     ? bestMatch(activity as Activity, candidates as PlannedRun[])?.planned ?? null
     : null;
@@ -75,7 +69,7 @@ export async function POST(req: NextRequest, { params }: Context) {
     .from("planned_runs")
     .select("id, completion_status")
     .gte("scheduled_date", fourteenAgo.slice(0, 10))
-    .lte("scheduled_date", dayBefore)
+    .lte("scheduled_date", activityDate)
     .neq("workout_type", "rest");
 
   const planAdherence14d = adh
