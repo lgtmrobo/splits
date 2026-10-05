@@ -4,7 +4,8 @@ import { LineChart } from "@/components/charts/line-chart";
 import { ZoneBar } from "@/components/charts/zone-bar";
 import { RouteMap } from "@/components/maps/route-map";
 import { Icon } from "@/components/ui/icon";
-import { CardHeader, Pill, Stat } from "@/components/ui/primitives";
+import { CardHeader, Stat } from "@/components/ui/primitives";
+import { TypePill } from "@/components/ui/type-pill";
 import { ResyncButton } from "@/components/activities/resync-button";
 import {
   getActivityDetail,
@@ -248,15 +249,7 @@ export default async function ActivityDetailPage({ params }: Props) {
               >
                 {activity.name}
               </h1>
-              <Pill
-                kind={
-                  kindLabel === "Workout" || kindLabel === "Fartlek"
-                    ? "accent"
-                    : "muted"
-                }
-              >
-                {kindLabel}
-              </Pill>
+              <TypePill type={kindLabel} />
             </div>
             <div className="muted num" style={{ fontSize: 12 }}>
               {metaLine}

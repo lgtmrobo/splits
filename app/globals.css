@@ -488,6 +488,22 @@ body {
   color: var(--text-3);
 }
 
+/* Workout-type pills (components/ui/type-pill.tsx) — pastel tint per type.
+   "workout" follows the user's accent so it stays the hero color. */
+.pill[class*="type-"] {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--type-color) 14%, transparent);
+  color: var(--type-color);
+}
+.pill.type-easy { --type-color: #9fdcb8; }
+.pill.type-recovery { --type-color: #9ec8f0; }
+.pill.type-long { --type-color: #f3b98f; }
+.pill.type-tempo { --type-color: #f2a1a6; }
+.pill.type-workout { --type-color: var(--accent); }
+.pill.type-fartlek { --type-color: #f0a6d4; }
+.pill.type-race { --type-color: #f0d67e; }
+.pill.type-rest { --type-color: var(--text-3); background: var(--surface-2); }
+
 .pill-dot {
   display: inline-flex;
   align-items: center;

@@ -20,13 +20,14 @@ const M_PER_FT = 0.3048;
 
 // Index 0 = the user's primary/most-used shoe; uses the live accent so it
 // stays in sync with the Tweaks panel. Subsequent shoes get distinct hex
-// colors so they're visually distinguishable.
+// colors so they're visually distinguishable. Avoid amber/red — those mean
+// "near cap" / "retire soon" on the shoes page.
 const GEAR_PALETTE = [
   "var(--accent)",
   "#6BA8E8",
-  "#E8B04D",
+  "#F49AC1",
   "#B18EE8",
-  "#F58EE8",
+  "#7FE0B0",
   "#8EF5E8",
 ];
 

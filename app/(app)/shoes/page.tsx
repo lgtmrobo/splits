@@ -308,7 +308,7 @@ export default async function ShoesPage() {
                     ({ race, projected_m }) => (
                       <div
                         key={race.id}
-                        className="row between"
+                        className="row baseline gap-8"
                         style={{ fontSize: 11 }}
                       >
                         <span className="muted">

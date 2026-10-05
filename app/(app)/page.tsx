@@ -9,6 +9,7 @@ import { ZoneBar } from "@/components/charts/zone-bar";
 import { RouteThumb } from "@/components/maps/route-thumb";
 import { Icon } from "@/components/ui/icon";
 import { CardHeader, Pill, Stat } from "@/components/ui/primitives";
+import { TypePill } from "@/components/ui/type-pill";
 import {
   getActiveGear,
   getActivePlan,
@@ -412,7 +413,7 @@ export default async function DashboardPage() {
             {nextUp ? (
               <>
                 <div className="row gap-8 baseline">
-                  <Pill kind="accent">{nextUp.workout_type}</Pill>
+                  <TypePill type={nextUp.workout_type} />
                   {nextUp.target_distance_m && (
                     <span className="muted num" style={{ fontSize: 11 }}>
                       {formatMiles(nextUp.target_distance_m)} mi
@@ -812,17 +813,7 @@ export default async function DashboardPage() {
                       </Link>
                     </td>
                     <td>
-                      <Pill
-                        kind={
-                          label === "Workout" || label === "Fartlek"
-                            ? "accent"
-                            : label === "Long"
-                              ? "default"
-                              : "muted"
-                        }
-                      >
-                        {label}
-                      </Pill>
+                      <TypePill type={label} />
                     </td>
                     <td className="num">{formatMiles(a.distance_m)}</td>
                     <td className="num">

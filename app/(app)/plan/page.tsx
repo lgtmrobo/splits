@@ -4,6 +4,7 @@ import { Icon } from "@/components/ui/icon";
 import { PlanViewSwitcher } from "@/app/(app)/plan/view-switcher";
 import { BlockRecap } from "@/app/(app)/plan/block-recap";
 import { CardHeader, Pill } from "@/components/ui/primitives";
+import { TypePill } from "@/components/ui/type-pill";
 import { RouteMap } from "@/components/maps/route-map";
 import { decodePolyline } from "@/lib/strava/polyline";
 import {
@@ -755,17 +756,7 @@ export default async function PlanPage({
                       {date.slice(-2)}
                     </span>
                   </div>
-                  <Pill
-                    kind={
-                      wt === "workout" || wt === "interval"
-                        ? "accent"
-                        : wt === "race"
-                          ? "warn"
-                          : "muted"
-                    }
-                  >
-                    {wt.charAt(0).toUpperCase() + wt.slice(1)}
-                  </Pill>
+                  <TypePill type={wt} />
                   <div
                     className="num"
                     style={{
@@ -926,17 +917,7 @@ function WeekDayCell({
         )}
       </div>
       <div className="col gap-4">
-        <Pill
-          kind={
-            wt === "workout" || wt === "interval"
-              ? "accent"
-              : wt === "rest"
-                ? "muted"
-                : "default"
-          }
-        >
-          {wt.charAt(0).toUpperCase() + wt.slice(1)}
-        </Pill>
+        <TypePill type={wt} />
         <div
           className="num"
           style={{ fontSize: 18, fontWeight: 500, color: "var(--text-1)" }}

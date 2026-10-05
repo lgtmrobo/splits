@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { RouteThumb } from "@/components/maps/route-thumb";
 import { Icon } from "@/components/ui/icon";
-import { Pill, Stat } from "@/components/ui/primitives";
+import { Stat } from "@/components/ui/primitives";
+import { TypePill } from "@/components/ui/type-pill";
 import { ActivityTypeFilter } from "@/app/(app)/activities/filter";
 import { getActivityTotals, getAllActivities, getAllGear, getPlannedRunsBetween } from "@/lib/supabase/queries";
 import type { WorkoutType } from "@/lib/types";
@@ -163,9 +164,7 @@ export default async function ActivitiesPage({
                     </Link>
                   </td>
                   <td>
-                    <Pill kind={label === "Workout" || label === "Fartlek" ? "accent" : label === "Long" ? "default" : "muted"}>
-                      {label}
-                    </Pill>
+                    <TypePill type={label} />
                   </td>
                   <td className="num">{formatMiles(a.distance_m)}</td>
                   <td className="num">{speedToPacePerMile(a.average_speed_ms)}</td>
