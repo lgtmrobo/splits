@@ -1,8 +1,10 @@
 import { LineChart } from "@/components/charts/line-chart";
 import { MileageBars } from "@/components/charts/mileage-bars";
 import { ZoneBar } from "@/components/charts/zone-bar";
+import { AnnualMileageCard } from "@/app/(app)/stats/annual-mileage-card";
 import { StatsRangeSwitcher } from "@/app/(app)/stats/range-switcher";
 import { CardHeader, Stat } from "@/components/ui/primitives";
+import type { WeekMileage } from "@/lib/types";
 import {
   getActivityTotals,
   getAllActivities,
@@ -204,6 +206,78 @@ export default async function StatsPage({
       ? Math.round(((ytdMi - lastYearMi) / lastYearMi) * 100)
       : null;
 
+  // Annual Mileage widget — calendar-year totals with a year toggle,
+  // independent of the range switcher above (always sourced from allActivities).
+  const MONTH_LABELS = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const thisCalYear = lastYear + 1;
+  const annualYears = [thisCalYear, lastYear];
+  const annualData = annualYears.map((year) => {
+    const isCurrentYear = year === thisCalYear;
+    const yearActs = allActivities.filter(
+      (a) => new Date(a.start_date).getUTCFullYear() === year,
+    );
+    const totalMi = Math.round(
+      metersToMiles(
+        yearActs.reduce((a, b) => a + Number(b.distance_m ?? 0), 0),
+      ),
+    );
+    const monthly: WeekMileage[] = MONTH_LABELS.map((label, m) => {
+      const monthMeters = yearActs
+        .filter((a) => new Date(a.start_date).getUTCMonth() === m)
+        .reduce((a, b) => a + Number(b.distance_m ?? 0), 0);
+      const isFuture = isCurrentYear && m > today.getUTCMonth();
+      return {
+        week_number: m + 1,
+        label,
+        start_date: "",
+        planned_m: monthMeters,
+        actual_m: isFuture ? null : monthMeters,
+        is_cutback: false,
+      };
+    });
+    return {
+      year,
+      totalMi,
+      monthly,
+      currentIndex: isCurrentYear ? today.getUTCMonth() : -1,
+      isCurrentYear,
+    };
+  });
+  // Same-point-in-the-calendar comparison (this year so far vs last year through the same date)
+  function milesThroughDayOfYear(year: number): number {
+    const cutoff = new Date(Date.UTC(year, 0, 1));
+    cutoff.setUTCDate(cutoff.getUTCDate() + dayOfYear + 1);
+    const start = new Date(Date.UTC(year, 0, 1)).toISOString();
+    return metersToMiles(
+      allActivities
+        .filter((a) => a.start_date >= start && a.start_date < cutoff.toISOString())
+        .reduce((a, b) => a + Number(b.distance_m ?? 0), 0),
+    );
+  }
+  const thisYearToDateMi = milesThroughDayOfYear(thisCalYear);
+  const lastYearThroughSameDateMi = milesThroughDayOfYear(lastYear);
+  const annualDeltaPct =
+    lastYearThroughSameDateMi > 0
+      ? Math.round(
+          ((thisYearToDateMi - lastYearThroughSameDateMi) /
+            lastYearThroughSameDateMi) *
+            100,
+        )
+      : null;
+
   // x-labels for trend chart from monthly stats
   const trendXLabels =
     paceVals.length === 12
@@ -249,6 +323,10 @@ export default async function StatsPage({
           </div>
         </div>
         <StatsRangeSwitcher />
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: "1fr", marginBottom: 14 }}>
+        <AnnualMileageCard years={annualData} deltaPct={annualDeltaPct} />
       </div>
 
       <div
