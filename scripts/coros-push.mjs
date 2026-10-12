@@ -11,6 +11,7 @@
 //   node scripts/coros-push.mjs probe        # read-only: login + dump library/calendar/sports
 //   node scripts/coros-push.mjs test YYYYMMDD # schedule ONE sample run on a date
 //   node scripts/coros-push.mjs push          # bulk: all planned runs from today → Surf City
+//   node scripts/coros-push.mjs resync YYYY-MM-DD ...  # replace those days with planned_runs
 //
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -309,6 +310,60 @@ async function push() {
   console.log(`\ndone: ${ok}/${sessions.length} scheduled. Open COROS app → Sync with your device.`);
 }
 
+// Replace COROS entries on specific dates with whatever planned_runs now holds
+// for those dates. Existing programs are dumped to coros-backup-<ts>.json first
+// because deleted ad-hoc structured workouts can't be recovered from the API.
+async function resync() {
+  const dates = process.argv.slice(3);
+  if (dates.length === 0) throw new Error("usage: resync YYYY-MM-DD [YYYY-MM-DD ...]");
+  const today = new Date().toISOString().slice(0, 10);
+  const past = dates.filter((d) => d < today);
+  if (past.length) throw new Error(`COROS rejects edits before today: ${past.join(", ")}`);
+
+  await login();
+  const { createClient } = await import("@supabase/supabase-js");
+  const { writeFileSync } = await import("node:fs");
+  const sb = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { persistSession: false } },
+  );
+  const { data: runs, error } = await sb
+    .from("planned_runs")
+    .select("scheduled_date, workout_type, target_distance_m, description")
+    .in("scheduled_date", dates);
+  if (error) throw error;
+
+  const backup = {};
+  for (const date of dates) {
+    const day = date.replace(/-/g, "");
+    backup[date] = await api("/training/schedule/query", {
+      params: { startDate: day, endDate: day, supportRestExercise: 1 },
+    });
+  }
+  const backupPath = new URL(`../coros-backup-${Date.now()}.json`, import.meta.url);
+  writeFileSync(backupPath, JSON.stringify(backup, null, 2));
+  console.log(`backup → ${backupPath.pathname}`);
+
+  for (const date of dates) {
+    const day = date.replace(/-/g, "");
+    for (const e of backup[date]?.entities ?? []) {
+      await deleteEntity(e);
+      console.log(`  ✗ ${date}  removed idInPlan=${e.idInPlan}`);
+    }
+    const sessions = runs.filter(
+      (r) => r.scheduled_date === date && r.workout_type !== "rest" && r.target_distance_m,
+    );
+    for (const r of sessions) {
+      const name = r.description || `${r.workout_type} ${(r.target_distance_m / MI_M).toFixed(1)} mi`;
+      await scheduleRun(name, r.target_distance_m, day);
+      console.log(`  ✓ ${date}  ${name}`);
+    }
+    if (sessions.length === 0) console.log(`  · ${date}  rest`);
+  }
+  console.log("\nOpen COROS app → Sync with your device.");
+}
+
 const cmd = process.argv[2] ?? "probe";
 if (cmd === "probe") {
   probe().catch((e) => { console.error("✗", e.message); process.exit(1); });
@@ -320,6 +375,8 @@ if (cmd === "probe") {
   test().catch((e) => { console.error("✗", e.message); process.exit(1); });
 } else if (cmd === "detail") {
   detail().catch((e) => { console.error("✗", e.message); process.exit(1); });
+} else if (cmd === "resync") {
+  resync().catch((e) => { console.error("✗", e.message); process.exit(1); });
 } else if (cmd === "scan") {
   scan().catch((e) => { console.error("✗", e.message); process.exit(1); });
 } else {

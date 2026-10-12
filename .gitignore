@@ -14,3 +14,4 @@ next-env.d.ts
 
 # Claude Code IDE/agent state
 .claude/
+coros-backup-*.json
