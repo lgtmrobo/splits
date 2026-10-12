@@ -33,6 +33,8 @@ function fmtRaceDate(iso: string): string {
 }
 
 const M_PER_MILE = 1609.344;
+// Skip sub-mile runs (strides, warmup jogs) when picking a shoe's fastest pace.
+const MIN_FASTEST_RUN_M = M_PER_MILE;
 
 function paceFromSpeed(ms: number): string {
   if (!ms || ms <= 0) return "—";
@@ -85,8 +87,12 @@ export default async function ShoesPage() {
     s.runs++;
     s.distSum += Number(a.distance_m ?? 0);
     s.timeSum += Number(a.moving_time_s ?? 0);
-    if (a.max_speed_ms && a.max_speed_ms > s.fastestSpeed)
-      s.fastestSpeed = a.max_speed_ms;
+    // Fastest whole-run average, not Strava's max_speed — that's a single
+    // GPS sample and spikes produce impossible paces (e.g. 3:07/mi).
+    const dist = Number(a.distance_m ?? 0);
+    const time = Number(a.moving_time_s ?? 0);
+    if (dist >= MIN_FASTEST_RUN_M && time > 0 && dist / time > s.fastestSpeed)
+      s.fastestSpeed = dist / time;
     const date = a.start_date_local?.slice(0, 10) ?? null;
     if (date && (!s.lastRun || date > s.lastRun)) s.lastRun = date;
     const t = new Date(a.start_date).getTime();
