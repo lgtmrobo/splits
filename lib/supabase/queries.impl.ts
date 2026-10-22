@@ -1,4 +1,5 @@
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServerSupabase, createServiceRoleSupabase } from "@/lib/supabase/server";
+import { assignGearColors, GEAR_PALETTE, RETIRED_GEAR_COLOR } from "@/lib/gear/colors";
 import { decodePolyline } from "@/lib/strava/polyline";
 import { addDaysISO, dayDiff, todayLocalISO } from "@/lib/utils/dates";
 import type {
@@ -17,25 +18,6 @@ import type {
 
 const M_PER_MILE = 1609.344;
 const M_PER_FT = 0.3048;
-
-// Fixed colors, assigned in gear id order (Strava ids grow over time, so a
-// shoe keeps its color as new ones are added): the Triumph (first shoe) is
-// violet, the Agravic SL (fourth) green. Deliberately not the live accent:
-// the Tweaks accents (violet, pink, cyan…) would collide with the palette.
-// Avoid amber/red — those mean "near cap" / "retire soon" on the shoes page.
-const GEAR_PALETTE = [
-  "#B18EE8",
-  "#6BA8E8",
-  "#F49AC1",
-  "#8EF542",
-  "#7FE0B0",
-  "#8EF5E8",
-];
-
-function pickGearColor(idx: number, retired: boolean) {
-  if (retired) return "#6B6B75";
-  return GEAR_PALETTE[idx % GEAR_PALETTE.length];
-}
 
 function defaultCapM(description: string | null): number {
   const d = (description ?? "").toLowerCase();
@@ -514,25 +496,27 @@ export async function getWeekView(
 // =========================================================================
 
 /**
- * Each shoe's palette slot is its rank among all shoes by id (retired ones
- * included), so it's the same whichever query loaded it and doesn't shift
- * when an older shoe retires.
+ * Every active shoe's color, assigning and saving one for any shoe that has
+ * none yet (see lib/gear/colors.ts). Writes use the service role.
  */
-async function gearColorSlots(
-  sb: ReturnType<typeof createServerSupabase>,
-): Promise<Map<string, number>> {
-  const { data, error } = await sb
-    .from("gear")
-    .select("id")
-    .order("id", { ascending: true });
+async function gearColors(): Promise<Map<string, string>> {
+  const admin = createServiceRoleSupabase();
+  const { data, error } = await admin.from("gear").select("id, retired, color");
   if (error) throw error;
-  return new Map((data ?? []).map((g, i) => [g.id as string, i]));
+  const { colors, changed } = assignGearColors(
+    (data ?? []).map((g) => ({ id: g.id as string, retired: !!g.retired, color: (g.color as string | null) ?? null })),
+  );
+  for (const [id, color] of changed) {
+    const { error: updateError } = await admin.from("gear").update({ color }).eq("id", id);
+    if (updateError) throw updateError;
+  }
+  return colors;
 }
 
-function decorateGear(rows: any[], slots: Map<string, number>): Gear[] {
+function decorateGear(rows: any[], colors: Map<string, string>): Gear[] {
   return rows.map((g) => ({
     ...g,
-    color: pickGearColor(slots.get(g.id) ?? 0, !!g.retired),
+    color: g.retired ? RETIRED_GEAR_COLOR : (colors.get(g.id) ?? GEAR_PALETTE[0]),
     purpose: g.description ?? "",
     cap_m:
       g.cap_m != null ? Number(g.cap_m) : defaultCapM(g.description ?? null),
@@ -548,7 +532,7 @@ export async function getAllGear(): Promise<Gear[]> {
     .order("retired", { ascending: true })
     .order("id", { ascending: true });
   if (error) throw error;
-  return decorateGear(data ?? [], await gearColorSlots(sb));
+  return decorateGear(data ?? [], await gearColors());
 }
 
 export async function getActiveGear(): Promise<Gear[]> {
@@ -559,7 +543,7 @@ export async function getActiveGear(): Promise<Gear[]> {
     .eq("retired", false)
     .order("id", { ascending: true });
   if (error) throw error;
-  return decorateGear(data ?? [], await gearColorSlots(sb));
+  return decorateGear(data ?? [], await gearColors());
 }
 
 export async function getGearById(id: string): Promise<Gear | null> {
@@ -571,7 +555,7 @@ export async function getGearById(id: string): Promise<Gear | null> {
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  return decorateGear([data], await gearColorSlots(sb))[0];
+  return decorateGear([data], await gearColors())[0];
 }
 
 // =========================================================================

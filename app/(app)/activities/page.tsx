@@ -137,7 +137,7 @@ export default async function ActivitiesPage({
             {activities.map((a, i) => {
               const date = a.start_date_local.slice(0, 10);
               const label = labelForActivity(typeByDate.get(date), a.name);
-              const shoe = a.gear_id ? gearById.get(a.gear_id)?.name ?? null : null;
+              const shoe = a.gear_id ? gearById.get(a.gear_id) ?? null : null;
               return (
                 <tr key={a.id} className="clickable">
                   <td style={{ width: 64 }}>
@@ -171,7 +171,25 @@ export default async function ActivitiesPage({
                   <td className="num muted">{formatDuration(a.moving_time_s)}</td>
                   <td className="num">{a.average_heartrate ?? "—"}</td>
                   <td className="num muted">{formatFeet(a.total_elevation_gain_m)}</td>
-                  <td style={{ fontSize: 11, color: "var(--text-2)" }}>{shoe ?? "—"}</td>
+                  <td style={{ fontSize: 11, color: "var(--text-2)" }}>
+                    {shoe ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <span
+                          aria-hidden
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            background: shoe.color,
+                            flexShrink: 0,
+                          }}
+                        />
+                        {shoe.name}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                 </tr>
               );
             })}
