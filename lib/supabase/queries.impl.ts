@@ -19,15 +19,15 @@ const M_PER_MILE = 1609.344;
 const M_PER_FT = 0.3048;
 
 // Fixed colors, assigned in gear id order (Strava ids grow over time, so a
-// shoe keeps its color as new ones are added). Deliberately not the live
-// accent: the Tweaks accents (violet, pink, cyan…) would collide with the
-// palette entries below. Avoid amber/red — those mean "near cap" / "retire
-// soon" on the shoes page.
+// shoe keeps its color as new ones are added): the Triumph (first shoe) is
+// violet, the Agravic SL (fourth) green. Deliberately not the live accent:
+// the Tweaks accents (violet, pink, cyan…) would collide with the palette.
+// Avoid amber/red — those mean "near cap" / "retire soon" on the shoes page.
 const GEAR_PALETTE = [
-  "#8EF542",
+  "#B18EE8",
   "#6BA8E8",
   "#F49AC1",
-  "#B18EE8",
+  "#8EF542",
   "#7FE0B0",
   "#8EF5E8",
 ];
@@ -514,8 +514,9 @@ export async function getWeekView(
 // =========================================================================
 
 /**
- * Each active shoe's palette slot is its rank among all active shoes by id,
- * so it's the same whichever query loaded it (one shoe, active only, all).
+ * Each shoe's palette slot is its rank among all shoes by id (retired ones
+ * included), so it's the same whichever query loaded it and doesn't shift
+ * when an older shoe retires.
  */
 async function gearColorSlots(
   sb: ReturnType<typeof createServerSupabase>,
@@ -523,7 +524,6 @@ async function gearColorSlots(
   const { data, error } = await sb
     .from("gear")
     .select("id")
-    .eq("retired", false)
     .order("id", { ascending: true });
   if (error) throw error;
   return new Map((data ?? []).map((g, i) => [g.id as string, i]));
