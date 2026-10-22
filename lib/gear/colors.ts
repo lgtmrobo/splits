@@ -6,7 +6,7 @@ export const GEAR_PALETTE = [
   "#B18EE8",
   "#6BA8E8",
   "#F49AC1",
-  "#8EF542",
+  "#9AD47D",
   "#7FE0B0",
   "#8EF5E8",
 ] as const;
