@@ -18,12 +18,13 @@ import type {
 const M_PER_MILE = 1609.344;
 const M_PER_FT = 0.3048;
 
-// Index 0 = the user's primary/most-used shoe; uses the live accent so it
-// stays in sync with the Tweaks panel. Subsequent shoes get distinct hex
-// colors so they're visually distinguishable. Avoid amber/red — those mean
-// "near cap" / "retire soon" on the shoes page.
+// Fixed colors, assigned in gear id order (Strava ids grow over time, so a
+// shoe keeps its color as new ones are added). Deliberately not the live
+// accent: the Tweaks accents (violet, pink, cyan…) would collide with the
+// palette entries below. Avoid amber/red — those mean "near cap" / "retire
+// soon" on the shoes page.
 const GEAR_PALETTE = [
-  "var(--accent)",
+  "#8EF542",
   "#6BA8E8",
   "#F49AC1",
   "#B18EE8",
@@ -512,10 +513,26 @@ export async function getWeekView(
 // Gear
 // =========================================================================
 
-function decorateGear(rows: any[]): Gear[] {
-  return rows.map((g, i) => ({
+/**
+ * Each active shoe's palette slot is its rank among all active shoes by id,
+ * so it's the same whichever query loaded it (one shoe, active only, all).
+ */
+async function gearColorSlots(
+  sb: ReturnType<typeof createServerSupabase>,
+): Promise<Map<string, number>> {
+  const { data, error } = await sb
+    .from("gear")
+    .select("id")
+    .eq("retired", false)
+    .order("id", { ascending: true });
+  if (error) throw error;
+  return new Map((data ?? []).map((g, i) => [g.id as string, i]));
+}
+
+function decorateGear(rows: any[], slots: Map<string, number>): Gear[] {
+  return rows.map((g) => ({
     ...g,
-    color: pickGearColor(i, !!g.retired),
+    color: pickGearColor(slots.get(g.id) ?? 0, !!g.retired),
     purpose: g.description ?? "",
     cap_m:
       g.cap_m != null ? Number(g.cap_m) : defaultCapM(g.description ?? null),
@@ -528,9 +545,10 @@ export async function getAllGear(): Promise<Gear[]> {
   const { data, error } = await sb
     .from("gear")
     .select("*")
-    .order("retired", { ascending: true });
+    .order("retired", { ascending: true })
+    .order("id", { ascending: true });
   if (error) throw error;
-  return decorateGear(data ?? []);
+  return decorateGear(data ?? [], await gearColorSlots(sb));
 }
 
 export async function getActiveGear(): Promise<Gear[]> {
@@ -538,9 +556,10 @@ export async function getActiveGear(): Promise<Gear[]> {
   const { data, error } = await sb
     .from("gear")
     .select("*")
-    .eq("retired", false);
+    .eq("retired", false)
+    .order("id", { ascending: true });
   if (error) throw error;
-  return decorateGear(data ?? []);
+  return decorateGear(data ?? [], await gearColorSlots(sb));
 }
 
 export async function getGearById(id: string): Promise<Gear | null> {
@@ -552,7 +571,7 @@ export async function getGearById(id: string): Promise<Gear | null> {
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  return decorateGear([data])[0];
+  return decorateGear([data], await gearColorSlots(sb))[0];
 }
 
 // =========================================================================
