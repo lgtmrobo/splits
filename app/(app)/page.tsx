@@ -163,8 +163,12 @@ export default async function DashboardPage() {
       : 0;
   const deficitMi = Math.max(0, thisWeekTargetMi - thisWeekMi);
 
-  const todayPlan =
-    weekView.find((d) => d.date_iso === todayISO)?.planned ?? null;
+  const todayDay = weekView.find((d) => d.date_iso === todayISO) ?? null;
+  const todayPlan = todayDay?.planned ?? null;
+  // Once today's run is logged, the card shows its stats instead of reading
+  // like a workout still to do.
+  const todayDone =
+    todayDay?.status === "done" && todayDay.actual ? todayDay.actual : null;
   const nextUp =
     todayPlan ??
     weekView.find((d) => d.date_iso > todayISO && d.planned)?.planned ??
@@ -405,12 +409,76 @@ export default async function DashboardPage() {
         >
           <CardHeader
             title={
-              nextUp ? `Next · ${fmtDate(nextUp.scheduled_date)}` : "Next · —"
+              todayDone
+                ? `Today · ${fmtDate(todayISO)}`
+                : nextUp
+                  ? `Next · ${fmtDate(nextUp.scheduled_date)}`
+                  : "Next · —"
+            }
+            action={
+              todayDone ? (
+                <span
+                  className="row gap-4"
+                  style={{ alignItems: "center", color: "var(--accent)" }}
+                >
+                  <Icon name="check" size={12} />
+                  Done
+                </span>
+              ) : undefined
             }
             accent
           />
           <div className="col gap-8">
-            {nextUp ? (
+            {todayDone ? (
+              <Link
+                href={`/activities/${todayDone.id}`}
+                className="col gap-8"
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                <div className="row gap-8 baseline">
+                  {todayPlan && <TypePill type={todayPlan.workout_type} />}
+                  <span
+                    className="muted"
+                    style={{
+                      fontSize: 11,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {todayPlan?.description ?? todayDone.name}
+                  </span>
+                </div>
+                <div
+                  className="grid"
+                  style={{ gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}
+                >
+                  <Stat
+                    label="Distance"
+                    value={formatMiles(todayDone.distance_m)}
+                    unit="mi"
+                  />
+                  <Stat
+                    label="Pace"
+                    value={speedToPacePerMile(todayDone.average_speed_ms)}
+                    unit="/mi"
+                  />
+                  <Stat
+                    label="Time"
+                    value={formatDurationShort(todayDone.moving_time_s)}
+                  />
+                  <Stat
+                    label="Avg HR"
+                    value={
+                      todayDone.average_heartrate
+                        ? String(Math.round(todayDone.average_heartrate))
+                        : "—"
+                    }
+                    unit="bpm"
+                  />
+                </div>
+              </Link>
+            ) : nextUp ? (
               <>
                 <div className="row gap-8 baseline">
                   <TypePill type={nextUp.workout_type} />
