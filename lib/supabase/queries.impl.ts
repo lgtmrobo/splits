@@ -689,6 +689,25 @@ function fillZeroGaps(arr: number[]): number[] {
   return out;
 }
 
+// Below this speed a sample counts as stopped. Strava's per-mile splits use
+// moving time, so time spent standing at a light must not count toward pace.
+const MOVING_MIN_SPEED_MS = 0.5;
+
+function movingTime(
+  distance: number[],
+  time: number[],
+  from: number,
+  to: number,
+): number {
+  let t = 0;
+  for (let k = from + 1; k <= to; k++) {
+    const dt = time[k] - time[k - 1];
+    if (dt > 0 && (distance[k] - distance[k - 1]) / dt >= MOVING_MIN_SPEED_MS)
+      t += dt;
+  }
+  return t;
+}
+
 function computeSplits(
   distance: number[],
   time: number[],
@@ -709,7 +728,7 @@ function computeSplits(
     const targetM = m * M_PER_MILE;
     let i = lastIdx;
     while (i < distance.length && distance[i] < targetM) i++;
-    const segTime = time[i] - time[lastIdx];
+    const segTime = movingTime(distance, time, lastIdx, i);
     const segHr = hr.length ? Math.round(avg(hr.slice(lastIdx, i))) : 0;
     const segElev = altitude.length
       ? (altitude[i] - altitude[lastIdx]) / M_PER_FT
@@ -723,7 +742,7 @@ function computeSplits(
     lastIdx = i;
   }
   if (lastIdx < distance.length - 1) {
-    const segTime = time[time.length - 1] - time[lastIdx];
+    const segTime = movingTime(distance, time, lastIdx, time.length - 1);
     const finalMi = distance[distance.length - 1] / M_PER_MILE;
     splits.push({
       mi: Math.round(finalMi * 10) / 10,

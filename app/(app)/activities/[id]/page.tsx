@@ -182,15 +182,17 @@ export default async function ActivityDetailPage({ params }: Props) {
     .join(" · ");
 
   const xLabels = buildXLabels(activity.elapsed_time_s, 5);
-  const fastestSplit = detail.splits.length
-    ? detail.splits.reduce(
+  // The trailing partial split is too short to count as a fastest mile.
+  const fullSplits = detail.splits.filter((s) => !s.partial);
+  const fastestSplit = fullSplits.length
+    ? fullSplits.reduce(
         (best, s) =>
           !best ||
           parseFloat(s.pace.replace(":", ".")) <
             parseFloat(best.pace.replace(":", "."))
             ? s
             : best,
-        detail.splits[0],
+        fullSplits[0],
       )
     : null;
   const splitPaceSecs = detail.splits.map((s) => {
