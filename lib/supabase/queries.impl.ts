@@ -1,7 +1,7 @@
 import { createServerSupabase, createServiceRoleSupabase } from "@/lib/supabase/server";
 import { assignGearColors, GEAR_PALETTE, RETIRED_GEAR_COLOR } from "@/lib/gear/colors";
 import { decodePolyline } from "@/lib/strava/polyline";
-import { addDaysISO, dayDiff, todayLocalISO } from "@/lib/utils/dates";
+import { addDaysISO, dayDiff, sundayOfISO, todayLocalISO } from "@/lib/utils/dates";
 import type {
   Activity,
   ActivityStreams,
@@ -300,12 +300,15 @@ export async function getPlanMeta(planId?: string): Promise<{
     0,
   );
 
+  // Weeks run Sun–Sat to match the plan page, even when a block starts
+  // midweek (Rooster's starts on a Monday).
+  const weekAnchor = sundayOfISO(plan.start_date);
   const totalWeeks = Math.max(
     1,
-    Math.ceil(dayDiff(plan.start_date, plan.end_date) / 7),
+    Math.ceil(dayDiff(weekAnchor, plan.end_date) / 7),
   );
   const today = todayLocalISO();
-  const weeksElapsed = Math.floor(dayDiff(plan.start_date, today) / 7);
+  const weeksElapsed = Math.floor(dayDiff(weekAnchor, today) / 7);
   const currentWeekIndex = Math.max(0, Math.min(totalWeeks - 1, weeksElapsed));
 
   const completedCount = (planned ?? []).filter(
@@ -350,10 +353,12 @@ export async function getWeekMileage(planId?: string): Promise<WeekMileage[]> {
       actualsById.set(Number(a.id), Number(a.distance_m ?? 0));
   }
 
+  // Sun–Sat weeks, same anchor as getPlanMeta.
+  const weekAnchor = sundayOfISO(plan.start_date);
   const buckets = new Map<number, WeekMileage>();
   for (const p of planned ?? []) {
-    const week = Math.floor(dayDiff(plan.start_date, p.scheduled_date) / 7);
-    const wkStartISO = addDaysISO(plan.start_date, week * 7);
+    const week = Math.floor(dayDiff(weekAnchor, p.scheduled_date) / 7);
+    const wkStartISO = addDaysISO(weekAnchor, week * 7);
     const existing = buckets.get(week) ?? {
       week_number: week + 1,
       label: `W${week + 1}`,
