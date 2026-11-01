@@ -316,7 +316,8 @@ async function push() {
 async function resync() {
   const dates = process.argv.slice(3);
   if (dates.length === 0) throw new Error("usage: resync YYYY-MM-DD [YYYY-MM-DD ...]");
-  const today = new Date().toISOString().slice(0, 10);
+  // Local date, not UTC — after ~5 PM PT the UTC date is already tomorrow.
+  const today = new Date().toLocaleDateString("en-CA");
   const past = dates.filter((d) => d < today);
   if (past.length) throw new Error(`COROS rejects edits before today: ${past.join(", ")}`);
 
