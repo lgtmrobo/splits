@@ -434,6 +434,7 @@ body {
   cursor: pointer;
   transition: background 120ms, border-color 120ms;
   text-decoration: none;
+  white-space: nowrap;
 }
 .btn:hover {
   background: var(--surface-3);
@@ -518,6 +519,88 @@ body {
   height: 6px;
   border-radius: 50%;
   background: currentColor;
+}
+
+/* ===== Shoes on an activity (components/gear/shoe-label.tsx) ===== */
+.shoe-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  white-space: nowrap;
+}
+.shoe-label-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.shoe-more {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--text-2);
+  cursor: default;
+  flex-shrink: 0;
+}
+.shoe-more:hover,
+.shoe-more:focus-visible {
+  border-color: var(--hairline-strong);
+  color: var(--text-1);
+  outline: none;
+}
+.shoe-tip {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--surface-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--text-2);
+}
+.shoe-more:hover .shoe-tip,
+.shoe-more:focus-visible .shoe-tip {
+  display: flex;
+}
+.shoe-tip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.shoe-tip-mi {
+  margin-left: auto;
+  padding-left: 12px;
+  color: var(--text-1);
+}
+
+/* Per-shoe breakdown on the activity page */
+.shoe-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.shoe-chip-stat {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
 }
 
 /* ===== Table ===== */

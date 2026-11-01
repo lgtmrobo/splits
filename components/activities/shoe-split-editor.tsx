@@ -92,34 +92,34 @@ export function ShoeSplitEditor({
 
   if (!editing) {
     return (
-      <div className="row gap-10" style={{ alignItems: "center", flexWrap: "wrap" }}>
+      <div
+        className="row gap-8"
+        style={{ alignItems: "center", flexWrap: "wrap", marginTop: 4 }}
+      >
         {isSplit &&
           split.map((s, i) => {
             const shoe = shoeById.get(s.gear_id);
             return (
-              <span
-                key={i}
-                className="num"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontSize: 12,
-                  color: "var(--text-2)",
-                }}
-              >
+              <span key={i} className="shoe-chip">
                 {shoe && <ShoeDot color={shoe.color} />}
-                {shoe?.name ?? "Unknown shoe"}
-                <span style={{ color: "var(--text-1)" }}>
+                <span>{shoe?.name ?? "Unknown shoe"}</span>
+                <span className="shoe-chip-stat" style={{ color: "var(--text-1)" }}>
                   {s.miles.toFixed(2)} mi
                 </span>
-                <span style={{ color: "var(--text-3)" }}>{s.pace}/mi</span>
+                <span className="shoe-chip-stat" style={{ color: "var(--text-3)" }}>
+                  {s.pace}/mi
+                </span>
               </span>
             );
           })}
         {shoes.length > 1 && (
-          <button type="button" className="btn ghost" onClick={startEditing}>
-            {isSplit ? "Edit shoe split" : "Split shoes"}
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={startEditing}
+            style={{ fontSize: 11 }}
+          >
+            {isSplit ? "Edit split" : "Split shoes"}
           </button>
         )}
       </div>

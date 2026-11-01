@@ -4,7 +4,7 @@ import { Icon } from "@/components/ui/icon";
 import { Stat } from "@/components/ui/primitives";
 import { TypePill } from "@/components/ui/type-pill";
 import { ShoeLabel } from "@/components/gear/shoe-label";
-import { gearIdsFor } from "@/lib/gear/segments";
+import { gearShares } from "@/lib/gear/segments";
 import { ActivityTypeFilter } from "@/app/(app)/activities/filter";
 import { getActivityTotals, getAllActivities, getAllGear, getPlannedRunsBetween } from "@/lib/supabase/queries";
 import type { WorkoutType } from "@/lib/types";
@@ -172,8 +172,8 @@ export default async function ActivitiesPage({
                   <td className="num muted">{formatDuration(a.moving_time_s)}</td>
                   <td className="num">{a.average_heartrate ?? "—"}</td>
                   <td className="num muted">{formatFeet(a.total_elevation_gain_m)}</td>
-                  <td style={{ fontSize: 11, color: "var(--text-2)" }}>
-                    <ShoeLabel gearIds={gearIdsFor(a)} gearById={gearById} />
+                  <td style={{ fontSize: 11, color: "var(--text-2)", maxWidth: 220 }}>
+                    <ShoeLabel shares={gearShares(a)} gearById={gearById} />
                   </td>
                 </tr>
               );

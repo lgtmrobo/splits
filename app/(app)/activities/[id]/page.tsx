@@ -195,7 +195,8 @@ export default async function ActivityDetailPage({ params }: Props) {
   const metaLine = [
     formatFullDate(activity.start_date_local.slice(0, 10)),
     activity.start_date_local.slice(11, 16),
-    shoeNames || null,
+    // Split runs list their shoes in the breakdown chips below instead.
+    shares.length > 1 ? null : shoeNames || null,
   ]
     .filter(Boolean)
     .join(" · ");
