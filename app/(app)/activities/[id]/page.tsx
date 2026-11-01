@@ -7,10 +7,12 @@ import { Icon } from "@/components/ui/icon";
 import { CardHeader, Stat } from "@/components/ui/primitives";
 import { TypePill } from "@/components/ui/type-pill";
 import { ResyncButton } from "@/components/activities/resync-button";
+import { ShoeSplitEditor } from "@/components/activities/shoe-split-editor";
+import { gearIdsFor, gearShares } from "@/lib/gear/segments";
 import {
   getActivityDetail,
   getAnalysisForActivity,
-  getGearById,
+  getAllGear,
   getPlannedRunByDate,
   getWhoopWorkoutForActivity,
 } from "@/lib/supabase/queries";
@@ -23,6 +25,7 @@ import {
   formatDuration,
   formatFeet,
   formatMiles,
+  metersToMiles,
   speedToPacePerMile,
 } from "@/lib/utils/units";
 
@@ -116,11 +119,9 @@ export default async function ActivityDetailPage({ params }: Props) {
     if (streamRow) detail = buildActivityDetail(detail.activity, streamRow);
   }
 
-  const [analysis, gear, planned, whoop] = await Promise.all([
+  const [analysis, allGear, planned, whoop] = await Promise.all([
     getAnalysisForActivity(detail.activity.id),
-    detail.activity.gear_id
-      ? getGearById(detail.activity.gear_id)
-      : Promise.resolve(null),
+    getAllGear(),
     getPlannedRunByDate(detail.activity.start_date_local.slice(0, 10)),
     getWhoopWorkoutForActivity(detail.activity.id),
   ]);
@@ -173,10 +174,28 @@ export default async function ActivityDetailPage({ params }: Props) {
     activity.name,
     activity.sport_type,
   );
+  // Shoes: one for a normal run, several when it was split across pairs.
+  const gearById = new Map(allGear.map((g) => [g.id, g]));
+  const shares = gearShares(activity);
+  const shoeNames = gearIdsFor(activity)
+    .map((id) => gearById.get(id)?.name)
+    .filter(Boolean)
+    .join(" + ");
+  const splitSummary = shares.map((s) => ({
+    gear_id: s.gear_id,
+    miles: metersToMiles(s.distance_m),
+    pace: speedToPacePerMile(
+      s.moving_time_s > 0 ? s.distance_m / s.moving_time_s : 0,
+    ),
+  }));
+  const shoeIdsInRun = new Set(shares.map((s) => s.gear_id));
+  const shoeOptions = allGear
+    .filter((g) => !g.retired || shoeIdsInRun.has(g.id))
+    .map((g) => ({ id: g.id, name: g.name, color: g.color }));
   const metaLine = [
     formatFullDate(activity.start_date_local.slice(0, 10)),
     activity.start_date_local.slice(11, 16),
-    gear?.name ?? null,
+    shoeNames || null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -256,6 +275,13 @@ export default async function ActivityDetailPage({ params }: Props) {
             <div className="muted num" style={{ fontSize: 12 }}>
               {metaLine}
             </div>
+            <ShoeSplitEditor
+              activityId={detail.activity.id}
+              totalMiles={metersToMiles(Number(activity.distance_m ?? 0))}
+              shoes={shoeOptions}
+              split={splitSummary}
+              defaultGearId={activity.gear_id}
+            />
           </div>
           <div className="row gap-8">
             <ResyncButton activityId={detail.activity.id} />

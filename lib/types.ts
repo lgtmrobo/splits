@@ -50,6 +50,10 @@ export interface Activity {
   calories: number | null;
   suffer_score: number | null;
   gear_id: string | null;
+  // Shoe splits for runs done in more than one pair. Empty/absent → the
+  // whole run counts toward gear_id. Use gearShares() rather than reading
+  // either field directly.
+  gear_segments?: ActivityGearSegment[];
   map_id: string | null;
   summary_polyline: string | null;
   trainer: boolean;
@@ -57,6 +61,14 @@ export interface Activity {
   manual: boolean;
   synced_at: string;
   created_at: string;
+}
+
+export interface ActivityGearSegment {
+  activity_id: number;
+  seq: number;
+  gear_id: string;
+  distance_m: number;
+  moving_time_s: number | null;
 }
 
 export interface ActivityStreams {

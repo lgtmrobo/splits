@@ -1,9 +1,11 @@
 import { createServerSupabase, createServiceRoleSupabase } from "@/lib/supabase/server";
 import { assignGearColors, GEAR_PALETTE, RETIRED_GEAR_COLOR } from "@/lib/gear/colors";
+import { groupSegmentsByActivity } from "@/lib/gear/segments";
 import { decodePolyline } from "@/lib/strava/polyline";
 import { addDaysISO, dayDiff, sundayOfISO, todayLocalISO } from "@/lib/utils/dates";
 import type {
   Activity,
+  ActivityGearSegment,
   ActivityStreams,
   Athlete,
   Gear,
@@ -56,12 +58,50 @@ export async function getRecentActivities(limit = 10): Promise<Activity[]> {
 
 export async function getAllActivities(): Promise<Activity[]> {
   const sb = createServerSupabase();
-  const { data, error } = await sb
-    .from("activities")
-    .select("*")
-    .order("start_date", { ascending: false });
+  const [{ data, error }, segments] = await Promise.all([
+    sb.from("activities").select("*").order("start_date", { ascending: false }),
+    getGearSegments(),
+  ]);
   if (error) throw error;
-  return (data ?? []) as Activity[];
+  return withGearSegments((data ?? []) as Activity[], segments);
+}
+
+/**
+ * Shoe splits (activity_gear_segments), optionally for one activity. The
+ * table is tiny — only runs done in more than one pair have rows.
+ */
+async function getGearSegments(
+  activityId?: number,
+): Promise<ActivityGearSegment[]> {
+  const sb = createServerSupabase();
+  let query = sb
+    .from("activity_gear_segments")
+    .select("activity_id, seq, gear_id, distance_m, moving_time_s");
+  if (activityId != null) query = query.eq("activity_id", activityId);
+  const { data, error } = await query;
+  // Table not migrated yet (00012) → no split runs, rather than a broken page.
+  if (error?.code === "PGRST205") return [];
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    activity_id: Number(r.activity_id),
+    seq: Number(r.seq),
+    gear_id: r.gear_id as string,
+    distance_m: Number(r.distance_m),
+    moving_time_s: r.moving_time_s == null ? null : Number(r.moving_time_s),
+  }));
+}
+
+function withGearSegments(
+  activities: Activity[],
+  segments: ActivityGearSegment[],
+): Activity[] {
+  if (segments.length === 0) return activities;
+  const byActivity = groupSegmentsByActivity(segments);
+  return activities.map((a) =>
+    byActivity.has(Number(a.id))
+      ? { ...a, gear_segments: byActivity.get(Number(a.id)) }
+      : a,
+  );
 }
 
 /**
@@ -86,13 +126,13 @@ export async function getActivityById(
 ): Promise<Activity | null> {
   const numId = typeof id === "string" ? Number(id) : id;
   const sb = createServerSupabase();
-  const { data, error } = await sb
-    .from("activities")
-    .select("*")
-    .eq("id", numId)
-    .maybeSingle();
+  const [{ data, error }, segments] = await Promise.all([
+    sb.from("activities").select("*").eq("id", numId).maybeSingle(),
+    getGearSegments(numId),
+  ]);
   if (error) throw error;
-  return (data as Activity) ?? null;
+  if (!data) return null;
+  return withGearSegments([data as Activity], segments)[0];
 }
 
 export async function getActivityTotals(): Promise<{

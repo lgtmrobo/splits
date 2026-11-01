@@ -11,6 +11,7 @@ import {
   metersToMiles,
   speedToPacePerMile,
 } from "@/lib/utils/units";
+import { gearIdsFor, gearShares } from "@/lib/gear/segments";
 import { AddShoeButton, EditShoeButton } from "./shoes-actions-bar";
 
 function fmtRaceDate(iso: string): string {
@@ -81,25 +82,31 @@ export default async function ShoesPage() {
     });
 
   for (const a of activities) {
-    if (!a.gear_id) continue;
-    const s = perShoe.get(a.gear_id);
-    if (!s) continue;
-    s.runs++;
-    s.distSum += Number(a.distance_m ?? 0);
-    s.timeSum += Number(a.moving_time_s ?? 0);
-    // Fastest whole-run average, not Strava's max_speed — that's a single
-    // GPS sample and spikes produce impossible paces (e.g. 3:07/mi).
-    const dist = Number(a.distance_m ?? 0);
-    const time = Number(a.moving_time_s ?? 0);
-    if (dist >= MIN_FASTEST_RUN_M && time > 0 && dist / time > s.fastestSpeed)
-      s.fastestSpeed = dist / time;
     const date = a.start_date_local?.slice(0, 10) ?? null;
-    if (date && (!s.lastRun || date > s.lastRun)) s.lastRun = date;
     const t = new Date(a.start_date).getTime();
-    if (t >= week0) {
-      const idx = 11 - Math.floor((todayMs - t) / (7 * 86400_000));
-      if (idx >= 0 && idx < 12)
-        s.weekly[idx] += metersToMiles(Number(a.distance_m ?? 0));
+    const weekIdx =
+      t >= week0 ? 11 - Math.floor((todayMs - t) / (7 * 86400_000)) : -1;
+    // A split run (two pairs) credits each shoe only its own segment, and
+    // counts as a run for each shoe it touched.
+    const runGearIds = new Set<string>();
+    for (const share of gearShares(a)) {
+      const s = perShoe.get(share.gear_id);
+      if (!s) continue;
+      if (!runGearIds.has(share.gear_id)) s.runs++;
+      runGearIds.add(share.gear_id);
+      s.distSum += share.distance_m;
+      s.timeSum += share.moving_time_s;
+      // Fastest whole-segment average, not Strava's max_speed — that's a
+      // single GPS sample and spikes produce impossible paces (e.g. 3:07/mi).
+      if (
+        share.distance_m >= MIN_FASTEST_RUN_M &&
+        share.moving_time_s > 0 &&
+        share.distance_m / share.moving_time_s > s.fastestSpeed
+      )
+        s.fastestSpeed = share.distance_m / share.moving_time_s;
+      if (date && (!s.lastRun || date > s.lastRun)) s.lastRun = date;
+      if (weekIdx >= 0 && weekIdx < 12)
+        s.weekly[weekIdx] += metersToMiles(share.distance_m);
     }
   }
 
@@ -134,7 +141,7 @@ export default async function ShoesPage() {
   for (const a of activities) {
     if (new Date(a.start_date) < monthStart) continue;
     monthMi += metersToMiles(Number(a.distance_m ?? 0));
-    if (a.gear_id) monthShoes.add(a.gear_id);
+    for (const id of gearIdsFor(a)) monthShoes.add(id);
   }
 
   return (

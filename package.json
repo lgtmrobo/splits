@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "screenshots": "node scripts/screenshot.mjs"
+    "screenshots": "node scripts/screenshot.mjs",
+    "test": "node --experimental-strip-types --test scripts/test-gear-segments.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

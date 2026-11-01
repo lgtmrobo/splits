@@ -1,5 +1,7 @@
 import { stravaFetch } from "@/lib/strava/client";
 import { createServiceRoleSupabase } from "@/lib/supabase/server";
+import { gearShares, groupSegmentsByActivity } from "@/lib/gear/segments";
+import type { ActivityGearSegment } from "@/lib/types";
 import type {
   StravaGear,
   StravaStream,
@@ -235,16 +237,33 @@ async function sumDistanceByGear(
   supabase: ReturnType<typeof createServiceRoleSupabase>,
   athleteId: string,
 ): Promise<Map<string, number>> {
-  const { data, error } = await supabase
-    .from("activities")
-    .select("gear_id, distance_m")
-    .eq("athlete_id", athleteId)
-    .not("gear_id", "is", null);
+  // Split runs (activity_gear_segments) credit each shoe its own segment
+  // instead of the whole run to gear_id — gearShares() handles both.
+  const [{ data, error }, { data: segRows, error: segErr }] = await Promise.all([
+    supabase
+      .from("activities")
+      .select("id, gear_id, distance_m, moving_time_s")
+      .eq("athlete_id", athleteId),
+    supabase
+      .from("activity_gear_segments")
+      .select("activity_id, seq, gear_id, distance_m, moving_time_s")
+      .eq("athlete_id", athleteId),
+  ]);
   if (error) throw error;
+  if (segErr) throw segErr;
+  const segmentsByActivity = groupSegmentsByActivity(
+    (segRows ?? []) as ActivityGearSegment[],
+  );
   const sums = new Map<string, number>();
   for (const r of data ?? []) {
-    const id = r.gear_id as string;
-    sums.set(id, (sums.get(id) ?? 0) + Number(r.distance_m ?? 0));
+    const shares = gearShares({
+      gear_id: r.gear_id as string | null,
+      distance_m: Number(r.distance_m ?? 0),
+      moving_time_s: Number(r.moving_time_s ?? 0),
+      gear_segments: segmentsByActivity.get(Number(r.id)),
+    });
+    for (const share of shares)
+      sums.set(share.gear_id, (sums.get(share.gear_id) ?? 0) + share.distance_m);
   }
   return sums;
 }
@@ -373,6 +392,11 @@ export async function syncGear(athleteId: string) {
       // Re-link any activities pointing at the old local id, then drop it.
       await supabase
         .from("activities")
+        .update({ gear_id: g.id })
+        .eq("athlete_id", athleteId)
+        .eq("gear_id", local.id);
+      await supabase
+        .from("activity_gear_segments")
         .update({ gear_id: g.id })
         .eq("athlete_id", athleteId)
         .eq("gear_id", local.id);

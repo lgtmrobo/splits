@@ -3,6 +3,8 @@ import { RouteThumb } from "@/components/maps/route-thumb";
 import { Icon } from "@/components/ui/icon";
 import { Stat } from "@/components/ui/primitives";
 import { TypePill } from "@/components/ui/type-pill";
+import { ShoeLabel } from "@/components/gear/shoe-label";
+import { gearIdsFor } from "@/lib/gear/segments";
 import { ActivityTypeFilter } from "@/app/(app)/activities/filter";
 import { getActivityTotals, getAllActivities, getAllGear, getPlannedRunsBetween } from "@/lib/supabase/queries";
 import type { WorkoutType } from "@/lib/types";
@@ -137,7 +139,6 @@ export default async function ActivitiesPage({
             {activities.map((a, i) => {
               const date = a.start_date_local.slice(0, 10);
               const label = labelForActivity(typeByDate.get(date), a.name);
-              const shoe = a.gear_id ? gearById.get(a.gear_id) ?? null : null;
               return (
                 <tr key={a.id} className="clickable">
                   <td style={{ width: 64 }}>
@@ -172,23 +173,7 @@ export default async function ActivitiesPage({
                   <td className="num">{a.average_heartrate ?? "—"}</td>
                   <td className="num muted">{formatFeet(a.total_elevation_gain_m)}</td>
                   <td style={{ fontSize: 11, color: "var(--text-2)" }}>
-                    {shoe ? (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        <span
-                          aria-hidden
-                          style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: "50%",
-                            background: shoe.color,
-                            flexShrink: 0,
-                          }}
-                        />
-                        {shoe.name}
-                      </span>
-                    ) : (
-                      "—"
-                    )}
+                    <ShoeLabel gearIds={gearIdsFor(a)} gearById={gearById} />
                   </td>
                 </tr>
               );
