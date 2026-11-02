@@ -237,22 +237,24 @@ export default async function DashboardPage() {
 
           <div className="ff-cell">
             <div className="ff-cell-head">
-              <span className="ff-h">Heart rate zones</span>
-              <span className="ff-caption">7 days · {zonesTotalLabel}</span>
+              <span className="ff-h">Plan adherence</span>
+              <span className="ff-caption num">{planMeta.adherence_pct}%</span>
             </div>
-            <ZoneBar zones={zones} showLabels={false} />
-            <div className="col" style={{ marginTop: 12 }}>
-              {zones.map((z, i) => (
-                <div key={z.zone} className="row between" style={{ padding: "2px 0" }}>
-                  <span className="row gap-8" style={{ alignItems: "center" }}>
+            <div className="col gap-14">
+              {adherenceRows.map((r) => (
+                <div key={r.label} className="col gap-6">
+                  <div className="row between baseline">
+                    <span className="ff-muted">{r.label}</span>
+                    <span className="num">{r.value}</span>
+                  </div>
+                  <div className="ff-meter">
                     <span
-                      className="ff-dot"
-                      style={{ background: `var(--zone-${i + 1})` }}
+                      style={{
+                        width: `${Math.min(100, r.pct)}%`,
+                        background: "var(--accent)",
+                      }}
                     />
-                    {z.zone}
-                    <span className="ff-muted">{z.label}</span>
-                  </span>
-                  <span className="num">{z.minutes}m</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -334,24 +336,22 @@ export default async function DashboardPage() {
         >
           <div className="ff-cell">
             <div className="ff-cell-head">
-              <span className="ff-h">Plan adherence</span>
-              <span className="ff-caption num">{planMeta.adherence_pct}%</span>
+              <span className="ff-h">Heart rate zones</span>
+              <span className="ff-caption">7 days · {zonesTotalLabel}</span>
             </div>
-            <div className="col gap-14">
-              {adherenceRows.map((r) => (
-                <div key={r.label} className="col gap-6">
-                  <div className="row between baseline">
-                    <span className="ff-muted">{r.label}</span>
-                    <span className="num">{r.value}</span>
-                  </div>
-                  <div className="ff-meter">
+            <ZoneBar zones={zones} showLabels={false} />
+            <div className="col" style={{ marginTop: 12 }}>
+              {zones.map((z, i) => (
+                <div key={z.zone} className="row between" style={{ padding: "2px 0" }}>
+                  <span className="row gap-8" style={{ alignItems: "center" }}>
                     <span
-                      style={{
-                        width: `${Math.min(100, r.pct)}%`,
-                        background: "var(--accent)",
-                      }}
+                      className="ff-dot"
+                      style={{ background: `var(--zone-${i + 1})` }}
                     />
-                  </div>
+                    {z.zone}
+                    <span className="ff-muted">{z.label}</span>
+                  </span>
+                  <span className="num">{z.minutes}m</span>
                 </div>
               ))}
             </div>
