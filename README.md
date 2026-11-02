@@ -89,7 +89,7 @@ Font: Geist + Geist Mono. Accent: electric green `#8EF542` (swappable via the fl
   whoop-backfill.mjs         manual WHOOP backfill (recovery + cycles + workouts) — useful when on-connect fire-and-forget fails
   register-strava-webhook.mjs run once after first prod deploy
   inspect.mjs · check-streams.mjs · check-whoop.mjs · check-gear.mjs · test-stream-fetch.mjs · probe.mjs   diagnostics
-middleware.ts          session gate with dev bypass
+proxy.ts               session gate with dev bypass (Next 16 "proxy", formerly middleware)
 vercel.json            cron schedule
 ```
 
@@ -105,7 +105,7 @@ npm run dev                # http://localhost:3000
 
 The app expects real env vars and a real Supabase project — there is no mock fallback anymore (the original `lib/mock/queries.ts` was the demo layer and has been replaced by `lib/supabase/queries.ts`).
 
-**Skip Google login locally.** Set `DEV_AUTH_BYPASS=true` in `.env` and the middleware lets every request through, plus `createServerSupabase()` returns the service-role client so RLS-scoped queries still resolve. Don't ship this var to Vercel.
+**Skip Google login locally.** Set `DEV_AUTH_BYPASS=true` in `.env` and the proxy (`proxy.ts`) lets every request through, plus `createServerSupabase()` returns the service-role client so RLS-scoped queries still resolve. Don't ship this var to Vercel.
 
 ---
 

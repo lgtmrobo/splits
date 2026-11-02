@@ -1,15 +1,15 @@
 import Link from "next/link";
 
 interface Props {
-  searchParams: { error?: string };
+  searchParams: Promise<{ error?: string }>;
 }
 
-export default function LoginPage({ searchParams }: Props) {
-  const error = searchParams.error;
+export default async function LoginPage({ searchParams }: Props) {
+  const { error } = await searchParams;
 
   return (
     <div
-      className="card"
+      className="card card-panel"
       style={{
         width: 360,
         padding: "32px 28px",

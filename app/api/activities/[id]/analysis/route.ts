@@ -9,16 +9,16 @@ import type {
 } from "@/lib/types";
 
 interface Context {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // GET → return cached analysis (or 404)
 export async function GET(_req: NextRequest, { params }: Context) {
-  const supabase = createServerSupabase();
+  const supabase = await createServerSupabase();
   const { data, error } = await supabase
     .from("run_analyses")
     .select("*")
-    .eq("activity_id", Number(params.id))
+    .eq("activity_id", Number((await params).id))
     .maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -27,13 +27,13 @@ export async function GET(_req: NextRequest, { params }: Context) {
 
 // POST → generate (or force regenerate with ?force=1)
 export async function POST(req: NextRequest, { params }: Context) {
-  const authed = createServerSupabase();
+  const authed = await createServerSupabase();
   const { data: { user } } = await authed.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauth" }, { status: 401 });
 
   const force = req.nextUrl.searchParams.get("force") === "1";
   const admin = createServiceRoleSupabase();
-  const activityId = Number(params.id);
+  const activityId = Number((await params).id);
 
   // Load activity + the last 5 for context
   const { data: activity } = await admin

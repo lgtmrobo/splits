@@ -3,7 +3,7 @@ import { getValidStravaToken } from "@/lib/strava/client";
 import { createServerSupabase, createServiceRoleSupabase } from "@/lib/supabase/server";
 
 export async function POST(req: NextRequest) {
-  const authed = createServerSupabase();
+  const authed = await createServerSupabase();
   const {
     data: { user },
   } = await authed.auth.getUser();

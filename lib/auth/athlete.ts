@@ -15,7 +15,7 @@ export async function getCurrentAthleteId(): Promise<string> {
     if (!data?.[0]) throw new Error("No athlete row");
     return data[0].id;
   }
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const {
     data: { user },
   } = await sb.auth.getUser();

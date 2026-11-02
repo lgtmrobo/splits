@@ -4,7 +4,7 @@ import { Icon } from "@/components/ui/icon";
 export default function ConnectStravaPage() {
   return (
     <div
-      className="card"
+      className="card card-panel"
       style={{
         width: 420,
         padding: "32px 28px",

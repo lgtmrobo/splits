@@ -34,7 +34,7 @@ function labelForActivity(planned: WorkoutType | undefined, name: string): strin
 export default async function ActivitiesPage({
   searchParams,
 }: {
-  searchParams: { type?: string };
+  searchParams: Promise<{ type?: string }>;
 }) {
   const [allActivities, totals, gear] = await Promise.all([
     getAllActivities(),
@@ -48,7 +48,7 @@ export default async function ActivitiesPage({
   const planned = allActivities.length ? await getPlannedRunsBetween(minDate, maxDate) : [];
   const typeByDate = new Map<string, WorkoutType>(planned.map((p) => [p.scheduled_date, p.workout_type]));
 
-  const filter = searchParams.type ?? "all";
+  const filter = (await searchParams).type ?? "all";
   const activities = allActivities.filter((a) => {
     if (filter === "all") return true;
     const label = labelForActivity(typeByDate.get(a.start_date_local.slice(0, 10)), a.name).toLowerCase();

@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "NEXT_PUBLIC_APP_URL not set" }, { status: 500 });
   }
 
-  const supabase = createServerSupabase();
+  const supabase = await createServerSupabase();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {

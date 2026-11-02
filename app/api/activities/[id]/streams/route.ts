@@ -3,16 +3,16 @@ import { fetchActivityStreams } from "@/lib/strava/sync";
 import { createServerSupabase, createServiceRoleSupabase } from "@/lib/supabase/server";
 
 interface Context {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // GET: return cached streams if we have them, else fetch + cache.
 export async function GET(_req: NextRequest, { params }: Context) {
-  const authed = createServerSupabase();
+  const authed = await createServerSupabase();
   const { data: { user } } = await authed.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauth" }, { status: 401 });
 
-  const activityId = Number(params.id);
+  const activityId = Number((await params).id);
   const force = _req.nextUrl.searchParams.get("force") === "1";
   const admin = createServiceRoleSupabase();
 

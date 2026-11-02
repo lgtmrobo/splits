@@ -30,7 +30,7 @@ import {
 } from "@/lib/utils/units";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 function paceLabelFromSpeed(ms: number): string {
@@ -76,7 +76,8 @@ function activityKindLabel(
 }
 
 export default async function ActivityDetailPage({ params }: Props) {
-  let detail = await getActivityDetail(Number(params.id));
+  const { id } = await params;
+  let detail = await getActivityDetail(Number(id));
   if (!detail) notFound();
 
   // Lazy-fetch streams the first time this activity is opened.
@@ -449,7 +450,7 @@ export default async function ActivityDetailPage({ params }: Props) {
                   );
                   const isFastest = fastestSplit && s.mi === fastestSplit.mi;
                   return (
-                    <tr key={s.mi}>
+                    <tr key={i}>
                       <td className="num">{s.mi}</td>
                       <td
                         className="num"

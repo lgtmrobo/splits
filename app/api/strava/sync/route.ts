@@ -16,7 +16,7 @@ import {
 // currently-logged-in athlete and authed via Supabase session rather
 // than CRON_SECRET.
 export async function POST(_req: NextRequest) {
-  const authed = createServerSupabase();
+  const authed = await createServerSupabase();
   const {
     data: { user },
   } = await authed.auth.getUser();

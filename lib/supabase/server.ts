@@ -1,4 +1,4 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
@@ -23,34 +23,29 @@ const noStoreFetch: typeof fetch = (input, init) =>
  * In local dev with DEV_AUTH_BYPASS=true, returns the service-role client
  * so pages can render without a logged-in user.
  */
-export function createServerSupabase() {
+export async function createServerSupabase() {
   if (isDevAuthBypass()) return createServiceRoleSupabase();
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        getAll() {
+          return cookieStore.getAll();
         },
-        set(name: string, value: string, options: CookieOptions) {
+        setAll(cookiesToSet) {
           try {
-            cookieStore.set({ name, value, ...options });
+            for (const { name, value, options } of cookiesToSet)
+              cookieStore.set(name, value, options);
           } catch {
-            // `cookies().set` fails in Server Components — safe to ignore.
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: "", ...options });
-          } catch {
-            // same as above
+            // Setting cookies fails in Server Components — the proxy
+            // refreshes the session instead, so this is safe to ignore.
           }
         },
       },
       global: { fetch: noStoreFetch },
-    }
+    },
   );
 }
 
