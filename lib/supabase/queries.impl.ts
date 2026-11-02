@@ -33,7 +33,7 @@ function defaultCapM(description: string | null): number {
 // =========================================================================
 
 export async function getCurrentAthlete(): Promise<Athlete> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data, error } = await sb.from("athletes").select("*").maybeSingle();
   if (error) throw error;
   if (!data)
@@ -46,7 +46,7 @@ export async function getCurrentAthlete(): Promise<Athlete> {
 // =========================================================================
 
 export async function getRecentActivities(limit = 10): Promise<Activity[]> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data, error } = await sb
     .from("activities")
     .select("*")
@@ -57,7 +57,7 @@ export async function getRecentActivities(limit = 10): Promise<Activity[]> {
 }
 
 export async function getAllActivities(): Promise<Activity[]> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const [{ data, error }, segments] = await Promise.all([
     sb.from("activities").select("*").order("start_date", { ascending: false }),
     getGearSegments(),
@@ -73,7 +73,7 @@ export async function getAllActivities(): Promise<Activity[]> {
 async function getGearSegments(
   activityId?: number,
 ): Promise<ActivityGearSegment[]> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   let query = sb
     .from("activity_gear_segments")
     .select("activity_id, seq, gear_id, distance_m, moving_time_s");
@@ -109,7 +109,7 @@ function withGearSegments(
  * the encoded string — decoding happens client-side.
  */
 export async function getAllPolylines(): Promise<string[]> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data, error } = await sb
     .from("activities")
     .select("summary_polyline")
@@ -125,7 +125,7 @@ export async function getActivityById(
   id: number | string,
 ): Promise<Activity | null> {
   const numId = typeof id === "string" ? Number(id) : id;
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const [{ data, error }, segments] = await Promise.all([
     sb.from("activities").select("*").eq("id", numId).maybeSingle(),
     getGearSegments(numId),
@@ -146,7 +146,7 @@ export async function getActivityTotals(): Promise<{
   avg_hr_28d: number;
   elev_28d_m: number;
 }> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const now = new Date();
   const iso = (d: Date) => d.toISOString();
   const days = (n: number) => {
@@ -221,7 +221,7 @@ export async function getActivityTotals(): Promise<{
  * no plan straddles today (e.g., between phases).
  */
 export async function getActivePlan(): Promise<TrainingPlan | null> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const today = todayLocalISO();
   const { data: current, error: curErr } = await sb
     .from("training_plans")
@@ -249,7 +249,7 @@ export async function getActivePlan(): Promise<TrainingPlan | null> {
 export async function getPlanById(
   planId: string,
 ): Promise<TrainingPlan | null> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data, error } = await sb
     .from("training_plans")
     .select("*")
@@ -260,7 +260,7 @@ export async function getPlanById(
 }
 
 export async function getAllPlans(): Promise<TrainingPlan[]> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data, error } = await sb
     .from("training_plans")
     .select("*")
@@ -274,7 +274,7 @@ export async function getAllPlans(): Promise<TrainingPlan[]> {
  * future block is scheduled. Used by the sidebar's "Next Block" card.
  */
 export async function getUpcomingPlan(): Promise<TrainingPlan | null> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const today = todayLocalISO();
   const { data, error } = await sb
     .from("training_plans")
@@ -312,7 +312,7 @@ export async function getPlanMeta(planId?: string): Promise<{
       adherence_pct: 0,
     };
   }
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data: planned, error: plannedErr } = await sb
     .from("planned_runs")
     .select(
@@ -372,7 +372,7 @@ export async function getPlanMeta(planId?: string): Promise<{
 export async function getWeekMileage(planId?: string): Promise<WeekMileage[]> {
   const plan = await resolvePlan(planId);
   if (!plan) return [];
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data: planned, error } = await sb
     .from("planned_runs")
     .select("scheduled_date, target_distance_m, completed_activity_id")
@@ -444,7 +444,7 @@ export async function getWeekMileage(planId?: string): Promise<WeekMileage[]> {
 export async function getPlannedRunByDate(
   dateISO: string,
 ): Promise<PlannedRun | null> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data, error } = await sb
     .from("planned_runs")
     .select("*")
@@ -459,7 +459,7 @@ export async function getPlannedRunsBetween(
   endISO: string,
   planId?: string,
 ): Promise<PlannedRun[]> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   let q = sb
     .from("planned_runs")
     .select("*")
@@ -495,7 +495,7 @@ export async function getWeekView(
 
   const endISO = addDaysISO(weekStartISO, 6);
   const planned = await getPlannedRunsBetween(weekStartISO, endISO, planId);
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data: weekActs } = await sb
     .from("activities")
     .select("*")
@@ -570,7 +570,7 @@ function decorateGear(rows: any[], colors: Map<string, string>): Gear[] {
 }
 
 export async function getAllGear(): Promise<Gear[]> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data, error } = await sb
     .from("gear")
     .select("*")
@@ -581,7 +581,7 @@ export async function getAllGear(): Promise<Gear[]> {
 }
 
 export async function getActiveGear(): Promise<Gear[]> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data, error } = await sb
     .from("gear")
     .select("*")
@@ -592,7 +592,7 @@ export async function getActiveGear(): Promise<Gear[]> {
 }
 
 export async function getGearById(id: string): Promise<Gear | null> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data, error } = await sb
     .from("gear")
     .select("*")
@@ -616,7 +616,7 @@ function decorateRace(r: any): Race {
 }
 
 export async function getAllRaces(): Promise<Race[]> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data, error } = await sb
     .from("races")
     .select("*")
@@ -626,7 +626,7 @@ export async function getAllRaces(): Promise<Race[]> {
 }
 
 export async function getUpcomingRaces(): Promise<Race[]> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data, error } = await sb
     .from("races")
     .select("*")
@@ -642,7 +642,7 @@ export async function getNextARace(): Promise<Race | null> {
 }
 
 export async function getRaceById(raceId: string): Promise<Race | null> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data, error } = await sb
     .from("races")
     .select("*")
@@ -670,7 +670,7 @@ export async function getUpcomingGearProjections(): Promise<
     return result;
   }
 
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data: planned, error } = await sb
     .from("planned_runs")
     .select("scheduled_date, target_distance_m, expected_gear_id")
@@ -700,7 +700,7 @@ export async function getUpcomingGearProjections(): Promise<
 export async function getAnalysisForActivity(
   activityId: number,
 ): Promise<RunAnalysis | null> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data, error } = await sb
     .from("run_analyses")
     .select("*")
@@ -890,7 +890,7 @@ export async function getActivityDetail(
 ): Promise<ActivityDetail | null> {
   const activity = await getActivityById(activityId);
   if (!activity) return null;
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data: streamRow } = await sb
     .from("activity_streams")
     .select("*")
@@ -918,7 +918,7 @@ function defaultHRZones(): HRZone[] {
 }
 
 export async function getWeekHRZones(): Promise<HRZone[]> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const since = new Date();
   since.setUTCDate(since.getUTCDate() - 7);
   const zones = defaultHRZones();
@@ -988,7 +988,7 @@ export async function getWeekHRZones(): Promise<HRZone[]> {
 }
 
 export async function getDailyLoad28d(): Promise<number[]> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const since = new Date();
   since.setUTCDate(since.getUTCDate() - 28);
   const { data: acts } = await sb
@@ -1016,7 +1016,7 @@ export async function getDailyLoad28d(): Promise<number[]> {
 // =========================================================================
 
 export async function getMonthlyStats() {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const since = new Date();
   since.setUTCMonth(since.getUTCMonth() - 5);
   since.setUTCDate(1);
@@ -1067,7 +1067,7 @@ export async function getMonthlyStats() {
 }
 
 export async function getPaceTrend12w(): Promise<number[]> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const since = new Date();
   since.setUTCDate(since.getUTCDate() - 12 * 7);
   const { data: acts } = await sb
@@ -1093,7 +1093,7 @@ export async function getPaceTrend12w(): Promise<number[]> {
 }
 
 export async function getRestingHR12w(): Promise<number[]> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const since = new Date();
   since.setUTCDate(since.getUTCDate() - 12 * 7);
   const { data } = await sb
@@ -1123,7 +1123,7 @@ export async function getLatestRecovery(): Promise<{
   hrv_rmssd_milli: number | null;
   recovery_score: number | null;
 } | null> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data } = await sb
     .from("whoop_recovery")
     .select("date, resting_heart_rate, hrv_rmssd_milli, recovery_score")
@@ -1147,7 +1147,7 @@ export async function getWhoopWorkoutForActivity(activityId: number): Promise<{
   average_heart_rate: number | null;
   max_heart_rate: number | null;
 } | null> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const { data } = await sb
     .from("whoop_workouts")
     .select("*")
@@ -1187,7 +1187,7 @@ export async function getWeekStats(weekStartISO: string): Promise<{
   avg_hr: number;
   runs: number;
 }> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const start = new Date(weekStartISO + "T00:00:00Z");
   const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + 7);
@@ -1222,7 +1222,7 @@ export async function getWeekStats(weekStartISO: string): Promise<{
 }
 
 export async function getStreakDays(): Promise<number> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const since = new Date();
   since.setUTCDate(since.getUTCDate() - 60);
   const { data } = await sb
@@ -1262,7 +1262,7 @@ export async function getShellSummary(): Promise<{
   lastSync: string | null;
   lastSyncCount: number;
 }> {
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const [
     actCountRes,
     gearCountRes,
@@ -1381,7 +1381,7 @@ export async function getPlanAdherenceBreakdown(): Promise<{
       workouts: { done: 0, due: 0 },
     };
   }
-  const sb = createServerSupabase();
+  const sb = await createServerSupabase();
   const today = new Date().toISOString().slice(0, 10);
   const { data: planned } = await sb
     .from("planned_runs")

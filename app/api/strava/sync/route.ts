@@ -7,29 +7,26 @@ import {
   syncGear,
 } from "@/lib/strava/sync";
 import { backfillAllWhoop } from "@/lib/whoop/sync";
-import {
-  createServerSupabase,
-  createServiceRoleSupabase,
-} from "@/lib/supabase/server";
+import { getCurrentAthleteId } from "@/lib/auth/athlete";
+import { createServiceRoleSupabase } from "@/lib/supabase/server";
 
 // User-triggered sync. Same work as /api/cron/sync but scoped to the
 // currently-logged-in athlete and authed via Supabase session rather
 // than CRON_SECRET.
 export async function POST(_req: NextRequest) {
-  const authed = createServerSupabase();
-  const {
-    data: { user },
-  } = await authed.auth.getUser();
-  if (!user) return NextResponse.json({ error: "unauth" }, { status: 401 });
-
-  const admin = createServiceRoleSupabase();
-  const { data: athlete } = await admin
-    .from("athletes")
-    .select("id")
-    .eq("supabase_user_id", user.id)
-    .single();
-  if (!athlete)
-    return NextResponse.json({ error: "no_athlete" }, { status: 404 });
+  // Resolves the signed-in athlete, or the single athlete under
+  // DEV_AUTH_BYPASS (where there is no session to read a user from).
+  let athleteId: string;
+  try {
+    athleteId = await getCurrentAthleteId();
+  } catch (e) {
+    const unauth = String(e).includes("unauth");
+    return NextResponse.json(
+      { error: unauth ? "unauth" : "no_athlete" },
+      { status: unauth ? 401 : 404 },
+    );
+  }
+  const athlete = { id: athleteId };
 
   const out: {
     inserted?: number;
@@ -58,7 +55,7 @@ export async function POST(_req: NextRequest) {
     out.error = `${out.error ?? ""} match: ${String(e)}`.trim();
   }
 
-  const { data: tok } = await admin
+  const { data: tok } = await createServiceRoleSupabase()
     .from("whoop_tokens")
     .select("athlete_id")
     .eq("athlete_id", athlete.id)

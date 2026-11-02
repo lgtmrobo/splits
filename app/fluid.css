@@ -558,7 +558,8 @@
 /* Dialogs float above the page, so their panel keeps a surface: frameless
    cards are for sections on the page, not for popups (registry: Surfaces,
    dialog = substrate + 4). */
-[role="dialog"] > .card {
+[role="dialog"] > .card,
+.card.card-panel {
   background: var(--surface-2);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--r-xl);

@@ -58,11 +58,12 @@ const addDays = addDaysISO;
 export default async function PlanPage({
   searchParams,
 }: {
-  searchParams: { view?: string; plan?: string };
+  searchParams: Promise<{ view?: string; plan?: string }>;
 }) {
+  const sp = await searchParams;
   const view =
-    (searchParams.view as "week" | "block" | "full" | undefined) ?? "week";
-  const requestedPlanId = searchParams.plan ?? null;
+    (sp.view as "week" | "block" | "full" | undefined) ?? "week";
+  const requestedPlanId = sp.plan ?? null;
   const activePlan = await getActivePlan();
   const plan = requestedPlanId
     ? await getPlanById(requestedPlanId)

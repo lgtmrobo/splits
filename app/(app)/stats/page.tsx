@@ -36,10 +36,10 @@ function paceFromDecimal(min: number): string {
 export default async function StatsPage({
   searchParams,
 }: {
-  searchParams: { range?: string };
+  searchParams: Promise<{ range?: string }>;
 }) {
   const range =
-    (searchParams.range as "ytd" | "12w" | "all" | undefined) ?? "ytd";
+    ((await searchParams).range as "ytd" | "12w" | "all" | undefined) ?? "ytd";
   const [
     monthly,
     paceTrend,

@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     const { data } = await admin.from("athletes").select("id").limit(1);
     athleteId = data?.[0]?.id ?? null;
   } else {
-    const authed = createServerSupabase();
+    const authed = await createServerSupabase();
     const { data: { user } } = await authed.auth.getUser();
     if (!user) return NextResponse.redirect(new URL("/login", req.url));
     const { data } = await admin

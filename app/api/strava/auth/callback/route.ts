@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/connect-strava?error=nocode", req.url));
   }
 
-  const authed = createServerSupabase();
+  const authed = await createServerSupabase();
   const {
     data: { user },
   } = await authed.auth.getUser();

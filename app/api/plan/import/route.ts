@@ -21,7 +21,7 @@ const VALID_TYPES: WorkoutType[] = [
 ];
 
 export async function POST(req: NextRequest) {
-  const authed = createServerSupabase();
+  const authed = await createServerSupabase();
   const { data: { user } } = await authed.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauth" }, { status: 401 });
 
