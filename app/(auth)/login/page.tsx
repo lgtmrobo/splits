@@ -74,8 +74,6 @@ export default function LoginPage({ searchParams }: Props) {
         style={{
           fontSize: 10,
           textAlign: "center",
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
         }}
       >
         v0.12 · mark

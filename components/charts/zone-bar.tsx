@@ -25,7 +25,7 @@ export function ZoneBar({
             style={{
               background: ZONE_COLORS[i],
               flex: z.pct,
-              color: i < 2 ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.7)",
+              color: i < 3 ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.85)",
             }}
           >
             {z.pct >= 8 && <span>{z.pct}%</span>}
@@ -36,11 +36,8 @@ export function ZoneBar({
         <div
           className="row between"
           style={{
-            fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
             fontSize: 10,
             color: "var(--text-3)",
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
           }}
         >
           {zones.map((z) => (

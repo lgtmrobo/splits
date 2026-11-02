@@ -1,4 +1,5 @@
 import { LineChart } from "@/components/charts/line-chart";
+import { LoadStrip } from "@/components/charts/load-strip";
 import { MileageBars } from "@/components/charts/mileage-bars";
 import { ZoneBar } from "@/components/charts/zone-bar";
 import { AnnualMileageCard } from "@/app/(app)/stats/annual-mileage-card";
@@ -8,6 +9,8 @@ import type { WeekMileage } from "@/lib/types";
 import {
   getActivityTotals,
   getAllActivities,
+  getDailyLoad28d,
+  getStreakDays,
   getLatestRecovery,
   getMonthlyStats,
   getPaceTrend12w,
@@ -45,6 +48,8 @@ export default async function StatsPage({
     allActivities,
     restingHR12w,
     latestRec,
+    dailyLoad,
+    streak,
   ] = await Promise.all([
     getMonthlyStats(),
     getPaceTrend12w(),
@@ -53,7 +58,15 @@ export default async function StatsPage({
     getAllActivities(),
     getRestingHR12w(),
     getLatestRecovery(),
+    getDailyLoad28d(),
+    getStreakDays(),
   ]);
+
+  // Training load (moved here from the dashboard)
+  const load7d = dailyLoad.slice(-7).reduce((a, b) => a + b, 0);
+  const load28d = dailyLoad.reduce((a, b) => a + b, 0);
+  const acwr = load28d > 0 ? +(load7d / (load28d / 4)).toFixed(2) : 0;
+  const loadMax = Math.max(...dailyLoad, 1);
 
   // Apply range filter to activities used by Longest, Best 10K, Elevation cards
   const yearStartISO = new Date(
@@ -308,14 +321,7 @@ export default async function StatsPage({
     <div className="content fadein">
       <div className="row between" style={{ marginBottom: 14 }}>
         <div className="col gap-4">
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 22,
-              fontWeight: 500,
-              letterSpacing: "-0.01em",
-            }}
-          >
+          <h1 className="page-title">
             Stats
           </h1>
           <div className="muted num" style={{ fontSize: 12 }}>
@@ -327,6 +333,29 @@ export default async function StatsPage({
 
       <div className="grid" style={{ gridTemplateColumns: "1fr", marginBottom: 14 }}>
         <AnnualMileageCard years={annualData} deltaPct={annualDeltaPct} />
+      </div>
+
+      <div className="card" style={{ marginBottom: 14 }}>
+        <CardHeader
+          title="Training Load · Last 28 Days"
+          action={`Max · ${loadMax}`}
+        />
+        <LoadStrip data={dailyLoad} height={56} />
+        <div
+          className="grid"
+          style={{
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: 16,
+            marginTop: 14,
+            paddingTop: 12,
+            borderTop: "1px solid var(--hairline)",
+          }}
+        >
+          <Stat label="7d Load" value={String(load7d)} />
+          <Stat label="28d Load" value={load28d.toLocaleString()} />
+          <Stat label="ACWR" value={acwr ? String(acwr) : "—"} />
+          <Stat label="Streak" value={String(streak)} unit="d" />
+        </div>
       </div>
 
       <div
@@ -421,7 +450,6 @@ export default async function StatsPage({
           <div
             className="col gap-6"
             style={{
-              fontFamily: "var(--font-geist-mono), monospace",
               fontSize: 11,
             }}
           >

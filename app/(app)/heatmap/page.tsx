@@ -94,14 +94,7 @@ export default async function HeatmapPage() {
     <div className="content fadein">
       <div className="row between" style={{ marginBottom: 14 }}>
         <div className="col gap-4">
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 22,
-              fontWeight: 500,
-              letterSpacing: "-0.01em",
-            }}
-          >
+          <h1 className="page-title">
             Heatmap
           </h1>
           <div className="muted num" style={{ fontSize: 12 }}>

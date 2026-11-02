@@ -1,0 +1,579 @@
+/* ============================================================
+   Fluid Functionalism — tokens, reveal and the dashboard (.ff)
+   Ported by hand from the @fluid registry (fluidfunctionalism.com);
+   the app is dark-only, so only the dark values are carried.
+   ============================================================ */
+
+:root {
+  /* State overlays (registry: tokens) */
+  --hover: rgb(255 255 255 / 0.06);
+  --active: rgb(255 255 255 / 0.1);
+
+  /* Type roles (registry: type-scale) — size + whole-pixel line height */
+  --fs-display: 28px;
+  --lh-display: 34px;
+  --fs-title: 16px;
+  --lh-title: 22px;
+  --fs-subtitle: 14px;
+  --lh-subtitle: 20px;
+  --fs-body: 13px;
+  --lh-body: 20px;
+  --fs-caption: 12px;
+  --lh-caption: 16px;
+
+  /* Weights mirror lib/fluid/font-weight.ts (wght only — Geist has no opsz) */
+  --fw-normal: "wght" 400;
+  --fw-semibold: "wght" 550;
+  --fw-bold: "wght" 700;
+
+  /* Product reveal step: spring.moderate (0.16s, no bounce) as linear() */
+  --reveal-motion: 200ms linear(0, 0.5729, 0.8966, 0.9789, 0.996, 1, 1);
+}
+
+/* ---------- Fluid hover ---------- */
+.fluid-hover-highlight {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  background: var(--hover);
+}
+.fluid-list {
+  position: relative;
+}
+.fluid-list-highlight {
+  border-radius: 8px;
+}
+.fluid-row {
+  position: relative;
+  display: grid;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--hairline);
+  transition: border-color 80ms;
+}
+.fluid-row:last-child {
+  border-bottom-color: transparent;
+}
+/* The lit row and the one above it drop their hairlines, so the highlight
+   sits on a clean pill (registry: Table). */
+.fluid-row[data-fluid-hover-active],
+.fluid-row:has(+ .fluid-row[data-fluid-hover-active]) {
+  border-bottom-color: transparent;
+}
+.fluid-row .ff-row-muted {
+  color: var(--text-2);
+  transition: color 80ms;
+}
+.fluid-row[data-fluid-hover-active] .ff-row-muted {
+  color: var(--text-1);
+}
+
+/* ---------- Reveal (registry: reveal, product preset only) ---------- */
+@keyframes reveal-preset {
+  from {
+    opacity: 0;
+  }
+}
+.reveal-product {
+  --reveal-step: 0.06s;
+}
+.reveal-product > *,
+.reveal-items > * {
+  animation: reveal-preset var(--reveal-motion) both;
+}
+.reveal-product > :nth-child(2),
+.reveal-items > :nth-child(2) {
+  animation-delay: var(--reveal-step, 0.06s);
+}
+.reveal-product > :nth-child(3),
+.reveal-items > :nth-child(3) {
+  animation-delay: calc(var(--reveal-step, 0.06s) * 2);
+}
+.reveal-product > :nth-child(n + 4),
+.reveal-items > :nth-child(n + 4) {
+  animation-delay: calc(var(--reveal-step, 0.06s) * 3);
+}
+
+/* ============================================================
+   Dashboard (.ff) — borderless sections on the page, hairline
+   dividers, sentence-case labels, 2 text colors, 3 weights.
+   ============================================================ */
+.ff {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+.ff-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0 20px;
+}
+.ff-title {
+  margin: 0;
+  font-size: var(--fs-display);
+  line-height: var(--lh-display);
+  font-weight: normal;
+  font-variation-settings: var(--fw-bold);
+  letter-spacing: -0.01em;
+}
+.ff-board {
+  border-top: 1px solid var(--hairline);
+}
+.ff-row {
+  display: grid;
+  border-bottom: 1px solid var(--hairline);
+}
+.ff-cell {
+  min-width: 0;
+  padding: 24px;
+  border-left: 1px solid var(--hairline);
+}
+.ff-cell:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+.ff-cell:last-child {
+  padding-right: 0;
+}
+.ff-cell-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.ff-split {
+  margin-top: 20px;
+}
+
+/* Text roles */
+.ff .card-title,
+.ff-h {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-subtitle);
+  line-height: var(--lh-subtitle);
+  font-variation-settings: var(--fw-semibold);
+  font-weight: normal;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-1);
+}
+.ff .card-action,
+.ff .stat-label,
+.ff .stat-unit,
+.ff-caption {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-2);
+}
+.ff .card-action {
+  text-decoration: none;
+}
+.ff .card-action:hover {
+  color: var(--text-1);
+}
+.ff .stat-label {
+  margin-bottom: 4px;
+}
+.ff .muted,
+.ff-muted {
+  color: var(--text-2);
+}
+
+/* Numbers: Geist Sans with tabular figures instead of mono */
+.ff .num,
+.ff .stat-num {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: 0;
+}
+.ff .stat-num {
+  font-weight: normal;
+  font-variation-settings: var(--fw-semibold);
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+}
+.ff .stat-num.lg,
+.ff .stat-num.xl,
+.ff-display {
+  font-size: var(--fs-display);
+  line-height: var(--lh-display);
+  font-variation-settings: var(--fw-bold);
+  font-weight: normal;
+  letter-spacing: -0.01em;
+}
+
+/* Badges: sentence case, 24px tall */
+.ff .pill {
+  height: 24px;
+  padding: 0 10px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.ff .pill-dot {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
+}
+
+/* Lists inside the dashboard */
+.ff-activity-row {
+  grid-template-columns: 36px minmax(0, 1fr) 84px 64px 48px;
+  gap: 12px;
+  padding: 8px 8px;
+  margin: 0 -8px;
+}
+.ff-shoe-row {
+  gap: 8px;
+  padding: 10px 8px;
+  margin: 0 -8px;
+}
+.ff-meter {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.ff-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+.ff-activity-row > .pill {
+  justify-self: start;
+}
+
+/* ============================================================
+   Shell (sidebar + topbar) — same system as the dashboard
+   ============================================================ */
+.brand {
+  padding: 4px 10px;
+}
+.brand-name {
+  font-size: var(--fs-subtitle);
+  line-height: var(--lh-subtitle);
+  font-weight: normal;
+  font-variation-settings: var(--fw-semibold);
+  letter-spacing: 0;
+}
+
+/* Nav: 36px rows (8 + 20 + 8), one gliding hover, a sliding active fill */
+.sidebar .nav {
+  gap: 0;
+}
+.sidebar .nav-item {
+  position: relative;
+  padding: 8px 10px;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  border-radius: 8px;
+  color: var(--text-2);
+  transition: color 80ms;
+}
+.sidebar .nav-item:hover,
+.sidebar .nav-item.active {
+  background: transparent;
+}
+.sidebar .nav-item[data-fluid-hover-active],
+.sidebar .nav-item.active {
+  color: var(--text-1);
+}
+.sidebar .nav-item.active::before {
+  content: none;
+}
+.nav-active-bg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  border-radius: 8px;
+  background: var(--active);
+}
+.nav-label {
+  display: inline-grid;
+}
+.nav-label > span {
+  grid-area: 1 / 1;
+  transition: font-variation-settings 80ms;
+}
+.nav-label > span[aria-hidden] {
+  visibility: hidden;
+}
+.sidebar .nav-count {
+  font-family: inherit;
+  font-size: var(--fs-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+
+/* Sidebar groups: sentence-case label, plain text block */
+.side-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.side-label {
+  padding: 0 10px;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--text-2);
+}
+.side-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+.side-block-link {
+  transition: background 80ms;
+}
+.side-block-link:hover {
+  background: var(--hover);
+}
+.side-block-name {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--text-1);
+}
+.side-caption {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+.side-meter {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.side-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.sidebar-footer {
+  padding: 12px 10px 0;
+}
+.side-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--text-2);
+}
+.side-sync::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Topbar: title + plain date, no crumb */
+.topbar-left {
+  gap: 10px;
+  align-items: baseline;
+}
+.topbar-title {
+  font-size: var(--fs-subtitle);
+  line-height: var(--lh-subtitle);
+  font-weight: normal;
+  font-variation-settings: var(--fw-semibold);
+  letter-spacing: 0;
+}
+.topbar-date {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--text-2);
+}
+
+/* Dashboard bits */
+.ff-hero {
+  font-size: 48px;
+  line-height: 52px;
+  font-variation-settings: var(--fw-bold);
+  letter-spacing: -0.02em;
+}
+.ff-next {
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-variation-settings: var(--fw-semibold);
+}
+.ff-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.ff-ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================
+   App-wide: every page on the same system as the dashboard
+   ============================================================ */
+:root {
+  /* Two text colors: foreground + muted. The old third grey folds in. */
+  --text-3: var(--text-2);
+}
+
+/* Cards are frameless sections divided by hairlines (registry: Card) */
+.card {
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--hairline);
+  border-radius: 0;
+  padding: 20px 0 8px;
+}
+.card.compact {
+  padding: 14px 0 6px;
+}
+.card.elevated {
+  background: transparent;
+}
+.grid:has(> .card) {
+  column-gap: 40px;
+  row-gap: 16px;
+}
+.card-header {
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: var(--fs-subtitle);
+  line-height: var(--lh-subtitle);
+  font-weight: normal;
+  font-variation-settings: var(--fw-semibold);
+  color: var(--text-1);
+}
+.card-title.accent {
+  color: var(--text-1);
+}
+.card-action {
+  font-size: var(--fs-caption);
+  color: var(--text-2);
+}
+.stat-label {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--text-2);
+  margin-bottom: 4px;
+}
+.stat-num {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-weight: normal;
+  font-variation-settings: var(--fw-semibold);
+  letter-spacing: 0;
+}
+.stat-num.xl,
+.stat-num.lg {
+  font-variation-settings: var(--fw-bold);
+  letter-spacing: -0.01em;
+}
+.stat-unit {
+  font-size: var(--fs-caption);
+  color: var(--text-2);
+}
+
+/* Badges: sentence case, 24px */
+.pill {
+  height: 24px;
+  padding: 0 10px;
+  font-size: var(--fs-caption);
+}
+
+/* Tables: 36px rows, semibold header, shared hover fill */
+.tbl {
+  font-size: var(--fs-body);
+}
+.tbl th {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  font-variation-settings: var(--fw-semibold);
+  color: var(--text-2);
+  padding: 8px 12px;
+}
+.tbl td {
+  padding: 8px 12px;
+}
+.tbl tr.clickable:hover td {
+  background: var(--hover);
+}
+
+/* Segmented control */
+.seg {
+  background: transparent;
+  border-radius: 8px;
+}
+.seg button {
+  font-size: var(--fs-caption);
+  border-radius: 6px;
+}
+.seg button.active {
+  background: var(--active);
+}
+
+/* Page titles */
+.page-title {
+  margin: 0;
+  font-size: var(--fs-display);
+  line-height: var(--lh-display);
+  font-weight: normal;
+  font-variation-settings: var(--fw-bold);
+  letter-spacing: -0.01em;
+}
+
+/* Fluid table rows (components/fluid/fluid-table.tsx) */
+.fluid-table .tbl {
+  position: relative;
+}
+.fluid-tr {
+  cursor: pointer;
+}
+.fluid-tr td {
+  position: relative;
+  transition: border-color 80ms;
+}
+.fluid-tr[data-fluid-hover-active] td,
+.fluid-tr:has(+ .fluid-tr[data-fluid-hover-active]) td {
+  border-bottom-color: transparent;
+}
+
+/* Dialogs float above the page, so their panel keeps a surface: frameless
+   cards are for sections on the page, not for popups (registry: Surfaces,
+   dialog = substrate + 4). */
+[role="dialog"] > .card {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-xl);
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.04),
+    0 12px 32px -8px rgb(0 0 0 / 0.6),
+    0 24px 64px -16px rgb(0 0 0 / 0.5);
+}
+
+/* HR zones: one ramp of the theme accent, light (Z1) → dark (Z5), so they
+   follow whatever accent is picked in Tweaks. */
+:root {
+  --zone-1: color-mix(in oklab, var(--accent) 30%, white);
+  --zone-2: color-mix(in oklab, var(--accent) 65%, white);
+  --zone-3: var(--accent);
+  --zone-4: color-mix(in oklab, var(--accent) 70%, black);
+  --zone-5: color-mix(in oklab, var(--accent) 45%, black);
+}

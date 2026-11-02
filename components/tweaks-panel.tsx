@@ -106,10 +106,7 @@ export function TweaksPanel() {
           bottom: 20,
           right: 20,
           zIndex: 100,
-          fontFamily: "var(--font-geist-mono), monospace",
           fontSize: 10,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
         }}
       >
         Tweaks

@@ -524,7 +524,6 @@ export default async function PlanPage({
                       : "var(--surface-2)",
                     border: `1px solid ${isCurrent ? "var(--accent)" : "var(--hairline)"}`,
                     borderRadius: 8,
-                    fontFamily: "var(--font-geist-mono), monospace",
                     fontSize: 12,
                   }}
                 >
@@ -740,11 +739,8 @@ export default async function PlanPage({
                   >
                     <span
                       style={{
-                        fontFamily: "var(--font-geist-mono), monospace",
                         fontSize: 10,
                         color: "var(--text-3)",
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
                       }}
                     >
                       {label}
@@ -879,11 +875,8 @@ function WeekDayCell({
         <div className="col">
           <span
             style={{
-              fontFamily: "var(--font-geist-mono), monospace",
               fontSize: 10,
               color: isToday ? "var(--accent)" : "var(--text-3)",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
             }}
           >
             {day.day_short}
@@ -909,7 +902,6 @@ function WeekDayCell({
               background: "var(--surface-3)",
               color: "var(--text-2)",
               fontSize: 10,
-              letterSpacing: "0.04em",
             }}
           >
             ✈ {travelTag}
@@ -956,11 +948,8 @@ function WeekDayCell({
           <div
             className="row between"
             style={{
-              fontFamily: "var(--font-geist-mono), monospace",
               fontSize: 10,
               color: "var(--text-3)",
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
             }}
           >
             <span>Logged</span>
@@ -970,7 +959,6 @@ function WeekDayCell({
             className="row between"
             style={{
               marginTop: 4,
-              fontFamily: "var(--font-geist-mono), monospace",
               fontSize: 11,
               color: "var(--text-1)",
             }}

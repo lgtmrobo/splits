@@ -4,6 +4,7 @@ import { Icon } from "@/components/ui/icon";
 import { Stat } from "@/components/ui/primitives";
 import { TypePill } from "@/components/ui/type-pill";
 import { ShoeLabel } from "@/components/gear/shoe-label";
+import { FluidTable, FluidTr } from "@/components/fluid/fluid-table";
 import { gearShares } from "@/lib/gear/segments";
 import { ActivityTypeFilter } from "@/app/(app)/activities/filter";
 import { getActivityTotals, getAllActivities, getAllGear, getPlannedRunsBetween } from "@/lib/supabase/queries";
@@ -58,14 +59,7 @@ export default async function ActivitiesPage({
     <div className="content fadein">
       <div className="row between" style={{ marginBottom: 14 }}>
         <div className="col gap-4">
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 22,
-              fontWeight: 500,
-              letterSpacing: "-0.01em",
-            }}
-          >
+          <h1 className="page-title">
             Activities
           </h1>
           <div className="muted num" style={{ fontSize: 12 }}>
@@ -120,7 +114,7 @@ export default async function ActivitiesPage({
       </div>
 
       <div className="card" style={{ padding: 0 }}>
-        <table className="tbl">
+        <FluidTable>
           <thead>
             <tr>
               <th></th>
@@ -140,7 +134,7 @@ export default async function ActivitiesPage({
               const date = a.start_date_local.slice(0, 10);
               const label = labelForActivity(typeByDate.get(date), a.name);
               return (
-                <tr key={a.id} className="clickable">
+                <FluidTr key={a.id} index={i} href={`/activities/${a.id}`}>
                   <td style={{ width: 64 }}>
                     <Link href={`/activities/${a.id}`}>
                       <RouteThumb polyline={a.summary_polyline} seed={i * 7 + 3} size={44} />
@@ -175,11 +169,11 @@ export default async function ActivitiesPage({
                   <td style={{ fontSize: 11, color: "var(--text-2)", maxWidth: 220 }}>
                     <ShoeLabel shares={gearShares(a)} gearById={gearById} />
                   </td>
-                </tr>
+                </FluidTr>
               );
             })}
           </tbody>
-        </table>
+        </FluidTable>
       </div>
     </div>
   );

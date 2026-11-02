@@ -3,7 +3,6 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
-import { Pill } from "@/components/ui/primitives";
 
 interface PageMeta {
   crumb: string;
@@ -19,15 +18,16 @@ function metaForPath(pathname: string): PageMeta {
   if (pathname === "/shoes") return { crumb: "Gear", title: "Shoes" };
   if (pathname === "/races") return { crumb: "Calendar", title: "Races" };
   if (pathname === "/stats") return { crumb: "Analytics", title: "Stats" };
+  if (pathname === "/heatmap") return { crumb: "Map", title: "Heatmap" };
   return { crumb: "", title: "" };
 }
 
-const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAYS_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function todayLabel(): string {
   const d = new Date();
-  return `${DAYS_SHORT[d.getDay()]} · ${MONTHS[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
+  return `${DAYS_LONG[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
 export function Topbar() {
@@ -56,10 +56,8 @@ export function Topbar() {
   return (
     <div className="topbar">
       <div className="topbar-left">
-        <span className="topbar-crumb">{p.crumb}</span>
-        <span style={{ color: "var(--text-4)" }}>/</span>
         <span className="topbar-title">{p.title}</span>
-        {p.showDate && <Pill kind="muted">{todayLabel()}</Pill>}
+        {p.showDate && <span className="topbar-date">{todayLabel()}</span>}
       </div>
       <div className="topbar-right">
         <button type="button" className="btn" onClick={onSync} disabled={syncing}>
@@ -74,8 +72,7 @@ export function Topbar() {
             border: "1px solid var(--hairline-strong)",
             display: "grid",
             placeItems: "center",
-            fontFamily: "var(--font-geist-mono), monospace",
-            fontSize: 11,
+            fontSize: 12,
             color: "var(--text-1)",
           }}
         >
