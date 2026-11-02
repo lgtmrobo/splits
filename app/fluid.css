@@ -1,0 +1,252 @@
+/* ============================================================
+   Fluid Functionalism — tokens, reveal and the dashboard (.ff)
+   Ported by hand from the @fluid registry (fluidfunctionalism.com);
+   the app is dark-only, so only the dark values are carried.
+   ============================================================ */
+
+:root {
+  /* State overlays (registry: tokens) */
+  --hover: rgb(255 255 255 / 0.06);
+  --active: rgb(255 255 255 / 0.1);
+
+  /* Type roles (registry: type-scale) — size + whole-pixel line height */
+  --fs-display: 28px;
+  --lh-display: 34px;
+  --fs-title: 16px;
+  --lh-title: 22px;
+  --fs-subtitle: 14px;
+  --lh-subtitle: 20px;
+  --fs-body: 13px;
+  --lh-body: 20px;
+  --fs-caption: 12px;
+  --lh-caption: 16px;
+
+  /* Weights mirror lib/fluid/font-weight.ts (wght only — Geist has no opsz) */
+  --fw-normal: "wght" 400;
+  --fw-semibold: "wght" 550;
+  --fw-bold: "wght" 700;
+
+  /* Product reveal step: spring.moderate (0.16s, no bounce) as linear() */
+  --reveal-motion: 200ms linear(0, 0.5729, 0.8966, 0.9789, 0.996, 1, 1);
+}
+
+/* ---------- Fluid hover ---------- */
+.fluid-hover-highlight {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  background: var(--hover);
+}
+.fluid-list {
+  position: relative;
+}
+.fluid-list-highlight {
+  border-radius: 8px;
+}
+.fluid-row {
+  position: relative;
+  display: grid;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--hairline);
+  transition: border-color 80ms;
+}
+.fluid-row:last-child {
+  border-bottom-color: transparent;
+}
+/* The lit row and the one above it drop their hairlines, so the highlight
+   sits on a clean pill (registry: Table). */
+.fluid-row[data-fluid-hover-active],
+.fluid-row:has(+ .fluid-row[data-fluid-hover-active]) {
+  border-bottom-color: transparent;
+}
+.fluid-row .ff-row-muted {
+  color: var(--text-2);
+  transition: color 80ms;
+}
+.fluid-row[data-fluid-hover-active] .ff-row-muted {
+  color: var(--text-1);
+}
+
+/* ---------- Reveal (registry: reveal, product preset only) ---------- */
+@keyframes reveal-preset {
+  from {
+    opacity: 0;
+  }
+}
+.reveal-product {
+  --reveal-step: 0.06s;
+}
+.reveal-product > *,
+.reveal-items > * {
+  animation: reveal-preset var(--reveal-motion) both;
+}
+.reveal-product > :nth-child(2),
+.reveal-items > :nth-child(2) {
+  animation-delay: var(--reveal-step, 0.06s);
+}
+.reveal-product > :nth-child(3),
+.reveal-items > :nth-child(3) {
+  animation-delay: calc(var(--reveal-step, 0.06s) * 2);
+}
+.reveal-product > :nth-child(n + 4),
+.reveal-items > :nth-child(n + 4) {
+  animation-delay: calc(var(--reveal-step, 0.06s) * 3);
+}
+
+/* ============================================================
+   Dashboard (.ff) — borderless sections on the page, hairline
+   dividers, sentence-case labels, 2 text colors, 3 weights.
+   ============================================================ */
+.ff {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+.ff-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0 20px;
+}
+.ff-title {
+  margin: 0;
+  font-size: var(--fs-display);
+  line-height: var(--lh-display);
+  font-weight: normal;
+  font-variation-settings: var(--fw-bold);
+  letter-spacing: -0.01em;
+}
+.ff-board {
+  border-top: 1px solid var(--hairline);
+}
+.ff-row {
+  display: grid;
+  border-bottom: 1px solid var(--hairline);
+}
+.ff-cell {
+  min-width: 0;
+  padding: 24px;
+  border-left: 1px solid var(--hairline);
+}
+.ff-cell:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+.ff-cell:last-child {
+  padding-right: 0;
+}
+.ff-cell-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.ff-split {
+  margin-top: 20px;
+}
+
+/* Text roles */
+.ff .card-title,
+.ff-h {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-subtitle);
+  line-height: var(--lh-subtitle);
+  font-variation-settings: var(--fw-semibold);
+  font-weight: normal;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-1);
+}
+.ff .card-action,
+.ff .stat-label,
+.ff .stat-unit,
+.ff-caption {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-2);
+}
+.ff .card-action {
+  text-decoration: none;
+}
+.ff .card-action:hover {
+  color: var(--text-1);
+}
+.ff .stat-label {
+  margin-bottom: 4px;
+}
+.ff .muted,
+.ff-muted {
+  color: var(--text-2);
+}
+
+/* Numbers: Geist Sans with tabular figures instead of mono */
+.ff .num,
+.ff .stat-num {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: 0;
+}
+.ff .stat-num {
+  font-weight: normal;
+  font-variation-settings: var(--fw-semibold);
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+}
+.ff .stat-num.lg,
+.ff .stat-num.xl,
+.ff-display {
+  font-size: var(--fs-display);
+  line-height: var(--lh-display);
+  font-variation-settings: var(--fw-bold);
+  font-weight: normal;
+  letter-spacing: -0.01em;
+}
+
+/* Badges: sentence case, 24px tall */
+.ff .pill {
+  height: 24px;
+  padding: 0 10px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.ff .pill-dot {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
+}
+
+/* Lists inside the dashboard */
+.ff-activity-row {
+  grid-template-columns: 36px minmax(0, 1fr) 84px 60px 48px 36px;
+  gap: 12px;
+  padding: 8px 8px;
+  margin: 0 -8px;
+}
+.ff-shoe-row {
+  gap: 8px;
+  padding: 10px 8px;
+  margin: 0 -8px;
+}
+.ff-meter {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.ff-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+.ff-activity-row > .pill {
+  justify-self: start;
+}

@@ -2,13 +2,13 @@ import Link from "next/link";
 import { LineChart } from "@/components/charts/line-chart";
 import { LoadStrip } from "@/components/charts/load-strip";
 import { MileageBars } from "@/components/charts/mileage-bars";
-import { MilesBar } from "@/components/charts/miles-bar";
 import { Ring } from "@/components/charts/ring";
 import { Sparkline } from "@/components/charts/sparkline";
 import { ZoneBar } from "@/components/charts/zone-bar";
 import { RouteThumb } from "@/components/maps/route-thumb";
 import { Icon } from "@/components/ui/icon";
-import { CardHeader, Pill, Stat } from "@/components/ui/primitives";
+import { Stat } from "@/components/ui/primitives";
+import { FluidList, FluidRow } from "@/components/fluid/fluid-list";
 import { TypePill } from "@/components/ui/type-pill";
 import {
   getActiveGear,
@@ -269,178 +269,150 @@ export default async function DashboardPage() {
     raceDays != null ? Math.max(0, Math.round(raceDays / 7)) : null;
 
   return (
-    <div className="content fadein">
-      {/* ===== Row 1 ===== */}
-      <div
-        className="grid"
-        style={{ gridTemplateColumns: "1.4fr 1fr 1fr", marginBottom: 14 }}
-      >
-        <div className="card">
-          <div className="row between" style={{ marginBottom: 16 }}>
-            <div className="col gap-4">
-              <div className="stat-label" style={{ marginBottom: 0 }}>
-                This Week ·{" "}
-                {currentWeek ? fmtDateRange(currentWeek.start_date) : "—"}
-              </div>
-              <div className="row baseline gap-10">
-                <span className="stat-num xl">{thisWeekMi.toFixed(1)}</span>
-                <span className="stat-unit" style={{ fontSize: 13 }}>
-                  mi
-                </span>
-                <span
-                  className="muted num"
-                  style={{ fontSize: 13, marginLeft: 8 }}
-                >
-                  of {thisWeekTargetMi.toFixed(0)}
-                </span>
-                {deficitMi > 0 && (
-                  <Pill kind="warn">−{deficitMi.toFixed(1)} mi to target</Pill>
-                )}
-              </div>
-            </div>
-            <Ring
-              pct={thisWeekProgressPct}
-              size={96}
-              stroke={6}
-              label="progress"
-              value={thisWeekProgressPct}
-              unit="%"
-            />
-          </div>
+    <div className="content ff">
+      <header className="ff-head">
+        <h1 className="ff-title">This week</h1>
+        <span className="ff-caption">
+          {currentWeek ? fmtDateRange(currentWeek.start_date) : "—"}
+          {plan ? ` · Week ${planMeta.current_week_index + 1} of ${plan.name}` : ""}
+        </span>
+      </header>
 
-          <div
-            className="grid"
-            style={{
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: 16,
-              paddingTop: 14,
-              borderTop: "1px solid var(--hairline)",
-            }}
-          >
-            <Stat
-              label="Duration"
-              value={formatDurationShort(weekStats.duration_s)}
-            />
-            <Stat
-              label="Elevation"
-              value={formatFeet(weekStats.elev_m)}
-              unit="ft"
-            />
-            <Stat
-              label="Avg HR"
-              value={weekStats.avg_hr > 0 ? String(weekStats.avg_hr) : "—"}
-              unit="bpm"
-            />
-            <Stat label="Runs" value={String(weekStats.runs)} unit="/7" />
-          </div>
-        </div>
-
-        <div className="card">
-          <CardHeader
-            title="Plan Adherence"
-            action={
-              plan ? `W${planMeta.current_week_index + 1} · ${plan.name}` : "—"
-            }
-          />
-          <div className="row gap-14" style={{ alignItems: "center" }}>
-            <Ring
-              pct={planMeta.adherence_pct}
-              size={84}
-              stroke={6}
-              label="on plan"
-              value={planMeta.adherence_pct}
-              unit="%"
-            />
-            <div className="col gap-8 grow">
-              {[
-                {
-                  label: "Sessions",
-                  value: `${adherence.sessions.done}/${adherence.sessions.due}`,
-                  pct: sessAdh,
-                },
-                {
-                  label: "Volume",
-                  value: `${Math.round(metersToMiles(adherence.volume.actual_m))}/${Math.round(metersToMiles(adherence.volume.planned_m))}`,
-                  pct: volAdh,
-                },
-                {
-                  label: "Workouts",
-                  value: `${adherence.workouts.done}/${adherence.workouts.due}`,
-                  pct: workAdh,
-                },
-              ].map((r) => (
-                <div key={r.label} className="col gap-4">
-                  <div className="row between baseline">
-                    <span className="muted num" style={{ fontSize: 11 }}>
-                      {r.label}
-                    </span>
-                    <span className="num" style={{ fontSize: 13 }}>
-                      {r.value}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      height: 3,
-                      background: "var(--surface-3)",
-                      borderRadius: 2,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${Math.min(100, r.pct)}%`,
-                        height: "100%",
-                        background: "var(--accent)",
-                        borderRadius: 2,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="card"
+      <div className="ff-board reveal-product">
+        {/* ===== Row 1: week, adherence, today/next ===== */}
+        <section
+          className="ff-row"
           style={{
-            background:
-              "linear-gradient(135deg, var(--surface-1), var(--surface-2))",
+            gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr)",
           }}
         >
-          <CardHeader
-            title={
-              todayDone
-                ? `Today · ${fmtDate(todayISO)}`
-                : nextUp
-                  ? `Next · ${fmtDate(nextUp.scheduled_date)}`
-                  : "Next · —"
-            }
-            action={
-              todayDone ? (
+          <div className="ff-cell">
+            <div className="row between" style={{ alignItems: "flex-start" }}>
+              <div className="col gap-4">
+                <span className="ff-caption">Mileage</span>
+                <div className="row baseline gap-8">
+                  <span className="ff-display num">{thisWeekMi.toFixed(1)}</span>
+                  <span className="ff-caption num">
+                    of {thisWeekTargetMi.toFixed(0)} mi
+                  </span>
+                </div>
+                {deficitMi > 0 && (
+                  <span className="ff-caption" style={{ color: "var(--amber)" }}>
+                    {deficitMi.toFixed(1)} mi to target
+                  </span>
+                )}
+              </div>
+              <Ring
+                pct={thisWeekProgressPct}
+                size={84}
+                stroke={5}
+                label="Progress"
+                value={thisWeekProgressPct}
+                unit="%"
+              />
+            </div>
+            <div
+              className="grid ff-split"
+              style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 16 }}
+            >
+              <Stat
+                label="Duration"
+                value={formatDurationShort(weekStats.duration_s)}
+              />
+              <Stat
+                label="Elevation"
+                value={formatFeet(weekStats.elev_m)}
+                unit="ft"
+              />
+              <Stat
+                label="Avg HR"
+                value={weekStats.avg_hr > 0 ? String(weekStats.avg_hr) : "—"}
+                unit="bpm"
+              />
+              <Stat label="Runs" value={String(weekStats.runs)} unit="of 7" />
+            </div>
+          </div>
+
+          <div className="ff-cell">
+            <div className="ff-cell-head">
+              <span className="ff-h">Plan adherence</span>
+            </div>
+            <div className="row gap-16" style={{ alignItems: "center" }}>
+              <Ring
+                pct={planMeta.adherence_pct}
+                size={76}
+                stroke={5}
+                label="On plan"
+                value={planMeta.adherence_pct}
+                unit="%"
+              />
+              <div className="col gap-10 grow">
+                {[
+                  {
+                    label: "Sessions",
+                    value: `${adherence.sessions.done}/${adherence.sessions.due}`,
+                    pct: sessAdh,
+                  },
+                  {
+                    label: "Volume",
+                    value: `${Math.round(metersToMiles(adherence.volume.actual_m))}/${Math.round(metersToMiles(adherence.volume.planned_m))} mi`,
+                    pct: volAdh,
+                  },
+                  {
+                    label: "Workouts",
+                    value: `${adherence.workouts.done}/${adherence.workouts.due}`,
+                    pct: workAdh,
+                  },
+                ].map((r) => (
+                  <div key={r.label} className="col gap-4">
+                    <div className="row between baseline">
+                      <span className="ff-caption">{r.label}</span>
+                      <span className="num">{r.value}</span>
+                    </div>
+                    <div className="ff-meter">
+                      <span
+                        style={{
+                          width: `${Math.min(100, r.pct)}%`,
+                          background: "var(--accent)",
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="ff-cell">
+            <div className="ff-cell-head">
+              <span className="ff-h">
+                {todayDone
+                  ? `Today · ${fmtDate(todayISO)}`
+                  : nextUp
+                    ? `Next · ${fmtDate(nextUp.scheduled_date)}`
+                    : "Next"}
+              </span>
+              {todayDone && (
                 <span
-                  className="row gap-4"
+                  className="row gap-4 ff-caption"
                   style={{ alignItems: "center", color: "var(--accent)" }}
                 >
                   <Icon name="check" size={12} />
                   Done
                 </span>
-              ) : undefined
-            }
-            accent
-          />
-          <div className="col gap-8">
+              )}
+            </div>
             {todayDone ? (
               <Link
                 href={`/activities/${todayDone.id}`}
-                className="col gap-8"
+                className="col gap-12"
                 style={{ color: "inherit", textDecoration: "none" }}
               >
-                <div className="row gap-8 baseline">
+                <div className="row gap-8" style={{ alignItems: "center" }}>
                   {todayPlan && <TypePill type={todayPlan.workout_type} />}
                   <span
-                    className="muted"
+                    className="ff-muted"
                     style={{
-                      fontSize: 11,
                       whiteSpace: "nowrap",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -451,7 +423,7 @@ export default async function DashboardPage() {
                 </div>
                 <div
                   className="grid"
-                  style={{ gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}
+                  style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}
                 >
                   <Stat
                     label="Distance"
@@ -479,23 +451,21 @@ export default async function DashboardPage() {
                 </div>
               </Link>
             ) : nextUp ? (
-              <>
-                <div className="row gap-8 baseline">
+              <div className="col gap-10">
+                <div className="ff-display" style={{ fontSize: "var(--fs-title)", lineHeight: "var(--lh-title)", fontVariationSettings: "var(--fw-semibold)" }}>
+                  {nextUp.description ?? "—"}
+                </div>
+                <div className="row gap-8" style={{ alignItems: "center" }}>
                   <TypePill type={nextUp.workout_type} />
                   {nextUp.target_distance_m && (
-                    <span className="muted num" style={{ fontSize: 11 }}>
+                    <span className="ff-caption num">
                       {formatMiles(nextUp.target_distance_m)} mi
                     </span>
                   )}
                   {nextUpShoe && (
                     <span
-                      className="row gap-6"
-                      style={{
-                        alignItems: "center",
-                        marginLeft: "auto",
-                        fontSize: 11,
-                        color: "var(--text-2)",
-                      }}
+                      className="row gap-6 ff-caption"
+                      style={{ alignItems: "center", marginLeft: "auto" }}
                     >
                       <span
                         style={{
@@ -510,509 +480,385 @@ export default async function DashboardPage() {
                     </span>
                   )}
                 </div>
-                <div
-                  style={{
-                    fontSize: 16,
-                    lineHeight: 1.3,
-                    color: "var(--text-1)",
-                    fontWeight: 500,
-                  }}
-                >
-                  {nextUp.description ?? "—"}
-                </div>
-                {nextUp.notes && (
-                  <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
-                    {nextUp.notes}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="muted" style={{ fontSize: 13 }}>
-                No upcoming workouts this week.
+                {nextUp.notes && <div className="ff-caption">{nextUp.notes}</div>}
               </div>
+            ) : (
+              <div className="ff-muted">No upcoming workouts this week.</div>
             )}
           </div>
-        </div>
-      </div>
+        </section>
 
-      {/* ===== Row 2 ===== */}
-      <div
-        className="grid"
-        style={{ gridTemplateColumns: "1.8fr 1fr 0.9fr", marginBottom: 14 }}
-      >
-        <div className="card">
-          <CardHeader
-            title="Daily Load · Last 28 Days"
-            action={`MIN · 0   MAX · ${loadMax}`}
-          />
-          <LoadStrip data={dailyLoad} height={56} />
-          <div
-            className="row between"
-            style={{
-              marginTop: 10,
-              fontFamily: "var(--font-geist-mono), monospace",
-              fontSize: 10,
-              color: "var(--text-3)",
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-            }}
-          >
-            <span>{fmtDate(loadStripStart.toISOString().slice(0, 10))}</span>
-            <span>{fmtDate(loadStripMid.toISOString().slice(0, 10))}</span>
-            <span>{fmtDate(todayISO)}</span>
-          </div>
-          <div
-            className="row gap-14"
-            style={{
-              marginTop: 14,
-              paddingTop: 12,
-              borderTop: "1px solid var(--hairline)",
-            }}
-          >
-            <div className="col gap-4">
-              <span className="stat-label" style={{ marginBottom: 0 }}>
-                7d Load
-              </span>
-              <span className="num" style={{ fontSize: 16 }}>
-                {load7d}
-              </span>
+        {/* ===== Row 2: load, zones, month ===== */}
+        <section
+          className="ff-row"
+          style={{
+            gridTemplateColumns: "minmax(0, 1.8fr) minmax(0, 1fr) minmax(0, 0.9fr)",
+          }}
+        >
+          <div className="ff-cell">
+            <div className="ff-cell-head">
+              <span className="ff-h">Daily load</span>
+              <span className="ff-caption">Last 28 days · max {loadMax}</span>
             </div>
-            <div className="col gap-4">
-              <span className="stat-label" style={{ marginBottom: 0 }}>
-                28d Load
-              </span>
-              <span className="num" style={{ fontSize: 16 }}>
-                {load28d.toLocaleString()}
-              </span>
+            <LoadStrip data={dailyLoad} height={56} />
+            <div className="row between ff-caption" style={{ marginTop: 8 }}>
+              <span>{fmtDate(loadStripStart.toISOString().slice(0, 10))}</span>
+              <span>{fmtDate(loadStripMid.toISOString().slice(0, 10))}</span>
+              <span>{fmtDate(todayISO)}</span>
             </div>
-            <div className="col gap-4">
-              <span className="stat-label" style={{ marginBottom: 0 }}>
-                ACWR
-              </span>
-              <span
-                className="num"
-                style={{ fontSize: 16, color: "var(--accent)" }}
-              >
-                {acwr || "—"}
-              </span>
-            </div>
-            <div className="col gap-4">
-              <span className="stat-label" style={{ marginBottom: 0 }}>
-                Streak
-              </span>
-              <span className="num" style={{ fontSize: 16 }}>
-                {streak}
-                <span className="muted" style={{ fontSize: 11 }}>
-                  d
-                </span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <CardHeader title="Time in HR Zones · 7d" action={zonesTotalLabel} />
-          <div style={{ marginTop: 6, marginBottom: 10 }}>
-            <ZoneBar zones={zones} />
-          </div>
-          <div
-            className="col gap-4"
-            style={{
-              fontFamily: "var(--font-geist-mono), monospace",
-              fontSize: 11,
-              color: "var(--text-2)",
-            }}
-          >
-            {zones.map((z, i) => (
-              <div key={z.zone} className="row between">
-                <span>
-                  <span style={{ color: `var(--zone-${i + 1})` }}>■</span>{" "}
-                  {z.zone} <span className="muted">{z.label}</span>
-                </span>
-                <span>{z.minutes}m</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="card">
-          <CardHeader title={`Monthly Totals · ${monthThis.label}`} />
-          <Stat
-            label="Distance"
-            value={monthThis.miles.toFixed(1)}
-            unit="mi"
-            size="lg"
-          />
-          <div style={{ height: 14 }} />
-          <div
-            className="grid"
-            style={{ gridTemplateColumns: "1fr 1fr", gap: 10 }}
-          >
-            <Stat label="Runs" value={String(monthThis.runs)} />
-            <Stat
-              label="Time"
-              value={formatDurationShort(weekStats.duration_s)}
-            />
-          </div>
-          <div
-            style={{
-              marginTop: 10,
-              paddingTop: 10,
-              borderTop: "1px solid var(--hairline)",
-            }}
-          >
-            <Sparkline data={monthly.map((m) => m.miles)} height={32} />
             <div
-              className="row between"
-              style={{
-                marginTop: 6,
-                fontFamily: "var(--font-geist-mono), monospace",
-                fontSize: 10,
-                color: "var(--text-3)",
-              }}
+              className="grid ff-split"
+              style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 16 }}
             >
-              <span>{monthly[0]?.label ?? ""}</span>
-              <span>{monthly[monthly.length - 1]?.label ?? ""}</span>
+              <Stat label="7-day load" value={String(load7d)} />
+              <Stat label="28-day load" value={load28d.toLocaleString()} />
+              <div className="col">
+                <div className="stat-label">ACWR</div>
+                <span className="stat-num num" style={{ color: "var(--accent)" }}>
+                  {acwr || "—"}
+                </span>
+              </div>
+              <Stat label="Streak" value={String(streak)} unit="days" />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* ===== Row 3 ===== */}
-      <div
-        className="grid"
-        style={{ gridTemplateColumns: "2fr 1fr", marginBottom: 14 }}
-      >
-        <div className="card">
-          <div className="row between" style={{ marginBottom: 12 }}>
-            <div className="col gap-4">
-              <div className="stat-label" style={{ marginBottom: 0 }}>
-                Weekly Mileage · Plan vs Actual
-              </div>
-              <div className="row gap-14" style={{ marginTop: 4 }}>
-                <span className="pill-dot" style={{ color: "var(--accent)" }}>
-                  Actual
-                </span>
-                <span className="pill-dot" style={{ color: "var(--text-3)" }}>
-                  Planned
-                </span>
-                {peakWeek && (
-                  <span className="muted num" style={{ fontSize: 11 }}>
-                    · Peak: {peakWeek.label} ({peakWeek.miles.toFixed(0)}mi)
-                  </span>
-                )}
-              </div>
+          <div className="ff-cell">
+            <div className="ff-cell-head">
+              <span className="ff-h">Heart rate zones</span>
+              <span className="ff-caption">7 days · {zonesTotalLabel}</span>
             </div>
-          </div>
-          <MileageBars
-            weeks={weekMileage}
-            width={820}
-            height={180}
-            currentIndex={planMeta.current_week_index}
-          />
-        </div>
-
-        <div className="card">
-          <div
-            className="row between"
-            style={{ alignItems: "flex-start", marginBottom: 10 }}
-          >
-            <div className="card-title">Easy Pace · 12w Trend</div>
-            <div
-              className="col"
-              style={{ alignItems: "flex-end", gap: 2, lineHeight: 1.1 }}
-            >
-              <div
-                className="row baseline"
-                style={{ gap: 4, justifyContent: "flex-end" }}
-              >
-                <span className="num" style={{ fontSize: 22, fontWeight: 500 }}>
-                  {paceLabel}
-                </span>
-                <span className="muted num" style={{ fontSize: 11 }}>
-                  /mi
-                </span>
-              </div>
-              {paceDeltaSec != null && (
-                <span
-                  className="num"
-                  style={{
-                    fontSize: 10,
-                    color:
-                      paceDeltaSec >= 0
-                        ? "var(--accent)"
-                        : "var(--danger, #ef6464)",
-                  }}
-                >
-                  {paceDeltaSec >= 0 ? "−" : "+"}
-                  {Math.abs(paceDeltaSec)}s vs 12w
-                </span>
-              )}
-            </div>
-          </div>
-          <div
-            style={{
-              marginTop: 4,
-              marginBottom: 6,
-              height: 160,
-              overflow: "hidden",
-            }}
-          >
-            {paceNonZero.length > 0 ? (
-              <LineChart
-                data={paceFilled}
-                width={360}
-                height={160}
-                padL={44}
-                padR={12}
-                padB={14}
-                padT={12}
-                invertY
-                minY={paceMinY}
-                maxY={paceMaxY}
-                yTicks={2}
-                formatY="pace"
-              />
-            ) : (
-              <div
-                className="muted"
-                style={{
-                  height: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 12,
-                }}
-              >
-                No runs in the last 12 weeks.
-              </div>
-            )}
-          </div>
-          <div
-            className="row between"
-            style={{
-              marginTop: 8,
-              paddingTop: 10,
-              borderTop: "1px solid var(--hairline)",
-            }}
-          >
-            <Stat
-              label="Resting HR"
-              value={
-                recovery?.resting_heart_rate != null
-                  ? String(Math.round(Number(recovery.resting_heart_rate)))
-                  : "—"
-              }
-              unit="bpm"
-            />
-            <Stat
-              label="HRV"
-              value={
-                recovery?.hrv_rmssd_milli != null
-                  ? String(Math.round(Number(recovery.hrv_rmssd_milli)))
-                  : "—"
-              }
-              unit="ms"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ===== Row 4 ===== */}
-      <div className="grid" style={{ gridTemplateColumns: "1.5fr 1fr 1fr" }}>
-        <div className="card" style={{ padding: 0 }}>
-          <div className="row between" style={{ padding: "16px 20px 10px" }}>
-            <div className="card-title">Recent Activities</div>
-            <Link href="/activities" className="card-action">
-              View all →
-            </Link>
-          </div>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th></th>
-                <th>Date</th>
-                <th>Name</th>
-                <th>Type</th>
-                <th className="num">Dist</th>
-                <th className="num">Pace</th>
-                <th className="num">HR</th>
-                <th className="num">Elev</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recent.map((a, i) => {
-                const plannedType = typeByDate.get(
-                  a.start_date_local.slice(0, 10),
-                );
-                const label = labelForActivity(plannedType, a.name);
-                return (
-                  <tr key={a.id} className="clickable">
-                    <td style={{ width: 80 }}>
-                      <Link href={`/activities/${a.id}`}>
-                        <RouteThumb
-                          polyline={a.summary_polyline}
-                          seed={i * 7 + 3}
-                          size={48}
-                        />
-                      </Link>
-                    </td>
-                    <td
-                      className="num"
-                      style={{ color: "var(--text-3)", fontSize: 11 }}
-                    >
-                      {a.start_date_local.slice(5, 10)}
-                      <br />
-                      <span style={{ fontSize: 10, color: "var(--text-4)" }}>
-                        {a.start_date_local.slice(11, 16)}
-                      </span>
-                    </td>
-                    <td>
-                      <Link
-                        href={`/activities/${a.id}`}
-                        style={{ color: "inherit", textDecoration: "none" }}
-                      >
-                        <div style={{ fontSize: 13, lineHeight: 1.3 }}>
-                          {a.name}
-                        </div>
-                        <div className="muted num" style={{ fontSize: 10 }}>
-                          {a.sport_type}
-                        </div>
-                      </Link>
-                    </td>
-                    <td>
-                      <TypePill type={label} />
-                    </td>
-                    <td className="num">{formatMiles(a.distance_m)}</td>
-                    <td className="num">
-                      {speedToPacePerMile(a.average_speed_ms)}
-                    </td>
-                    <td className="num">{a.average_heartrate ?? "—"}</td>
-                    <td className="num">
-                      {formatFeet(a.total_elevation_gain_m)}
-                    </td>
-                  </tr>
-                );
-              })}
-              {recent.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="muted"
-                    style={{ padding: 20, textAlign: "center" }}
-                  >
-                    No activities yet — sync from Strava.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="card">
-          <CardHeader title="Shoe Rotation" action={`${gear.length} active`} />
-          <div className="col gap-12">
-            {sortedGear.slice(0, 3).map((s) => (
-              <div key={s.id} className="col gap-6">
-                <div className="row between">
-                  <div className="row gap-8">
-                    <div
+            <ZoneBar zones={zones} showLabels={false} />
+            <div className="col" style={{ marginTop: 12 }}>
+              {zones.map((z, i) => (
+                <div key={z.zone} className="row between" style={{ padding: "2px 0" }}>
+                  <span className="row gap-8" style={{ alignItems: "center" }}>
+                    <span
                       style={{
                         width: 8,
                         height: 8,
                         borderRadius: 2,
-                        background: s.color,
+                        background: `var(--zone-${i + 1})`,
                       }}
                     />
-                    <span style={{ fontSize: 13 }}>{s.name}</span>
-                  </div>
-                  <span className="num muted" style={{ fontSize: 11 }}>
-                    {formatMilesHalf(metersToMiles(s.distance_m))}/
-                    {formatMilesHalf(metersToMiles(s.cap_m))} mi
+                    {z.zone}
+                    <span className="ff-muted">{z.label}</span>
                   </span>
+                  <span className="num">{z.minutes}m</span>
                 </div>
-                <MilesBar
-                  miles={metersToMiles(s.distance_m)}
-                  cap={metersToMiles(s.cap_m)}
-                  color={s.color}
-                />
-              </div>
-            ))}
-            {sortedGear.length === 0 && (
-              <div className="muted" style={{ fontSize: 12 }}>
-                No active shoes synced.
-              </div>
-            )}
+              ))}
+            </div>
           </div>
-          {nearRetirement && (
+
+          <div className="ff-cell">
+            <div className="ff-cell-head">
+              <span className="ff-h">{monthThis.label}</span>
+            </div>
+            <Stat
+              label="Distance"
+              value={monthThis.miles.toFixed(1)}
+              unit="mi"
+              size="lg"
+            />
             <div
-              style={{
-                marginTop: 14,
-                paddingTop: 12,
-                borderTop: "1px solid var(--hairline)",
-              }}
+              className="grid"
+              style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, marginTop: 16 }}
             >
-              <div className="row gap-8 baseline">
-                <Icon name="zap" size={14} />{" "}
-                <span className="pill warn">
-                  {nearRetirement.name} approaching retirement — {remainingMi}mi
-                  left
-                </span>
+              <Stat label="Runs" value={String(monthThis.runs)} />
+              <Stat
+                label="Time"
+                value={formatDurationShort(weekStats.duration_s)}
+              />
+            </div>
+            <div className="ff-split">
+              <Sparkline data={monthly.map((m) => m.miles)} height={32} />
+              <div className="row between ff-caption" style={{ marginTop: 6 }}>
+                <span>{monthly[0]?.label ?? ""}</span>
+                <span>{monthly[monthly.length - 1]?.label ?? ""}</span>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        </section>
 
-        {nextRace && (
-          <div className="card">
-            <CardHeader
-              title="Next Race"
-              action={raceWeeks != null ? `${raceWeeks} weeks` : ""}
-            />
-            <div className="col gap-6">
-              <div
-                style={{
-                  fontSize: 16,
-                  fontWeight: 500,
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                {nextRace.name}
-              </div>
-              <div className="row gap-8 baseline">
-                <span className="muted num" style={{ fontSize: 11 }}>
-                  {fmtDate(nextRace.race_date)}
-                  {nextRace.location ? ` · ${nextRace.location}` : ""}
+        {/* ===== Row 3: weekly mileage, easy pace ===== */}
+        <section
+          className="ff-row"
+          style={{ gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)" }}
+        >
+          <div className="ff-cell">
+            <div className="ff-cell-head">
+              <span className="ff-h">Weekly mileage</span>
+              <span className="row gap-14" style={{ alignItems: "center" }}>
+                <span className="pill-dot" style={{ color: "var(--accent)" }}>
+                  Actual
                 </span>
-                {nextRace.priority && (
-                  <Pill kind="accent">{nextRace.priority}</Pill>
+                <span className="pill-dot" style={{ color: "var(--text-2)" }}>
+                  Planned
+                </span>
+                {peakWeek && (
+                  <span className="ff-caption num">
+                    Peak {peakWeek.label} · {peakWeek.miles.toFixed(0)} mi
+                  </span>
+                )}
+              </span>
+            </div>
+            <MileageBars
+              weeks={weekMileage}
+              width={820}
+              height={180}
+              currentIndex={planMeta.current_week_index}
+            />
+          </div>
+
+          <div className="ff-cell">
+            <div className="ff-cell-head" style={{ alignItems: "flex-start" }}>
+              <span className="ff-h">Easy pace</span>
+              <div className="col" style={{ alignItems: "flex-end" }}>
+                <span className="row baseline gap-4">
+                  <span className="stat-num num">{paceLabel}</span>
+                  <span className="ff-caption">/mi</span>
+                </span>
+                {paceDeltaSec != null && (
+                  <span
+                    className="ff-caption num"
+                    style={{
+                      color: paceDeltaSec >= 0 ? "var(--accent)" : "var(--red)",
+                    }}
+                  >
+                    {paceDeltaSec >= 0 ? "−" : "+"}
+                    {Math.abs(paceDeltaSec)}s vs 12 weeks
+                  </span>
                 )}
               </div>
             </div>
+            <div style={{ height: 160, overflow: "clip" }}>
+              {paceNonZero.length > 0 ? (
+                <LineChart
+                  data={paceFilled}
+                  width={360}
+                  height={160}
+                  padL={44}
+                  padR={12}
+                  padB={14}
+                  padT={12}
+                  invertY
+                  minY={paceMinY}
+                  maxY={paceMaxY}
+                  yTicks={2}
+                  formatY="pace"
+                />
+              ) : (
+                <div
+                  className="ff-muted"
+                  style={{
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  No runs in the last 12 weeks.
+                </div>
+              )}
+            </div>
             <div
-              className="grid"
-              style={{
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: 10,
-                marginTop: 14,
-                paddingTop: 12,
-                borderTop: "1px solid var(--hairline)",
-              }}
+              className="grid ff-split"
+              style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}
             >
               <Stat
-                label="Distance"
-                value={formatMiles(nextRace.distance_m, 1)}
-                unit="mi"
+                label="Resting HR"
+                value={
+                  recovery?.resting_heart_rate != null
+                    ? String(Math.round(Number(recovery.resting_heart_rate)))
+                    : "—"
+                }
+                unit="bpm"
               />
-              <Stat label="Goal" value={fmtGoalTime(nextRace.goal_time_s)} />
               <Stat
-                label="Pace"
-                value={paceFromGoal(nextRace.distance_m, nextRace.goal_time_s)}
-                unit="/mi"
+                label="HRV"
+                value={
+                  recovery?.hrv_rmssd_milli != null
+                    ? String(Math.round(Number(recovery.hrv_rmssd_milli)))
+                    : "—"
+                }
+                unit="ms"
               />
             </div>
           </div>
-        )}
+        </section>
+
+        {/* ===== Row 4: recent runs, shoes, next race ===== */}
+        <section
+          className="ff-row"
+          style={{
+            gridTemplateColumns: nextRace
+              ? "minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr)"
+              : "minmax(0, 1.5fr) minmax(0, 1fr)",
+            borderBottom: "none",
+          }}
+        >
+          <div className="ff-cell">
+            <div className="ff-cell-head">
+              <span className="ff-h">Recent runs</span>
+              <Link href="/activities" className="card-action">
+                View all
+              </Link>
+            </div>
+            {recent.length > 0 ? (
+              <FluidList>
+                {recent.map((a, i) => {
+                  const plannedType = typeByDate.get(
+                    a.start_date_local.slice(0, 10),
+                  );
+                  const label = labelForActivity(plannedType, a.name);
+                  return (
+                    <FluidRow
+                      key={a.id}
+                      index={i}
+                      href={`/activities/${a.id}`}
+                      className="ff-activity-row"
+                    >
+                      <RouteThumb
+                        polyline={a.summary_polyline}
+                        seed={i * 7 + 3}
+                        size={36}
+                      />
+                      <span className="col" style={{ minWidth: 0 }}>
+                        <span
+                          style={{
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {a.name}
+                        </span>
+                        <span className="ff-caption num">
+                          {fmtDate(a.start_date_local.slice(0, 10))} ·{" "}
+                          {a.start_date_local.slice(11, 16)}
+                        </span>
+                      </span>
+                      <TypePill type={label} />
+                      <span className="num ff-row-muted" style={{ textAlign: "right" }}>
+                        {formatMiles(a.distance_m)} mi
+                      </span>
+                      <span className="num ff-row-muted" style={{ textAlign: "right" }}>
+                        {speedToPacePerMile(a.average_speed_ms)}
+                      </span>
+                      <span className="num ff-row-muted" style={{ textAlign: "right" }}>
+                        {a.average_heartrate ? Math.round(a.average_heartrate) : "—"}
+                      </span>
+                    </FluidRow>
+                  );
+                })}
+              </FluidList>
+            ) : (
+              <div className="ff-muted">No activities yet — sync from Strava.</div>
+            )}
+          </div>
+
+          <div className="ff-cell">
+            <div className="ff-cell-head">
+              <span className="ff-h">Shoes</span>
+              <span className="ff-caption">{gear.length} active</span>
+            </div>
+            {sortedGear.length > 0 ? (
+              <FluidList>
+                {sortedGear.slice(0, 3).map((s, i) => (
+                  <FluidRow key={s.id} index={i} href="/shoes" className="ff-shoe-row">
+                    <span className="row between" style={{ gap: 12 }}>
+                      <span
+                        className="row gap-8"
+                        style={{ alignItems: "center", minWidth: 0 }}
+                      >
+                        <span
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: 2,
+                            background: s.color,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span
+                          style={{
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {s.name}
+                        </span>
+                      </span>
+                      <span className="num ff-row-muted" style={{ flexShrink: 0 }}>
+                        {formatMilesHalf(metersToMiles(s.distance_m))} /{" "}
+                        {formatMilesHalf(metersToMiles(s.cap_m))} mi
+                      </span>
+                    </span>
+                    <span className="ff-meter">
+                      <span
+                        style={{
+                          width: `${Math.min(100, (s.distance_m / s.cap_m) * 100)}%`,
+                          background: s.color,
+                        }}
+                      />
+                    </span>
+                  </FluidRow>
+                ))}
+              </FluidList>
+            ) : (
+              <div className="ff-muted">No active shoes synced.</div>
+            )}
+            {nearRetirement && (
+              <div className="ff-caption ff-split" style={{ color: "var(--amber)" }}>
+                {nearRetirement.name} is near retirement · {remainingMi} mi left
+              </div>
+            )}
+          </div>
+
+          {nextRace && (
+            <div className="ff-cell">
+              <div className="ff-cell-head">
+                <span className="ff-h">Next race</span>
+                {raceWeeks != null && (
+                  <span className="ff-caption">
+                    {raceWeeks} {raceWeeks === 1 ? "week" : "weeks"}
+                  </span>
+                )}
+              </div>
+              <div className="col gap-4">
+                <span
+                  style={{
+                    fontSize: "var(--fs-title)",
+                    lineHeight: "var(--lh-title)",
+                    fontVariationSettings: "var(--fw-semibold)",
+                  }}
+                >
+                  {nextRace.name}
+                </span>
+                <span className="ff-caption">
+                  {fmtDate(nextRace.race_date)}
+                  {nextRace.location ? ` · ${nextRace.location}` : ""}
+                </span>
+              </div>
+              <div
+                className="grid ff-split"
+                style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}
+              >
+                <Stat
+                  label="Distance"
+                  value={formatMiles(nextRace.distance_m, 1)}
+                  unit="mi"
+                />
+                <Stat label="Goal" value={fmtGoalTime(nextRace.goal_time_s)} />
+                <Stat
+                  label="Pace"
+                  value={paceFromGoal(nextRace.distance_m, nextRace.goal_time_s)}
+                  unit="/mi"
+                />
+              </div>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
