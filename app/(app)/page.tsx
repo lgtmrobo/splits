@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MileageBars } from "@/components/charts/mileage-bars";
+import { ZoneBar } from "@/components/charts/zone-bar";
 import { FluidList, FluidRow } from "@/components/fluid/fluid-list";
 import { RouteThumb } from "@/components/maps/route-thumb";
 import { Icon } from "@/components/ui/icon";
@@ -13,6 +14,7 @@ import {
   getPlanMeta,
   getPlannedRunsBetween,
   getRecentActivities,
+  getWeekHRZones,
   getWeekMileage,
   getWeekStats,
   getWeekView,
@@ -93,7 +95,7 @@ function daysUntil(dateISO: string): number {
 }
 
 export default async function DashboardPage() {
-  const [planMeta, plan, weekMileage, recent, gear, nextRace, adherence] =
+  const [planMeta, plan, weekMileage, recent, gear, nextRace, adherence, zones] =
     await Promise.all([
       getPlanMeta(),
       getActivePlan(),
@@ -102,6 +104,7 @@ export default async function DashboardPage() {
       getActiveGear(),
       getNextARace(),
       getPlanAdherenceBreakdown(),
+      getWeekHRZones(),
     ]);
 
   const currentWeek =
@@ -165,6 +168,9 @@ export default async function DashboardPage() {
     },
   ];
 
+  const zonesTotalMin = zones.reduce((a, z) => a + z.minutes, 0);
+  const zonesTotalLabel = `${Math.floor(zonesTotalMin / 60)}:${String(zonesTotalMin % 60).padStart(2, "0")} total`;
+
   const gearById = new Map(gear.map((g) => [g.id, g]));
   const nextUpShoe = nextUp?.expected_gear_id
     ? gearById.get(nextUp.expected_gear_id)
@@ -190,7 +196,9 @@ export default async function DashboardPage() {
         {/* ===== This week + today/next ===== */}
         <section
           className="ff-row"
-          style={{ gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1fr)" }}
+          style={{
+            gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr)",
+          }}
         >
           <div className="ff-cell">
             <span className="ff-caption">Mileage</span>
@@ -224,6 +232,29 @@ export default async function DashboardPage() {
                 unit="bpm"
               />
               <Stat label="Runs" value={String(weekStats.runs)} />
+            </div>
+          </div>
+
+          <div className="ff-cell">
+            <div className="ff-cell-head">
+              <span className="ff-h">Heart rate zones</span>
+              <span className="ff-caption">7 days · {zonesTotalLabel}</span>
+            </div>
+            <ZoneBar zones={zones} showLabels={false} />
+            <div className="col" style={{ marginTop: 12 }}>
+              {zones.map((z, i) => (
+                <div key={z.zone} className="row between" style={{ padding: "2px 0" }}>
+                  <span className="row gap-8" style={{ alignItems: "center" }}>
+                    <span
+                      className="ff-dot"
+                      style={{ background: `var(--zone-${i + 1})` }}
+                    />
+                    {z.zone}
+                    <span className="ff-muted">{z.label}</span>
+                  </span>
+                  <span className="num">{z.minutes}m</span>
+                </div>
+              ))}
             </div>
           </div>
 
