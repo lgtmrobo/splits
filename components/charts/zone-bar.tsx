@@ -25,7 +25,7 @@ export function ZoneBar({
             style={{
               background: ZONE_COLORS[i],
               flex: z.pct,
-              color: i < 2 ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.7)",
+              color: i < 3 ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.85)",
             }}
           >
             {z.pct >= 8 && <span>{z.pct}%</span>}

@@ -567,3 +567,13 @@
     0 12px 32px -8px rgb(0 0 0 / 0.6),
     0 24px 64px -16px rgb(0 0 0 / 0.5);
 }
+
+/* HR zones: one ramp of the theme accent, light (Z1) → dark (Z5), so they
+   follow whatever accent is picked in Tweaks. */
+:root {
+  --zone-1: color-mix(in oklab, var(--accent) 30%, white);
+  --zone-2: color-mix(in oklab, var(--accent) 65%, white);
+  --zone-3: var(--accent);
+  --zone-4: color-mix(in oklab, var(--accent) 70%, black);
+  --zone-5: color-mix(in oklab, var(--accent) 45%, black);
+}
