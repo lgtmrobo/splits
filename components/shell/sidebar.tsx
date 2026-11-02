@@ -1,8 +1,17 @@
 "use client";
 
+import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRef } from "react";
+import { FluidHoverHighlight } from "@/components/fluid/fluid-hover-highlight";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { fontWeights } from "@/lib/fluid/font-weight";
+import { spring } from "@/lib/fluid/springs";
+import {
+  useFluidHover,
+  useRegisterFluidHoverItem,
+} from "@/lib/fluid/use-fluid-hover";
 
 interface ShellSummary {
   activities: number;
@@ -77,6 +86,100 @@ function relativeTime(iso: string): string {
   return `${d}d ago`;
 }
 
+/** A nav label that turns semibold when active without shifting its
+ *  neighbours: an invisible semibold copy reserves the width. */
+function NavLabel({ label, active }: { label: string; active: boolean }) {
+  return (
+    <span className="nav-label">
+      <span
+        style={{
+          fontVariationSettings: active ? fontWeights.semibold : fontWeights.normal,
+        }}
+      >
+        {label}
+      </span>
+      <span aria-hidden="true" style={{ fontVariationSettings: fontWeights.semibold }}>
+        {label}
+      </span>
+    </span>
+  );
+}
+
+function NavRow({
+  item,
+  index,
+  active,
+  count,
+  registerItem,
+}: {
+  item: NavItem;
+  index: number;
+  active: boolean;
+  count: number | undefined;
+  registerItem: (index: number, element: HTMLElement | null) => void;
+}) {
+  const ref = useRef<HTMLAnchorElement>(null);
+  useRegisterFluidHoverItem(registerItem, index, ref);
+  return (
+    <Link
+      ref={ref}
+      href={item.href}
+      className={`nav-item ${active ? "active" : ""}`}
+      aria-current={active ? "page" : undefined}
+    >
+      <Icon name={item.icon} className="ico" />
+      <NavLabel label={item.label} active={active} />
+      {count != null && count > 0 && <span className="nav-count">{count}</span>}
+    </Link>
+  );
+}
+
+/** Nav with one hover highlight gliding between rows, and an active
+ *  background that slides to the new row on navigation (spring.moderate)
+ *  instead of blinking from one row to the next. */
+function FluidNav({
+  items,
+  activeIndex,
+  summary,
+}: {
+  items: NavItem[];
+  activeIndex: number;
+  summary: ShellSummary;
+}) {
+  const ref = useRef<HTMLElement>(null);
+  const hover = useFluidHover(ref, { axis: "y" });
+  const activeRect =
+    hover.isMeasured && activeIndex >= 0 ? hover.itemRects[activeIndex] : undefined;
+  return (
+    <nav ref={ref} className="nav fluid-list" {...hover.handlers}>
+      {activeRect && (
+        <motion.div
+          className="nav-active-bg"
+          initial={false}
+          animate={{
+            x: activeRect.left,
+            y: activeRect.top,
+            width: activeRect.width,
+            height: activeRect.height,
+          }}
+          transition={spring.moderate}
+        />
+      )}
+      <FluidHoverHighlight hover={hover} className="fluid-list-highlight" />
+      {items.map((it, i) => (
+        <NavRow
+          key={it.href}
+          item={it}
+          index={i}
+          active={i === activeIndex}
+          count={it.countKey ? summary[it.countKey] : undefined}
+          registerItem={hover.registerItem}
+        />
+      ))}
+    </nav>
+  );
+}
+
 export function Sidebar({ summary }: { summary: ShellSummary }) {
   const pathname = usePathname();
   const isActive = (item: NavItem) => {
@@ -84,133 +187,53 @@ export function Sidebar({ summary }: { summary: ShellSummary }) {
     if (item.matchPrefix) return pathname.startsWith(item.matchPrefix);
     return pathname === item.href;
   };
+  const activeIndex = ITEMS.findIndex(isActive);
 
   return (
     <aside className="sidebar">
       <div className="brand">
         <div className="brand-mark">S</div>
-        <div className="col">
-          <div className="brand-name">Splits</div>
-          <div className="brand-sub">v0.1.0</div>
-        </div>
+        <div className="brand-name">Splits</div>
       </div>
 
-      <div className="col gap-4">
-        <div className="nav-group-label">Workspace</div>
-        <nav className="nav">
-          {ITEMS.map((it) => {
-            const count = it.countKey ? summary[it.countKey] : undefined;
-            return (
-              <Link
-                key={it.href}
-                href={it.href}
-                className={`nav-item ${isActive(it) ? "active" : ""}`}
-              >
-                <Icon name={it.icon} className="ico" />
-                <span>{it.label}</span>
-                {count != null && count > 0 && (
-                  <span className="nav-count">{count}</span>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
+      <FluidNav items={ITEMS} activeIndex={activeIndex} summary={summary} />
 
       {summary.plan && (
-        <div className="col gap-4">
-          <div className="nav-group-label">Current Block</div>
-          <div
-            style={{
-              padding: "6px 8px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-            }}
-          >
-            <div
-              style={{ fontSize: 12, color: "var(--text-1)", lineHeight: 1.3 }}
-            >
+        <div className="side-group">
+          <div className="side-label">Current block</div>
+          <div className="side-block">
+            <div className="side-block-name">
               {summary.nextRace?.name ?? summary.plan.name}
             </div>
             {summary.nextRace && (
-              <div
-                className="num"
-                style={{
-                  fontSize: 11,
-                  color: "var(--text-3)",
-                  letterSpacing: "0.04em",
-                }}
-              >
+              <div className="side-caption">
                 {fmtMd(summary.nextRace.date)} · {summary.nextRace.weeksOut}{" "}
-                weeks out
+                {summary.nextRace.weeksOut === 1 ? "week" : "weeks"} out
               </div>
             )}
-            <div
-              style={{
-                position: "relative",
-                height: 4,
-                background: "var(--surface-2)",
-                borderRadius: 2,
-                marginTop: 4,
-              }}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: `${summary.plan.pct}%`,
-                  background: "var(--accent)",
-                  borderRadius: 2,
-                }}
-              />
+            <div className="side-meter">
+              <span style={{ width: `${summary.plan.pct}%` }} />
             </div>
-            <div
-              className="row between"
-              style={{
-                fontFamily: "var(--font-geist-mono), monospace",
-                fontSize: 10,
-                color: "var(--text-3)",
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-              }}
-            >
-              <span>
-                W{summary.plan.week}/{summary.plan.totalWeeks}
-              </span>
-              <span>{summary.plan.pct}%</span>
+            <div className="side-caption">
+              Week {summary.plan.week} of {summary.plan.totalWeeks} ·{" "}
+              {summary.plan.pct}%
             </div>
           </div>
         </div>
       )}
 
       {summary.upcomingBlock && (
-        <div className="col gap-4">
-          <div className="nav-group-label">Next Block</div>
+        <div className="side-group">
+          <div className="side-label">Next block</div>
           <Link
             href={`/plan?plan=${summary.upcomingBlock.id}`}
-            className="nav-item"
-            style={{
-              alignItems: "flex-start",
-              padding: "8px 8px",
-              flexDirection: "column",
-              gap: 4,
-            }}
+            className="side-block side-block-link"
           >
-            <div
-              style={{ fontSize: 12, color: "var(--text-1)", lineHeight: 1.3 }}
-            >
+            <div className="side-block-name">
               {summary.upcomingBlock.raceName ?? summary.upcomingBlock.name}
             </div>
-            <div
-              className="num"
-              style={{
-                fontSize: 11,
-                color: "var(--text-3)",
-                letterSpacing: "0.04em",
-              }}
-            >
-              {fmtMd(summary.upcomingBlock.startDate)} →{" "}
+            <div className="side-caption">
+              {fmtMd(summary.upcomingBlock.startDate)} –{" "}
               {fmtMd(summary.upcomingBlock.endDate)}
             </div>
           </Link>
@@ -219,26 +242,13 @@ export function Sidebar({ summary }: { summary: ShellSummary }) {
 
       <div className="sidebar-footer">
         {summary.lastSync ? (
-          <>
-            <span className="pill-status">
-              Strava synced · {relativeTime(summary.lastSync)}
-            </span>
-            {summary.lastSyncCount > 0 && (
-              <div
-                style={{
-                  fontFamily: "var(--font-geist-mono), monospace",
-                  fontSize: 10,
-                  color: "var(--text-4)",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                Last sync: {summary.lastSyncCount}{" "}
-                {summary.lastSyncCount === 1 ? "activity" : "activities"}
-              </div>
-            )}
-          </>
+          <span className="side-sync">
+            Synced {relativeTime(summary.lastSync)}
+            {summary.lastSyncCount > 0 &&
+              ` · ${summary.lastSyncCount} ${summary.lastSyncCount === 1 ? "activity" : "activities"}`}
+          </span>
         ) : (
-          <span className="pill-status">Not synced</span>
+          <span className="side-sync">Not synced</span>
         )}
       </div>
     </aside>
