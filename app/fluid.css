@@ -554,3 +554,16 @@
 .fluid-tr:has(+ .fluid-tr[data-fluid-hover-active]) td {
   border-bottom-color: transparent;
 }
+
+/* Dialogs float above the page, so their panel keeps a surface: frameless
+   cards are for sections on the page, not for popups (registry: Surfaces,
+   dialog = substrate + 4). */
+[role="dialog"] > .card {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-xl);
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.04),
+    0 12px 32px -8px rgb(0 0 0 / 0.6),
+    0 24px 64px -16px rgb(0 0 0 / 0.5);
+}
