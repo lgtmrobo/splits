@@ -36,11 +36,8 @@ export function ZoneBar({
         <div
           className="row between"
           style={{
-            fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
             fontSize: 10,
             color: "var(--text-3)",
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
           }}
         >
           {zones.map((z) => (

@@ -228,11 +228,8 @@ export default async function ActivityDetailPage({ params }: Props) {
         className="row gap-10"
         style={{
           marginBottom: 14,
-          fontFamily: "var(--font-geist-mono), monospace",
           fontSize: 11,
           color: "var(--text-3)",
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
         }}
       >
         <Link
@@ -597,10 +594,7 @@ export default async function ActivityDetailPage({ params }: Props) {
                           f.kind === "positive"
                             ? "var(--accent)"
                             : "var(--amber)",
-                        fontFamily: "var(--font-geist-mono), monospace",
                         fontSize: 10,
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
                         width: 56,
                         flexShrink: 0,
                         paddingTop: 2,
@@ -640,7 +634,6 @@ export default async function ActivityDetailPage({ params }: Props) {
             <div
               className="row gap-10"
               style={{
-                fontFamily: "var(--font-geist-mono), monospace",
                 fontSize: 11,
                 color: "var(--text-2)",
               }}
@@ -741,11 +734,8 @@ function HeartRateSummary({
         <div
           className="row between"
           style={{
-            fontFamily: "var(--font-geist-mono), monospace",
             fontSize: 10,
             color: "var(--text-3)",
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
           }}
         >
           <span>HR range</span>
@@ -797,7 +787,6 @@ function HeartRateSummary({
         <div
           className="row between"
           style={{
-            fontFamily: "var(--font-geist-mono), monospace",
             fontSize: 10,
             color: "var(--text-3)",
           }}
@@ -814,11 +803,8 @@ function HeartRateSummary({
         <div
           className="row between"
           style={{
-            fontFamily: "var(--font-geist-mono), monospace",
             fontSize: 10,
             color: "var(--text-3)",
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
           }}
         >
           <span>Strain</span>

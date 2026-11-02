@@ -164,9 +164,8 @@ export function BurndownChart({
         y={padT - 4}
         textAnchor="middle"
         fontSize="10"
-        fontFamily="var(--font-geist-mono), monospace"
+        fontFamily="var(--font-geist-sans), sans-serif"
         fill="var(--accent)"
-        style={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
       >
         Now · W{currentWeek + 1}
       </text>
@@ -231,7 +230,7 @@ export function BurndownChart({
             x={currentX + 8}
             y={(yFor(lastActualV) + yFor(plannedAtNow)) / 2 + 3}
             fontSize="10"
-            fontFamily="var(--font-geist-mono), monospace"
+            fontFamily="var(--font-geist-sans), sans-serif"
             fill="var(--amber)"
           >
             −{(plannedAtNow - lastActualV).toFixed(1)}mi
@@ -262,10 +261,9 @@ export function BurndownChart({
           x="32"
           y="3"
           fontSize="10"
-          fontFamily="var(--font-geist-mono), monospace"
+          fontFamily="var(--font-geist-sans), sans-serif"
           fill="var(--text-1)"
           letterSpacing="0.06em"
-          style={{ textTransform: "uppercase" }}
         >
           Actual {lastActualV.toFixed(0)}mi
         </text>
@@ -282,10 +280,9 @@ export function BurndownChart({
           x="32"
           y="19"
           fontSize="10"
-          fontFamily="var(--font-geist-mono), monospace"
+          fontFamily="var(--font-geist-sans), sans-serif"
           fill="var(--text-2)"
           letterSpacing="0.06em"
-          style={{ textTransform: "uppercase" }}
         >
           Plan {cumPlan[cumPlan.length - 1].toFixed(0)}mi
         </text>

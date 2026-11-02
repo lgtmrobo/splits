@@ -425,3 +425,132 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ============================================================
+   App-wide: every page on the same system as the dashboard
+   ============================================================ */
+:root {
+  /* Two text colors: foreground + muted. The old third grey folds in. */
+  --text-3: var(--text-2);
+}
+
+/* Cards are frameless sections divided by hairlines (registry: Card) */
+.card {
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--hairline);
+  border-radius: 0;
+  padding: 20px 0 8px;
+}
+.card.compact {
+  padding: 14px 0 6px;
+}
+.card.elevated {
+  background: transparent;
+}
+.grid:has(> .card) {
+  column-gap: 40px;
+  row-gap: 16px;
+}
+.card-header {
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: var(--fs-subtitle);
+  line-height: var(--lh-subtitle);
+  font-weight: normal;
+  font-variation-settings: var(--fw-semibold);
+  color: var(--text-1);
+}
+.card-title.accent {
+  color: var(--text-1);
+}
+.card-action {
+  font-size: var(--fs-caption);
+  color: var(--text-2);
+}
+.stat-label {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--text-2);
+  margin-bottom: 4px;
+}
+.stat-num {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-weight: normal;
+  font-variation-settings: var(--fw-semibold);
+  letter-spacing: 0;
+}
+.stat-num.xl,
+.stat-num.lg {
+  font-variation-settings: var(--fw-bold);
+  letter-spacing: -0.01em;
+}
+.stat-unit {
+  font-size: var(--fs-caption);
+  color: var(--text-2);
+}
+
+/* Badges: sentence case, 24px */
+.pill {
+  height: 24px;
+  padding: 0 10px;
+  font-size: var(--fs-caption);
+}
+
+/* Tables: 36px rows, semibold header, shared hover fill */
+.tbl {
+  font-size: var(--fs-body);
+}
+.tbl th {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  font-variation-settings: var(--fw-semibold);
+  color: var(--text-2);
+  padding: 8px 12px;
+}
+.tbl td {
+  padding: 8px 12px;
+}
+.tbl tr.clickable:hover td {
+  background: var(--hover);
+}
+
+/* Segmented control */
+.seg {
+  background: transparent;
+  border-radius: 8px;
+}
+.seg button {
+  font-size: var(--fs-caption);
+  border-radius: 6px;
+}
+.seg button.active {
+  background: var(--active);
+}
+
+/* Page titles */
+.page-title {
+  margin: 0;
+  font-size: var(--fs-display);
+  line-height: var(--lh-display);
+  font-weight: normal;
+  font-variation-settings: var(--fw-bold);
+  letter-spacing: -0.01em;
+}
+
+/* Fluid table rows (components/fluid/fluid-table.tsx) */
+.fluid-table .tbl {
+  position: relative;
+}
+.fluid-tr {
+  cursor: pointer;
+}
+.fluid-tr td {
+  position: relative;
+  transition: border-color 80ms;
+}
+.fluid-tr[data-fluid-hover-active] td,
+.fluid-tr:has(+ .fluid-tr[data-fluid-hover-active]) td {
+  border-bottom-color: transparent;
+}

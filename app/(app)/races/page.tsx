@@ -57,14 +57,7 @@ export default async function RacesPage() {
     <div className="content fadein">
       <div className="row between" style={{ marginBottom: 14 }}>
         <div className="col gap-4">
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 22,
-              fontWeight: 500,
-              letterSpacing: "-0.01em",
-            }}
-          >
+          <h1 className="page-title">
             Races
           </h1>
           <div className="muted num" style={{ fontSize: 12 }}>
@@ -84,8 +77,8 @@ export default async function RacesPage() {
         style={{
           // Cap at two columns so a lone race card stays half-width.
           gridTemplateColumns:
-            "repeat(auto-fill, minmax(max(280px, calc(50% - 7px)), 1fr))",
-          gap: 14,
+            "repeat(auto-fill, minmax(max(280px, calc(50% - 20px)), 1fr))",
+          gap: 40,
           marginBottom: 20,
         }}
       >
@@ -102,14 +95,6 @@ export default async function RacesPage() {
             <div
               key={r.id}
               className="card"
-              style={{
-                background: isA
-                  ? "linear-gradient(160deg, var(--surface-1), rgba(142,245,66,0.05))"
-                  : "var(--surface-1)",
-                border: isA
-                  ? "1px solid rgba(142,245,66,0.3)"
-                  : "1px solid var(--hairline)",
-              }}
             >
               <div className="row between" style={{ marginBottom: 12 }}>
                 <Pill kind={isA ? "accent" : "default"}>

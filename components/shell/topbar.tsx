@@ -18,6 +18,7 @@ function metaForPath(pathname: string): PageMeta {
   if (pathname === "/shoes") return { crumb: "Gear", title: "Shoes" };
   if (pathname === "/races") return { crumb: "Calendar", title: "Races" };
   if (pathname === "/stats") return { crumb: "Analytics", title: "Stats" };
+  if (pathname === "/heatmap") return { crumb: "Map", title: "Heatmap" };
   return { crumb: "", title: "" };
 }
 

@@ -321,14 +321,7 @@ export default async function StatsPage({
     <div className="content fadein">
       <div className="row between" style={{ marginBottom: 14 }}>
         <div className="col gap-4">
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 22,
-              fontWeight: 500,
-              letterSpacing: "-0.01em",
-            }}
-          >
+          <h1 className="page-title">
             Stats
           </h1>
           <div className="muted num" style={{ fontSize: 12 }}>
@@ -457,7 +450,6 @@ export default async function StatsPage({
           <div
             className="col gap-6"
             style={{
-              fontFamily: "var(--font-geist-mono), monospace",
               fontSize: 11,
             }}
           >

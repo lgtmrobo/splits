@@ -77,7 +77,7 @@ body {
   font-feature-settings: "tnum", "ss01";
 }
 .num {
-  font-family: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "tnum";
   font-variant-numeric: tabular-nums;
 }
@@ -121,7 +121,7 @@ body {
   color: #0a0a0c;
   font-weight: 700;
   font-size: 12px;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   letter-spacing: -0.03em;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3), 0 0 20px var(--accent-glow);
 }
@@ -131,18 +131,14 @@ body {
   font-size: 14px;
 }
 .brand-sub {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   color: var(--text-3);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 .nav-group-label {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   padding: 0 8px 6px;
 }
 .nav {
@@ -194,8 +190,8 @@ body {
 }
 .nav-count {
   margin-left: auto;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   color: var(--text-3);
 }
 
@@ -211,11 +207,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   color: var(--text-2);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 .pill-status::before {
   content: "";
@@ -251,11 +245,9 @@ body {
   white-space: nowrap;
 }
 .topbar-crumb {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   color: var(--text-3);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 .topbar-right {
   display: flex;
@@ -288,21 +280,17 @@ body {
   margin-bottom: 12px;
 }
 .card-title {
-  font-size: 11px;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: var(--fs-caption);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   color: var(--text-3);
 }
 .card-title.accent {
   color: var(--accent);
 }
 .card-action {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   cursor: pointer;
   background: transparent;
   border: none;
@@ -313,7 +301,7 @@ body {
 
 /* ===== Typography ===== */
 .stat-num {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
@@ -330,24 +318,21 @@ body {
   font-size: 20px;
 }
 .stat-unit {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   color: var(--text-3);
   margin-left: 4px;
   text-transform: lowercase;
-  letter-spacing: 0.02em;
 }
 .stat-label {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   margin-bottom: 6px;
 }
 .stat-delta {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   color: var(--text-2);
 }
 .stat-delta.up {
@@ -460,10 +445,8 @@ body {
   gap: 6px;
   padding: 3px 8px;
   border-radius: 999px;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   background: var(--surface-2);
   color: var(--text-2);
   border: 1px solid var(--hairline);
@@ -509,8 +492,8 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   color: var(--text-2);
 }
 .pill-dot::before {
@@ -541,8 +524,8 @@ body {
   border-radius: 999px;
   background: var(--surface-2);
   border: 1px solid var(--hairline);
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   color: var(--text-2);
   cursor: default;
   flex-shrink: 0;
@@ -567,7 +550,7 @@ body {
   border-radius: var(--r-sm);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   font-family: inherit;
-  font-size: 11px;
+  font-size: var(--fs-caption);
   color: var(--text-2);
 }
 .shoe-more:hover .shoe-tip,
@@ -599,8 +582,8 @@ body {
   white-space: nowrap;
 }
 .shoe-chip-stat {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
 }
 
 /* ===== Table ===== */
@@ -610,11 +593,9 @@ body {
   font-size: 13px;
 }
 .tbl th {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   font-weight: 400;
   text-align: left;
   padding: 8px 12px;
@@ -637,7 +618,7 @@ body {
 .tbl td.num,
 .tbl th.num {
   text-align: right;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 }
 
@@ -651,15 +632,13 @@ body {
   overflow: visible;
 }
 .axis-label {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   fill: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 .axis-tick {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   fill: var(--text-3);
 }
 .axis-line {
@@ -681,7 +660,7 @@ body {
   align-items: flex-end;
   justify-content: flex-start;
   padding: 2px 4px;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   font-size: 9px;
   color: rgba(0, 0, 0, 0.65);
   font-weight: 600;
@@ -749,10 +728,8 @@ body {
   background: transparent;
   padding: 4px 10px;
   color: var(--text-2);
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   border-radius: 4px;
   cursor: pointer;
 }
@@ -791,11 +768,9 @@ body {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
 }
 .tweaks-title {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-caption);
   color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   margin-bottom: 10px;
 }
 .swatch-row {
@@ -823,10 +798,8 @@ body {
   border-radius: var(--r-lg);
   text-align: center;
   color: var(--text-3);
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 /* ===== Form controls ===== */
@@ -853,7 +826,7 @@ textarea {
   transition: border-color 120ms, background 120ms;
 }
 input[type="number"] {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 input:focus,
 select:focus,
