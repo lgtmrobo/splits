@@ -8,11 +8,15 @@ import { CardHeader, Stat } from "@/components/ui/primitives";
 import { TypePill } from "@/components/ui/type-pill";
 import { ResyncButton } from "@/components/activities/resync-button";
 import { ShoeSplitEditor } from "@/components/activities/shoe-split-editor";
+import { buildFitnessModel } from "@/lib/fitness/model";
+import type { TssMethod } from "@/lib/fitness/tss";
 import { gearIdsFor, gearShares } from "@/lib/gear/segments";
 import {
   getActivityDetail,
   getAnalysisForActivity,
   getAllGear,
+  getFitnessInputs,
+  getGradeAdjustedSpeed,
   getPlannedRunByDate,
   getWhoopWorkoutForActivity,
 } from "@/lib/supabase/queries";
@@ -32,6 +36,12 @@ import {
 interface Props {
   params: Promise<{ id: string }>;
 }
+
+const TSS_METHOD_LABEL: Record<TssMethod, string> = {
+  hr: "from HR",
+  pace: "from pace",
+  duration: "estimated",
+};
 
 function paceLabelFromSpeed(ms: number): string {
   if (!ms || ms <= 0) return "—";
@@ -120,12 +130,15 @@ export default async function ActivityDetailPage({ params }: Props) {
     if (streamRow) detail = buildActivityDetail(detail.activity, streamRow);
   }
 
-  const [analysis, allGear, planned, whoop] = await Promise.all([
+  const [analysis, allGear, planned, whoop, fitnessInputs, gapSpeed] = await Promise.all([
     getAnalysisForActivity(detail.activity.id),
     getAllGear(),
     getPlannedRunByDate(detail.activity.start_date_local.slice(0, 10)),
     getWhoopWorkoutForActivity(detail.activity.id),
+    getFitnessInputs(),
+    getGradeAdjustedSpeed(detail.activity.id),
   ]);
+  const stress = buildFitnessModel(fitnessInputs).tssByActivity.get(detail.activity.id) ?? null;
 
   // If we have WHOOP zones, replace the synthetic zone shape with real data.
   const hrZones =
@@ -346,6 +359,16 @@ export default async function ActivityDetailPage({ params }: Props) {
                 label="Cadence"
                 value={activity.average_cadence ?? "—"}
                 unit="spm"
+              />
+              <Stat
+                label="Grade-adj Pace"
+                value={speedToPacePerMile(gapSpeed)}
+                unit="/mi"
+              />
+              <Stat
+                label="TSS"
+                value={stress ? String(stress.tss) : "—"}
+                unit={stress ? `IF ${stress.intensity.toFixed(2)} · ${TSS_METHOD_LABEL[stress.method]}` : ""}
               />
             </div>
           </div>

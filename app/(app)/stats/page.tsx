@@ -5,11 +5,13 @@ import { ZoneBar } from "@/components/charts/zone-bar";
 import { AnnualMileageCard } from "@/app/(app)/stats/annual-mileage-card";
 import { StatsRangeSwitcher } from "@/app/(app)/stats/range-switcher";
 import { CardHeader, Stat } from "@/components/ui/primitives";
+import { buildFitnessModel } from "@/lib/fitness/model";
 import type { WeekMileage } from "@/lib/types";
 import {
   getActivityTotals,
   getAllActivities,
   getDailyLoad28d,
+  getFitnessInputs,
   getStreakDays,
   getLatestRecovery,
   getMonthlyStats,
@@ -50,6 +52,7 @@ export default async function StatsPage({
     latestRec,
     dailyLoad,
     streak,
+    fitnessInputs,
   ] = await Promise.all([
     getMonthlyStats(),
     getPaceTrend12w(),
@@ -60,7 +63,9 @@ export default async function StatsPage({
     getLatestRecovery(),
     getDailyLoad28d(),
     getStreakDays(),
+    getFitnessInputs(),
   ]);
+  const { vdot } = buildFitnessModel(fitnessInputs);
 
   // Training load (moved here from the dashboard)
   const load7d = dailyLoad.slice(-7).reduce((a, b) => a + b, 0);
@@ -542,7 +547,12 @@ export default async function StatsPage({
           />
         </div>
         <div className="card">
-          <Stat label="VDOT estimate" value="—" size="lg" />
+          <Stat
+            label="VDOT estimate"
+            value={vdot ? vdot.vdot.toFixed(1) : "—"}
+            size="lg"
+            delta={vdot ? `${vdot.effort.name} · ${vdot.effort.date}` : undefined}
+          />
         </div>
       </div>
     </div>

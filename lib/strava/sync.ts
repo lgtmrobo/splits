@@ -49,6 +49,9 @@ function mapActivity(a: StravaSummaryActivity, athleteId: string) {
     commute: a.commute,
     manual: a.manual,
     raw_jsonb: a,
+    // List payloads omit best_efforts; leave the column alone rather than
+    // wiping what an earlier detail fetch stored.
+    ...(Array.isArray(a.best_efforts) ? { best_efforts: a.best_efforts } : {}),
     synced_at: new Date().toISOString(),
   };
 }
@@ -93,26 +96,29 @@ export async function backfillActivities(athleteId: string, years = 2) {
 }
 
 /**
- * Fill in `summary_polyline` for any recent activity that's still missing
- * one. The `/athlete/activities` list endpoint returns an empty polyline,
- * so we hit the detail endpoint per activity to pull the full encoded
- * route. Mirrors `scripts/backfill-polylines.mjs` but scoped to recent
- * rows so it's cheap enough to run after every sync.
+ * Fill in what only Strava's detail endpoint returns, for recent activities
+ * still missing it:
+ *   - `summary_polyline` — the list endpoint returns it empty
+ *   - `best_efforts`     — powers Peak Performances / threshold estimates
+ * One detail call covers both. Scoped by `limit` so it's cheap enough to run
+ * after every sync; repeated runs walk further back until everything is
+ * filled.
  */
-export async function backfillPolylines(athleteId: string, limit = 50) {
+export async function backfillDetails(athleteId: string, limit = 50) {
   const supabase = createServiceRoleSupabase();
-  const { data: needs } = await supabase
+  const { data: needs, error } = await supabase
     .from("activities")
-    .select("id")
+    .select("id, summary_polyline, trainer, manual")
     .eq("athlete_id", athleteId)
-    .or("summary_polyline.is.null,summary_polyline.eq.")
-    .eq("trainer", false)
     .eq("manual", false)
+    .or("best_efforts.is.null,and(trainer.eq.false,or(summary_polyline.is.null,summary_polyline.eq.))")
     .order("start_date", { ascending: false })
     .limit(limit);
+  if (error) throw error;
 
   let updated = 0;
   let skipped = 0;
+  let rateLimited = false;
   for (const a of needs ?? []) {
     try {
       const detail = await stravaFetch<StravaSummaryActivity>(
@@ -120,23 +126,31 @@ export async function backfillPolylines(athleteId: string, limit = 50) {
         `/activities/${a.id}`,
       );
       const poly = detail.map?.polyline || detail.map?.summary_polyline || null;
-      if (!poly) {
-        skipped++;
-        continue;
-      }
-      await supabase
+      const patch = {
+        // [] marks "fetched, none" so we don't refetch treadmill runs forever.
+        best_efforts: Array.isArray(detail.best_efforts) ? detail.best_efforts : [],
+        ...(poly && !a.summary_polyline
+          ? { summary_polyline: poly, map_id: detail.map?.id ?? null }
+          : {}),
+      };
+      const { error: upErr } = await supabase
         .from("activities")
-        .update({ summary_polyline: poly, map_id: detail.map?.id ?? null })
+        .update(patch)
         .eq("id", a.id);
+      if (upErr) throw upErr;
       updated++;
     } catch (e) {
-      if (String(e).includes("strava_rate_limited")) break;
+      if (String(e).includes("strava_rate_limited")) {
+        rateLimited = true;
+        break;
+      }
+      console.error(`[backfillDetails] activity ${a.id} failed:`, e);
       skipped++;
     }
     // Stay well under Strava's 200 req / 15 min short-term limit.
     await new Promise((r) => setTimeout(r, 250));
   }
-  return { updated, skipped };
+  return { updated, skipped, remaining: (needs?.length ?? 0) - updated - skipped, rateLimited };
 }
 
 /**

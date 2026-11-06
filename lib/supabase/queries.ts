@@ -4,6 +4,8 @@
 
 import * as real from "./queries.impl";
 import * as mock from "@/lib/mock/queries";
+import * as realFitness from "./queries.fitness";
+import * as mockFitness from "@/lib/mock/fitness";
 
 const useMock = process.env.MOCK_DATA === "true";
 
@@ -49,3 +51,11 @@ export const getPlanAdherenceBreakdown = Q.getPlanAdherenceBreakdown;
 export const getShellSummary = Q.getShellSummary;
 export const getLatestRecovery = Q.getLatestRecovery;
 export const getWhoopWorkoutForActivity = Q.getWhoopWorkoutForActivity;
+
+// Fitness model inputs live in their own module (queries.impl.ts is big
+// enough already); same mock/real swap.
+const F: typeof realFitness = useMock
+  ? (mockFitness as unknown as typeof realFitness)
+  : realFitness;
+export const getFitnessInputs = F.getFitnessInputs;
+export const getGradeAdjustedSpeed = F.getGradeAdjustedSpeed;
