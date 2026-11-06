@@ -51,6 +51,8 @@ export interface StravaSummaryActivity {
   trainer: boolean;
   commute: boolean;
   manual: boolean;
+  /** Detail endpoint only — absent from /athlete/activities list payloads. */
+  best_efforts?: unknown[];
 }
 
 export interface StravaGear {

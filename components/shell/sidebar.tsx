@@ -51,6 +51,7 @@ const ITEMS: NavItem[] = [
   { href: "/plan", icon: "plan", label: "Training Plan", matchPrefix: "/plan" },
   { href: "/shoes", icon: "shoe", label: "Shoes", countKey: "gear" },
   { href: "/races", icon: "race", label: "Races", countKey: "races" },
+  { href: "/fitness", icon: "fitness", label: "Fitness" },
   { href: "/stats", icon: "stats", label: "Stats" },
   { href: "/heatmap", icon: "heatmap", label: "Heatmap" },
 ];

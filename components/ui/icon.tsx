@@ -29,7 +29,8 @@ export type IconName =
   | "settings"
   | "sparkle"
   | "play"
-  | "heatmap";
+  | "heatmap"
+  | "fitness";
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, "name"> {
   name: IconName;
@@ -226,6 +227,12 @@ export function Icon({ name, size = 16, className = "", ...rest }: IconProps) {
           <circle cx="12" cy="12" r="3" />
           <circle cx="12" cy="12" r="6.5" opacity="0.6" />
           <circle cx="12" cy="12" r="10" opacity="0.3" />
+        </svg>
+      );
+    case "fitness":
+      return (
+        <svg {...common}>
+          <path d="M3 12h4l2.5-6 4 12 2.5-6H21" />
         </svg>
       );
     default:

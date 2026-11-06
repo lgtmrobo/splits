@@ -58,6 +58,7 @@ Font: Geist + Geist Mono. Accent: electric green `#8EF542` (swappable via the fl
     /plan             burndown + week view + next-week peek
     /shoes            active rotation + retired
     /races            upcoming + completed
+    /fitness          fitness/fatigue/form (CTL/ATL/TSB) + race-day projection, peak performances, VDOT, trail volume, thresholds
     /stats            6-month mileage, pace trend, zones, YTD, longest, best 10K
   /(auth)             login + connect-strava
   /api
@@ -76,6 +77,7 @@ Font: Geist + Geist Mono. Accent: electric green `#8EF542` (swappable via the fl
   /supabase           browser + server + service-role clients · queries.ts (every page reads through this)
   /ai                 prompts + Anthropic runner (scaffold)
   /plan               activity ↔ planned_run matcher
+  /fitness            TSS (HR → pace → duration), PMC, best efforts/VDOT, GAP, weekly vert — pure, tested in scripts/test-fitness.mjs
   /utils              units (m↔mi), dates (TZ-safe + APP_TIMEZONE-aware)
 /supabase/migrations
   00001_init.sql           tables + indexes

@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { matchPlannedRunsForAthlete } from "@/lib/plan/matching";
 import {
   backfillActivities,
-  backfillPolylines,
+  backfillDetails,
   syncGear,
 } from "@/lib/strava/sync";
 import { backfillAllWhoop } from "@/lib/whoop/sync";
@@ -40,7 +40,7 @@ export async function POST(_req: NextRequest) {
       14 / 365,
     );
     await syncGear(athlete.id as string);
-    await backfillPolylines(athlete.id as string);
+    await backfillDetails(athlete.id as string);
     out.inserted = inserted;
   } catch (e) {
     out.error = `strava: ${String(e)}`;
