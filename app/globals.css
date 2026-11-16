@@ -599,6 +599,19 @@ body {
   padding: 8px 12px;
   border-bottom: 1px solid var(--hairline);
 }
+/* Long runs (ultras) have 40+ mile splits — cap the list and scroll it,
+   keeping the header pinned. */
+.tbl-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.tbl-scroll .tbl thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 1;
+}
 .tbl td {
   padding: 10px 12px;
   border-bottom: 1px solid var(--hairline);
