@@ -1,8 +1,20 @@
-import { createServerSupabase, createServiceRoleSupabase } from "@/lib/supabase/server";
-import { assignGearColors, GEAR_PALETTE, RETIRED_GEAR_COLOR } from "@/lib/gear/colors";
+import {
+  createServerSupabase,
+  createServiceRoleSupabase,
+} from "@/lib/supabase/server";
+import {
+  assignGearColors,
+  GEAR_PALETTE,
+  RETIRED_GEAR_COLOR,
+} from "@/lib/gear/colors";
 import { groupSegmentsByActivity } from "@/lib/gear/segments";
 import { decodePolyline } from "@/lib/strava/polyline";
-import { addDaysISO, dayDiff, sundayOfISO, todayLocalISO } from "@/lib/utils/dates";
+import {
+  addDaysISO,
+  dayDiff,
+  sundayOfISO,
+  todayLocalISO,
+} from "@/lib/utils/dates";
 import type {
   Activity,
   ActivityGearSegment,
@@ -549,10 +561,17 @@ async function gearColors(): Promise<Map<string, string>> {
   const { data, error } = await admin.from("gear").select("id, retired, color");
   if (error) throw error;
   const { colors, changed } = assignGearColors(
-    (data ?? []).map((g) => ({ id: g.id as string, retired: !!g.retired, color: (g.color as string | null) ?? null })),
+    (data ?? []).map((g) => ({
+      id: g.id as string,
+      retired: !!g.retired,
+      color: (g.color as string | null) ?? null,
+    })),
   );
   for (const [id, color] of changed) {
-    const { error: updateError } = await admin.from("gear").update({ color }).eq("id", id);
+    const { error: updateError } = await admin
+      .from("gear")
+      .update({ color })
+      .eq("id", id);
     if (updateError) throw updateError;
   }
   return colors;
@@ -561,7 +580,9 @@ async function gearColors(): Promise<Map<string, string>> {
 function decorateGear(rows: any[], colors: Map<string, string>): Gear[] {
   return rows.map((g) => ({
     ...g,
-    color: g.retired ? RETIRED_GEAR_COLOR : (colors.get(g.id) ?? GEAR_PALETTE[0]),
+    color: g.retired
+      ? RETIRED_GEAR_COLOR
+      : (colors.get(g.id) ?? GEAR_PALETTE[0]),
     purpose: g.description ?? "",
     cap_m:
       g.cap_m != null ? Number(g.cap_m) : defaultCapM(g.description ?? null),
@@ -631,6 +652,8 @@ export async function getUpcomingRaces(): Promise<Race[]> {
     .from("races")
     .select("*")
     .eq("status", "upcoming")
+    // A race whose day has passed isn't "next" even before it's marked done.
+    .gte("race_date", todayLocalISO())
     .order("race_date", { ascending: true });
   if (error) throw error;
   return (data ?? []).map(decorateRace);

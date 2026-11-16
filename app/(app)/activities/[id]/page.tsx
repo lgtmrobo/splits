@@ -453,66 +453,68 @@ export default async function ActivityDetailPage({ params }: Props) {
               No splits — streams not yet fetched for this activity.
             </div>
           ) : (
-            <table className="tbl" style={{ fontSize: 12 }}>
-              <thead>
-                <tr>
-                  <th>Mi</th>
-                  <th className="num">Pace</th>
-                  <th></th>
-                  <th className="num">HR</th>
-                  <th className="num">Elev</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detail.splits.map((s, i) => {
-                  const totalSec = splitPaceSecs[i];
-                  const range = maxSplitSec - minSplitSec || 1;
-                  const pct = Math.max(
-                    0.08,
-                    1 - (totalSec - minSplitSec) / range,
-                  );
-                  const isFastest = fastestSplit && s.mi === fastestSplit.mi;
-                  return (
-                    <tr key={i}>
-                      <td className="num">{s.mi}</td>
-                      <td
-                        className="num"
-                        style={{
-                          color: isFastest ? "var(--accent)" : "var(--text-1)",
-                          fontWeight: isFastest ? 500 : 400,
-                        }}
-                      >
-                        {s.pace}
-                      </td>
-                      <td style={{ width: "40%" }}>
-                        <div
+            <div className="tbl-scroll">
+              <table className="tbl" style={{ fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    <th>Mi</th>
+                    <th className="num">Pace</th>
+                    <th></th>
+                    <th className="num">HR</th>
+                    <th className="num">Elev</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detail.splits.map((s, i) => {
+                    const totalSec = splitPaceSecs[i];
+                    const range = maxSplitSec - minSplitSec || 1;
+                    const pct = Math.max(
+                      0.08,
+                      1 - (totalSec - minSplitSec) / range,
+                    );
+                    const isFastest = fastestSplit && s.mi === fastestSplit.mi;
+                    return (
+                      <tr key={i}>
+                        <td className="num">{s.mi}</td>
+                        <td
+                          className="num"
                           style={{
-                            height: 4,
-                            background: "var(--surface-3)",
-                            borderRadius: 2,
+                            color: isFastest ? "var(--accent)" : "var(--text-1)",
+                            fontWeight: isFastest ? 500 : 400,
                           }}
                         >
+                          {s.pace}
+                        </td>
+                        <td style={{ width: "40%" }}>
                           <div
                             style={{
-                              width: `${pct * 100}%`,
-                              height: "100%",
-                              background: isFastest
-                                ? "var(--accent)"
-                                : "var(--text-3)",
+                              height: 4,
+                              background: "var(--surface-3)",
                               borderRadius: 2,
                             }}
-                          />
-                        </div>
-                      </td>
-                      <td className="num">{s.hr || "—"}</td>
-                      <td className="num muted">
-                        {s.elev_ft > 0 ? `+${s.elev_ft}` : s.elev_ft}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                          >
+                            <div
+                              style={{
+                                width: `${pct * 100}%`,
+                                height: "100%",
+                                background: isFastest
+                                  ? "var(--accent)"
+                                  : "var(--text-3)",
+                                borderRadius: 2,
+                              }}
+                            />
+                          </div>
+                        </td>
+                        <td className="num">{s.hr || "—"}</td>
+                        <td className="num muted">
+                          {s.elev_ft > 0 ? `+${s.elev_ft}` : s.elev_ft}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
