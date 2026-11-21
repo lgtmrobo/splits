@@ -20,6 +20,7 @@ const PAGES = [
   // Pick a representative activity (the threshold workout in mock data has streams + analysis)
   { name: "activity", path: "/activities/10000000011" },
   { name: "shoes", path: "/shoes" },
+  { name: "fitness", path: "/fitness" },
   { name: "stats", path: "/stats" },
   { name: "races", path: "/races" },
 ];
@@ -38,7 +39,15 @@ for (const { name, path } of PAGES) {
   const url = `${BASE}${path}`;
   console.log(`→ ${url}`);
   try {
-    await page.goto(url, { waitUntil: "networkidle", timeout: 30_000 });
+    // Map tiles can keep the network busy indefinitely, so a networkidle
+    // timeout just means "screenshot what's loaded".
+    await page
+      .goto(url, { waitUntil: "networkidle", timeout: 15_000 })
+      .catch((e) => {
+        if (!e.message.includes("Timeout")) throw e;
+      });
+    // Hide the Next.js dev-tools badge so it doesn't end up in the shots.
+    await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
     // Let any post-mount animations settle (sparklines, ring fills)
     await page.waitForTimeout(800);
     const out = `${OUT_DIR}/${name}.png`;

@@ -9,7 +9,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "screenshots": "node scripts/screenshot.mjs",
-    "test": "node --experimental-strip-types --test scripts/test-gear-segments.mjs scripts/test-fitness.mjs"
+    "test": "node --experimental-strip-types --test scripts/test-gear-segments.mjs scripts/test-fitness.mjs scripts/test-plan-csv.mjs",
+    "check-env": "node scripts/check-env.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
@@ -33,5 +34,8 @@
     "postcss": "^8.4.38",
     "tailwindcss": "^4.3.4",
     "typescript": "^5.5.3"
+  },
+  "engines": {
+    "node": ">=22.6"
   }
 }

@@ -90,13 +90,18 @@ export default async function ActivityDetailPage({ params }: Props) {
   let detail = await getActivityDetail(Number(id));
   if (!detail) notFound();
 
-  // Lazy-fetch streams the first time this activity is opened.
-  const admin = createServiceRoleSupabase();
-  const { data: cached } = await admin
-    .from("activity_streams")
-    .select("activity_id")
-    .eq("activity_id", detail.activity.id)
-    .maybeSingle();
+  // Lazy-fetch streams the first time this activity is opened. Mock mode
+  // has no database or Strava to fetch from — the mock detail already has streams.
+  const isMock = process.env.MOCK_DATA === "true";
+  const cached = isMock
+    ? true
+    : (
+        await createServiceRoleSupabase()
+          .from("activity_streams")
+          .select("activity_id")
+          .eq("activity_id", detail.activity.id)
+          .maybeSingle()
+      ).data;
   if (!cached) {
     // Build straight off the row `fetchActivityStreams` just wrote instead
     // of re-querying — a read-after-write isn't guaranteed to see it within
@@ -130,15 +135,18 @@ export default async function ActivityDetailPage({ params }: Props) {
     if (streamRow) detail = buildActivityDetail(detail.activity, streamRow);
   }
 
-  const [analysis, allGear, planned, whoop, fitnessInputs, gapSpeed] = await Promise.all([
-    getAnalysisForActivity(detail.activity.id),
-    getAllGear(),
-    getPlannedRunByDate(detail.activity.start_date_local.slice(0, 10)),
-    getWhoopWorkoutForActivity(detail.activity.id),
-    getFitnessInputs(),
-    getGradeAdjustedSpeed(detail.activity.id),
-  ]);
-  const stress = buildFitnessModel(fitnessInputs).tssByActivity.get(detail.activity.id) ?? null;
+  const [analysis, allGear, planned, whoop, fitnessInputs, gapSpeed] =
+    await Promise.all([
+      getAnalysisForActivity(detail.activity.id),
+      getAllGear(),
+      getPlannedRunByDate(detail.activity.start_date_local.slice(0, 10)),
+      getWhoopWorkoutForActivity(detail.activity.id),
+      getFitnessInputs(),
+      getGradeAdjustedSpeed(detail.activity.id),
+    ]);
+  const stress =
+    buildFitnessModel(fitnessInputs).tssByActivity.get(detail.activity.id) ??
+    null;
 
   // If we have WHOOP zones, replace the synthetic zone shape with real data.
   const hrZones =
@@ -368,7 +376,11 @@ export default async function ActivityDetailPage({ params }: Props) {
               <Stat
                 label="TSS"
                 value={stress ? String(stress.tss) : "—"}
-                unit={stress ? `IF ${stress.intensity.toFixed(2)} · ${TSS_METHOD_LABEL[stress.method]}` : ""}
+                unit={
+                  stress
+                    ? `IF ${stress.intensity.toFixed(2)} · ${TSS_METHOD_LABEL[stress.method]}`
+                    : ""
+                }
               />
             </div>
           </div>
@@ -479,7 +491,9 @@ export default async function ActivityDetailPage({ params }: Props) {
                         <td
                           className="num"
                           style={{
-                            color: isFastest ? "var(--accent)" : "var(--text-1)",
+                            color: isFastest
+                              ? "var(--accent)"
+                              : "var(--text-1)",
                             fontWeight: isFastest ? 500 : 400,
                           }}
                         >

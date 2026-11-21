@@ -1,3 +1,4 @@
+import { clampDays, historyFromMs } from "@/lib/auth/history";
 import { createServiceRoleSupabase } from "@/lib/supabase/server";
 import { whoopFetch } from "@/lib/whoop/client";
 import type {
@@ -155,7 +156,8 @@ export async function backfillWorkouts(athleteId: string, days = 30) {
 }
 
 /** Run the full WHOOP backfill (recovery + cycles + workouts). */
-export async function backfillAllWhoop(athleteId: string, days = 30) {
+export async function backfillAllWhoop(athleteId: string, requestedDays = 30) {
+  const days = clampDays(requestedDays, await historyFromMs(athleteId));
   const r = await backfillRecovery(athleteId, days);
   const c = await backfillCycles(athleteId, days);
   const w = await backfillWorkouts(athleteId, days);

@@ -1,0 +1,8 @@
+date,workout_type,distance_mi,pace_per_mi,description
+2027-01-04,easy,5,9:30,Easy 5 — conversational
+2027-01-05,rest,,,
+2027-01-06,workout,7,7:45,"2mi warmup, 3x1mi @ threshold w/ 2:00 jog, cooldown"
+2027-01-07,recovery,3,10:00,Shakeout
+2027-01-08,rest,,,
+2027-01-09,long,12,9:15,Long run — last 2mi at goal pace
+2027-01-10,easy,4,,Easy 4

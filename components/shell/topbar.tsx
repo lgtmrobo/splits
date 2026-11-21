@@ -30,7 +30,7 @@ function todayLabel(): string {
   return `${DAYS_LONG[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
-export function Topbar() {
+export function Topbar({ initial }: { initial: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const p = metaForPath(pathname);
@@ -76,7 +76,7 @@ export function Topbar() {
             color: "var(--text-1)",
           }}
         >
-          B
+          {initial}
         </div>
       </div>
     </div>

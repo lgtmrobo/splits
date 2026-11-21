@@ -1,7 +1,19 @@
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
+import { isOwnerEmail } from "@/lib/auth/allowlist";
+import { createServerSupabase } from "@/lib/supabase/server";
 
-export default function ConnectStravaPage() {
+// Copy depends on who is signed in (owner vs invited), so never prerender.
+export const dynamic = "force-dynamic";
+
+export default async function ConnectStravaPage() {
+  const sb = await createServerSupabase();
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
+  // The owner gets a 2-year history import; invited users start fresh.
+  const importsHistory = isOwnerEmail(user?.email);
+
   return (
     <div
       className="card card-panel"
@@ -37,9 +49,16 @@ export default function ConnectStravaPage() {
           Connect your Strava
         </h1>
         <p className="muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>
-          Splits reads your activities from Strava. On first connect we'll
-          backfill the last 2 years of runs. Everything stays in your
-          database — we never share or sell your data.
+          Splits reads your runs from Strava.{" "}
+          {importsHistory
+            ? "On first connect we'll import the last 2 years of runs."
+            : "Tracking starts from the moment you connect — past runs aren't imported."}{" "}
+          Your data is never shared or sold.
+        </p>
+        <p className="muted" style={{ margin: 0, fontSize: 12, lineHeight: 1.5 }}>
+          Use COROS, Garmin or another watch? Make a free Strava account and
+          turn on Strava sync in your watch&apos;s app — runs flow through
+          automatically.
         </p>
       </div>
 
@@ -53,7 +72,7 @@ export default function ConnectStravaPage() {
         </div>
         <div className="row gap-8">
           <span style={{ color: "var(--accent)" }}>✓</span>
-          <span>You can disconnect anytime from settings</span>
+          <span>Revoke anytime in Strava → Settings → My Apps</span>
         </div>
         <div className="row gap-8">
           <span style={{ color: "var(--accent)" }}>✓</span>

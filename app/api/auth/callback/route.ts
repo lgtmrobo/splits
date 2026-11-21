@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isAllowedEmail } from "@/lib/auth/allowlist";
 import { createServerSupabase } from "@/lib/supabase/server";
 
 export async function GET(req: NextRequest) {
@@ -13,9 +14,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=session", req.url));
   }
 
-  // Email allowlist check — single-user lockdown
-  const allowed = process.env.ALLOWED_EMAIL;
-  if (!allowed || data.user.email !== allowed) {
+  // Email allowlist check (ALLOWED_EMAILS)
+  if (!isAllowedEmail(data.user.email)) {
     await supabase.auth.signOut();
     return NextResponse.redirect(new URL("/login?error=unauthorized", req.url));
   }

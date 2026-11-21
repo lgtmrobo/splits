@@ -3,6 +3,7 @@ import { BurndownChart } from "@/components/charts/burndown-chart";
 import { Icon } from "@/components/ui/icon";
 import { PlanViewSwitcher } from "@/app/(app)/plan/view-switcher";
 import { BlockRecap } from "@/app/(app)/plan/block-recap";
+import { ImportPlanButton } from "@/app/(app)/plan/import-plan";
 import { CardHeader, Pill } from "@/components/ui/primitives";
 import { TypePill } from "@/components/ui/type-pill";
 import { RouteMap } from "@/components/maps/route-map";
@@ -71,9 +72,27 @@ export default async function PlanPage({
   if (!plan) {
     return (
       <div className="content fadein">
-        <div className="muted" style={{ padding: 40, textAlign: "center" }}>
-          {requestedPlanId ? "Plan not found." : "No active training plan."}
-        </div>
+        {requestedPlanId ? (
+          <div className="muted" style={{ padding: 40, textAlign: "center" }}>
+            Plan not found.
+          </div>
+        ) : (
+          <div
+            className="col gap-10"
+            style={{ padding: "64px 24px", alignItems: "center", textAlign: "center" }}
+          >
+            <div style={{ fontSize: 16, fontWeight: 500 }}>No training block yet</div>
+            <p className="muted" style={{ margin: 0, fontSize: 13, maxWidth: 420, lineHeight: 1.5 }}>
+              Upload your block as a CSV (one row per day) and Splits will track
+              each run against it.{" "}
+              <a href="/plan-template.csv" download style={{ color: "var(--accent)" }}>
+                Download the template
+              </a>{" "}
+              to get started.
+            </p>
+            <ImportPlanButton primary />
+          </div>
+        )}
       </div>
     );
   }
@@ -267,12 +286,24 @@ export default async function PlanPage({
         </h1>
         <div className="row gap-10">
           <PlanViewSwitcher />
-          <button type="button" className="btn">
-            Export
-          </button>
-          <button type="button" className="btn primary">
-            Edit plan
-          </button>
+          <ImportPlanButton
+            existing={
+              isPastBlock
+                ? undefined
+                : {
+                    planId: plan.id,
+                    name: plan.name,
+                    race: goalRace
+                      ? {
+                          name: goalRace.name,
+                          race_date: goalRace.race_date,
+                          distance_m: Number(goalRace.distance_m),
+                          goal_time_s: goalRace.goal_time_s,
+                        }
+                      : null,
+                  }
+            }
+          />
         </div>
       </div>
 
