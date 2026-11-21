@@ -2,9 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentAthleteId } from "@/lib/auth/athlete";
-import { parseGoalTime, parsePlanCsv } from "@/lib/plan/csv";
+import {
+  blockEndDate,
+  parseGoalTime,
+  parsePlanCsv,
+  splitAtToday,
+  type PlannedRunInput,
+} from "@/lib/plan/csv";
 import { matchPlannedRunsForAthlete } from "@/lib/plan/matching";
 import { createServiceRoleSupabase } from "@/lib/supabase/server";
+import { todayLocalISO } from "@/lib/utils/dates";
 
 const M_PER_MILE = 1609.344;
 const MAX_CSV_BYTES = 256 * 1024;
@@ -22,9 +29,21 @@ interface RaceInput {
   goal_time_s: number | null;
 }
 
+interface ValidForm {
+  name: string;
+  rows: PlannedRunInput[];
+  race: RaceInput | null;
+}
+
+type Admin = ReturnType<typeof createServiceRoleSupabase>;
+
 function text(form: FormData, key: string): string {
   const v = form.get(key);
   return typeof v === "string" ? v.trim() : "";
+}
+
+function fail(message: string, details?: string[]): ImportPlanState {
+  return { status: "error", message, details };
 }
 
 /** Optional goal race from the form. `null` = none; string = validation error. */
@@ -54,100 +73,101 @@ function readRace(form: FormData): RaceInput | null | string {
   };
 }
 
+/** Name + CSV + race, validated. Returns an error state on any problem. */
+async function readForm(form: FormData): Promise<ValidForm | ImportPlanState> {
+  const name = text(form, "name");
+  if (!name) return fail("Give the block a name.");
+  if (name.length > MAX_NAME_LENGTH) return fail("Block name is too long.");
+
+  const file = form.get("csv");
+  if (!(file instanceof File) || file.size === 0) return fail("Choose a CSV file.");
+  if (file.size > MAX_CSV_BYTES) return fail("That file is too big for a training block.");
+
+  const race = readRace(form);
+  if (typeof race === "string") return fail(race);
+
+  const { rows, errors } = parsePlanCsv(await file.text());
+  if (errors.length > 0) {
+    return fail(
+      "Some rows couldn't be read. Fix them and upload again — nothing was changed.",
+      errors.slice(0, 20),
+    );
+  }
+  if (rows.length === 0) return fail("The CSV has no workouts in it.");
+  return { name, rows, race };
+}
+
+/** New block, or (mode=replace) a replacement schedule for an existing one. */
 export async function importPlan(
   _prev: ImportPlanState,
   form: FormData,
 ): Promise<ImportPlanState> {
-  const name = text(form, "name");
-  if (!name) return { status: "error", message: "Give the block a name." };
-  if (name.length > MAX_NAME_LENGTH) {
-    return { status: "error", message: "Block name is too long." };
-  }
-
-  const file = form.get("csv");
-  if (!(file instanceof File) || file.size === 0) {
-    return { status: "error", message: "Choose a CSV file." };
-  }
-  if (file.size > MAX_CSV_BYTES) {
-    return { status: "error", message: "That file is too big for a training block." };
-  }
-
-  const race = readRace(form);
-  if (typeof race === "string") return { status: "error", message: race };
-
-  const { rows, errors } = parsePlanCsv(await file.text());
-  if (errors.length > 0) {
-    return {
-      status: "error",
-      message: "Some rows couldn't be read. Fix them and upload again — nothing was imported.",
-      details: errors.slice(0, 20),
-    };
-  }
-  if (rows.length === 0) {
-    return { status: "error", message: "The CSV has no workouts in it." };
-  }
+  const parsed = await readForm(form);
+  if ("status" in parsed) return parsed;
 
   let athleteId: string;
   try {
     athleteId = await getCurrentAthleteId();
   } catch {
-    return { status: "error", message: "Connect Strava before importing a plan." };
+    return fail("Connect Strava before importing a plan.");
   }
 
-  const dates = rows.map((r) => r.scheduled_date).sort();
-  const startDate = dates[0];
-  const lastDate = dates[dates.length - 1];
-  const endDate = race && race.race_date > lastDate ? race.race_date : lastDate;
-
+  const replacing = text(form, "mode") === "replace";
   try {
-    const planId = await insertBlock(athleteId, name, startDate, endDate, race, rows);
+    const result = replacing
+      ? await replaceBlock(athleteId, text(form, "plan_id"), parsed)
+      : { planId: await insertBlock(athleteId, parsed), imported: parsed.rows.length };
+    if ("status" in result) return result;
+
     try {
       // Link any already-synced runs from the last two weeks.
       await matchPlannedRunsForAthlete(athleteId);
     } catch (e) {
       console.error("[plan import] matching failed", e);
     }
-    revalidatePath("/plan");
-    revalidatePath("/races");
-    revalidatePath("/");
-    return { status: "ok", planId, imported: rows.length };
+    revalidatePlanViews();
+    return { status: "ok", ...result };
   } catch (e) {
-    console.error("[plan import] insert failed", e);
-    return { status: "error", message: "Couldn't save the plan. Try again in a moment." };
+    console.error("[plan import] save failed", e);
+    return fail("Couldn't save the plan. Try again in a moment.");
   }
 }
 
+/** Delete a block and its planned workouts. Runs and races are untouched. */
+export async function deletePlan(planId: string): Promise<void> {
+  const athleteId = await getCurrentAthleteId();
+  const { error } = await createServiceRoleSupabase()
+    .from("training_plans")
+    .delete()
+    .eq("id", planId)
+    .eq("athlete_id", athleteId);
+  if (error) throw new Error(error.message);
+  revalidatePlanViews();
+}
+
+function revalidatePlanViews() {
+  revalidatePath("/plan");
+  revalidatePath("/races");
+  revalidatePath("/");
+}
+
 /** Race → plan → planned runs. Rolls back what it created if a step fails. */
-async function insertBlock(
-  athleteId: string,
-  name: string,
-  startDate: string,
-  endDate: string,
-  race: RaceInput | null,
-  rows: ReturnType<typeof parsePlanCsv>["rows"],
-): Promise<string> {
+async function insertBlock(athleteId: string, { name, rows, race }: ValidForm): Promise<string> {
   const admin = createServiceRoleSupabase();
+  const dates = rows.map((r) => r.scheduled_date).sort();
   let raceId: string | null = null;
   let planId: string | null = null;
 
   try {
-    if (race) {
-      const { data, error } = await admin
-        .from("races")
-        .insert({ athlete_id: athleteId, status: "upcoming", ...race })
-        .select("id")
-        .single();
-      if (error) throw error;
-      raceId = data.id as string;
-    }
+    if (race) raceId = await insertRace(admin, athleteId, race);
 
     const { data: plan, error: planErr } = await admin
       .from("training_plans")
       .insert({
         athlete_id: athleteId,
         name,
-        start_date: startDate,
-        end_date: endDate,
+        start_date: dates[0],
+        end_date: blockEndDate(dates, race?.race_date),
         goal_race_id: raceId,
         active: true,
       })
@@ -173,4 +193,124 @@ async function insertBlock(
     if (raceId) await admin.from("races").delete().eq("id", raceId);
     throw e;
   }
+}
+
+async function insertRace(admin: Admin, athleteId: string, race: RaceInput): Promise<string> {
+  const { data, error } = await admin
+    .from("races")
+    .insert({ athlete_id: athleteId, status: "upcoming", ...race })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+/**
+ * Swap today-onward for the CSV's rows; days before today (and which runs
+ * completed them) stay as recorded. Restores the old schedule on failure.
+ */
+async function replaceBlock(
+  athleteId: string,
+  planId: string,
+  { name, rows, race }: ValidForm,
+): Promise<{ planId: string; imported: number } | ImportPlanState> {
+  const admin = createServiceRoleSupabase();
+  const { data: plan, error: planErr } = await admin
+    .from("training_plans")
+    .select("id, goal_race_id")
+    .eq("id", planId)
+    .eq("athlete_id", athleteId)
+    .maybeSingle();
+  if (planErr) throw planErr;
+  if (!plan) return fail("That block no longer exists.");
+
+  const today = todayLocalISO();
+  const { future } = splitAtToday(rows, today);
+  if (future.length === 0) {
+    return fail(
+      "No workouts dated today or later. Past days are kept as they are, so only today onward can be replaced.",
+    );
+  }
+
+  const { data: snapshot, error: snapErr } = await admin
+    .from("planned_runs")
+    .select("*")
+    .eq("plan_id", planId)
+    .gte("scheduled_date", today);
+  if (snapErr) throw snapErr;
+
+  const { error: delErr } = await admin
+    .from("planned_runs")
+    .delete()
+    .eq("plan_id", planId)
+    .gte("scheduled_date", today);
+  if (delErr) throw delErr;
+
+  const { error: insErr } = await admin
+    .from("planned_runs")
+    .insert(future.map((r) => ({ ...r, plan_id: planId })));
+  if (insErr) {
+    if (snapshot?.length) await admin.from("planned_runs").insert(snapshot);
+    throw insErr;
+  }
+
+  const raceId = await syncGoalRace(admin, athleteId, planId, plan.goal_race_id as string | null, race);
+  const [first, last] = await planDateRange(admin, planId);
+  const { error: updErr } = await admin
+    .from("training_plans")
+    .update({
+      name,
+      start_date: first,
+      end_date: blockEndDate([last], race?.race_date),
+      goal_race_id: raceId,
+    })
+    .eq("id", planId);
+  if (updErr) throw updErr;
+
+  return { planId, imported: future.length };
+}
+
+/** Update, add or unlink the block's goal race to match the form. */
+async function syncGoalRace(
+  admin: Admin,
+  athleteId: string,
+  planId: string,
+  currentRaceId: string | null,
+  race: RaceInput | null,
+): Promise<string | null> {
+  if (!race) {
+    // Unchecked: unlink but keep the race itself on the Races page.
+    if (currentRaceId) {
+      await admin.from("races").update({ plan_id: null }).eq("id", currentRaceId);
+    }
+    return null;
+  }
+  if (currentRaceId) {
+    const { error } = await admin
+      .from("races")
+      .update(race)
+      .eq("id", currentRaceId)
+      .eq("athlete_id", athleteId);
+    if (error) throw error;
+    return currentRaceId;
+  }
+  const raceId = await insertRace(admin, athleteId, race);
+  const { error } = await admin.from("races").update({ plan_id: planId }).eq("id", raceId);
+  if (error) throw error;
+  return raceId;
+}
+
+async function planDateRange(admin: Admin, planId: string): Promise<[string, string]> {
+  const edge = async (ascending: boolean) => {
+    const { data, error } = await admin
+      .from("planned_runs")
+      .select("scheduled_date")
+      .eq("plan_id", planId)
+      .order("scheduled_date", { ascending })
+      .limit(1)
+      .single();
+    if (error) throw error;
+    return data.scheduled_date as string;
+  };
+  return [await edge(true), await edge(false)];
 }

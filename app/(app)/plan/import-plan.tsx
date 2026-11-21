@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { importPlan, type ImportPlanState } from "./actions";
+import { deletePlan, importPlan, type ImportPlanState } from "./actions";
 
 const M_PER_MILE = 1609.344;
 
@@ -17,7 +17,25 @@ const RACE_DISTANCES = [
 
 const INITIAL: ImportPlanState = { status: "idle" };
 
-export function ImportPlanButton({ primary = false }: { primary?: boolean }) {
+/** The block being viewed, for replace mode. */
+export interface ExistingBlock {
+  planId: string;
+  name: string;
+  race: {
+    name: string;
+    race_date: string;
+    distance_m: number;
+    goal_time_s: number | null;
+  } | null;
+}
+
+export function ImportPlanButton({
+  primary = false,
+  existing,
+}: {
+  primary?: boolean;
+  existing?: ExistingBlock;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -26,25 +44,55 @@ export function ImportPlanButton({ primary = false }: { primary?: boolean }) {
         className={primary ? "btn primary" : "btn"}
         onClick={() => setOpen(true)}
       >
-        Upload block (CSV)
+        {existing ? "Update block" : "Upload block (CSV)"}
       </button>
-      {open && <ImportPlanDialog onClose={() => setOpen(false)} />}
+      {open && <ImportPlanDialog existing={existing} onClose={() => setOpen(false)} />}
     </>
   );
 }
 
-function ImportPlanDialog({ onClose }: { onClose: () => void }) {
+function formatGoal(s: number | null): string {
+  if (s == null) return "";
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = String(s % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
+}
+
+/** Preset select value for a stored distance, or "custom". */
+function distancePreset(distanceM: number | undefined): string {
+  if (distanceM == null) return String(RACE_DISTANCES[2].value);
+  const match = RACE_DISTANCES.find((d) => Math.abs(d.value - distanceM) < 2);
+  return match ? String(match.value) : "custom";
+}
+
+function ImportPlanDialog({
+  existing,
+  onClose,
+}: {
+  existing?: ExistingBlock;
+  onClose: () => void;
+}) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(importPlan, INITIAL);
-  const [withRace, setWithRace] = useState(false);
-  const [distance, setDistance] = useState(String(RACE_DISTANCES[2].value));
+  const [deleting, startDelete] = useTransition();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [asNew, setAsNew] = useState(false);
+  const replacing = !!existing && !asNew;
+  const race = replacing ? existing.race : null;
+
+  const [withRace, setWithRace] = useState(!!race);
+  const [distance, setDistance] = useState(distancePreset(race?.distance_m));
   // Controlled so values survive React resetting the form after a failed submit.
   const [fields, setFields] = useState({
-    name: "",
-    race_name: "",
-    race_date: "",
-    goal_time: "",
-    race_distance_mi: "",
+    name: replacing ? existing.name : "",
+    race_name: race?.name ?? "",
+    race_date: race?.race_date ?? "",
+    goal_time: formatGoal(race?.goal_time_s ?? null),
+    race_distance_mi:
+      race && distancePreset(race.distance_m) === "custom"
+        ? (race.distance_m / M_PER_MILE).toFixed(1)
+        : "",
   });
   const bind = (key: keyof typeof fields) => ({
     name: key,
@@ -56,15 +104,37 @@ function ImportPlanDialog({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (state.status === "ok") {
       onClose();
-      router.push("/plan");
+      router.push(replacing ? `/plan?plan=${state.planId}` : "/plan");
       router.refresh();
     }
-  }, [state, onClose, router]);
+  }, [state, onClose, router, replacing]);
+
+  const remove = () => {
+    if (!existing) return;
+    if (
+      !confirm(
+        `Delete "${existing.name}" and all its planned workouts? Your runs and races aren't affected.`,
+      )
+    )
+      return;
+    startDelete(async () => {
+      try {
+        await deletePlan(existing.planId);
+        onClose();
+        router.push("/plan");
+        router.refresh();
+      } catch (e) {
+        setDeleteError(String(e));
+      }
+    });
+  };
+
+  const busy = pending || deleting;
 
   return (
     <div
       role="dialog"
-      aria-label="Upload training block"
+      aria-label={replacing ? "Update training block" : "Upload training block"}
       style={{
         position: "fixed",
         inset: 0,
@@ -90,9 +160,12 @@ function ImportPlanDialog({ onClose }: { onClose: () => void }) {
           gap: 14,
         }}
       >
+        <input type="hidden" name="mode" value={replacing ? "replace" : "new"} />
+        {replacing && <input type="hidden" name="plan_id" value={existing.planId} />}
+
         <div className="row between baseline">
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 500, letterSpacing: "-0.01em" }}>
-            Upload training block
+            {replacing ? "Update training block" : "Upload training block"}
           </h2>
           <button
             type="button"
@@ -111,11 +184,18 @@ function ImportPlanDialog({ onClose }: { onClose: () => void }) {
         </div>
 
         <p className="muted" style={{ margin: 0, fontSize: 12, lineHeight: 1.5 }}>
-          One row per day: date, workout type, miles, target pace, description.{" "}
+          {replacing ? (
+            <>
+              Upload your edited sheet. <strong>Today onward is replaced</strong> by the CSV;
+              days before today stay as they are, so it&apos;s fine to re-upload the whole file.{" "}
+            </>
+          ) : (
+            <>One row per day: date, workout type, miles, target pace, description. </>
+          )}
           <a href="/plan-template.csv" download style={{ color: "var(--accent)" }}>
             Download the template
           </a>
-          , fill it in (Google Sheets → File → Download → CSV works), and upload it here.
+          {replacing ? "." : " (Google Sheets → File → Download → CSV works)."}
         </p>
 
         <Field label="Block name *">
@@ -164,6 +244,13 @@ function ImportPlanDialog({ onClose }: { onClose: () => void }) {
           </>
         )}
 
+        {existing && (
+          <label className="row gap-6" style={{ fontSize: 12, cursor: "pointer" }}>
+            <input type="checkbox" checked={asNew} onChange={(e) => setAsNew(e.target.checked)} />
+            Upload as a separate new block instead
+          </label>
+        )}
+
         {state.status === "error" && (
           <div style={{ color: "var(--red)", fontSize: 12, lineHeight: 1.5 }}>
             {state.message}
@@ -176,14 +263,32 @@ function ImportPlanDialog({ onClose }: { onClose: () => void }) {
             )}
           </div>
         )}
+        {deleteError && (
+          <div style={{ color: "var(--red)", fontSize: 12 }}>{deleteError}</div>
+        )}
 
-        <div className="row gap-8" style={{ justifyContent: "flex-end", marginTop: 6 }}>
-          <button type="button" className="btn" onClick={onClose} disabled={pending}>
-            Cancel
-          </button>
-          <button type="submit" className="btn primary" disabled={pending}>
-            {pending ? "Importing…" : "Import block"}
-          </button>
+        <div className="row between" style={{ marginTop: 6 }}>
+          <div>
+            {existing && (
+              <button
+                type="button"
+                className="btn"
+                onClick={remove}
+                disabled={busy}
+                style={{ color: "var(--red)" }}
+              >
+                {deleting ? "Deleting…" : "Delete block"}
+              </button>
+            )}
+          </div>
+          <div className="row gap-8">
+            <button type="button" className="btn" onClick={onClose} disabled={busy}>
+              Cancel
+            </button>
+            <button type="submit" className="btn primary" disabled={busy}>
+              {pending ? "Saving…" : replacing ? "Replace schedule" : "Import block"}
+            </button>
+          </div>
         </div>
       </form>
     </div>

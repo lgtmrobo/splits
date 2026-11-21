@@ -57,7 +57,7 @@ pnpm check-env                 # tells you exactly what's missing, any time
 
 ### 2. Google sign-in
 
-1. In [Google Cloud Console](https://console.cloud.google.com): **APIs & Services → OAuth consent screen**, choose External, and add yourself (and anyone you'll invite) as test users.
+1. In [Google Cloud Console](https://console.cloud.google.com): **APIs & Services → OAuth consent screen**, choose External. Either publish it (*In production*; with only name and email scopes, no verification is needed) or keep it in *Testing* and add every invited email as a test user.
 2. **Credentials → Create OAuth client ID → Web application.** Set the authorized redirect URI to `https://<your-project-ref>.supabase.co/auth/v1/callback`.
 3. In Supabase: **Authentication → Providers → Google**, then paste in the client ID and secret.
 4. In Supabase: **Authentication → URL Configuration**: set the Site URL to your app URL and add `http://localhost:3000/**` (plus your prod URL) to the redirect URLs.
@@ -110,7 +110,7 @@ ALLOWED_EMAILS=you@gmail.com,friend@gmail.com
 
 - **The first email is the owner.** Only the owner's first Strava connect imports past runs. Invited people start fresh, and Splits tracks their runs from the moment they connect.
 - **Raise your Strava app's athlete limit.** New Strava API apps allow only 1 connected athlete. Request more on your app's settings page before inviting anyone.
-- **Add them as test users** on the Google OAuth consent screen, or publish the app.
+- **Google:** if your OAuth consent screen is in *Testing*, add them as test users. If it's *In production*, nothing to do, since `ALLOWED_EMAILS` is the gate.
 - **They don't need Strava already.** If they use COROS, Garmin, Apple Watch or similar, they can create a free Strava account and turn on Strava sync in their watch's app. Runs then flow through automatically.
 - Everyone's data is isolated by Postgres row-level security keyed to their login.
 
@@ -137,6 +137,8 @@ date,workout_type,distance_mi,pace_per_mi,description
 | `description` | no | free text. Wrap it in quotes if it contains commas. |
 
 The header row is optional, and blank lines and `#` comments are ignored. If any row is invalid, nothing is imported and every bad line is listed so you can fix it and re-upload. Runs are matched to planned workouts by date each night, or straight away with **Sync Strava**.
+
+**Editing a block:** edit your sheet, then click **Update block** and upload it again. Today onward is replaced by the file. Days before today stay as recorded, including which runs completed them, so re-uploading the whole sheet is fine. The same dialog can rename the block, change or remove its goal race, upload a separate new block instead, or **Delete block** (runs and races aren't affected).
 
 ---
 

@@ -286,7 +286,24 @@ export default async function PlanPage({
         </h1>
         <div className="row gap-10">
           <PlanViewSwitcher />
-          <ImportPlanButton />
+          <ImportPlanButton
+            existing={
+              isPastBlock
+                ? undefined
+                : {
+                    planId: plan.id,
+                    name: plan.name,
+                    race: goalRace
+                      ? {
+                          name: goalRace.name,
+                          race_date: goalRace.race_date,
+                          distance_m: Number(goalRace.distance_m),
+                          goal_time_s: goalRace.goal_time_s,
+                        }
+                      : null,
+                  }
+            }
+          />
         </div>
       </div>
 

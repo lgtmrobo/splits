@@ -2,7 +2,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { parseGoalTime, parsePlanCsv, splitCsvLine } from "../lib/plan/csv.ts";
+import {
+  blockEndDate,
+  parseGoalTime,
+  parsePlanCsv,
+  splitAtToday,
+  splitCsvLine,
+} from "../lib/plan/csv.ts";
 
 const MI = 1609.344;
 const HEADER = "date,workout_type,distance_mi,pace_per_mi,description";
@@ -68,4 +74,20 @@ test("parseGoalTime accepts h:mm:ss and mm:ss", () => {
   assert.equal(parseGoalTime(""), null);
   assert.equal(parseGoalTime("1:75:00"), undefined);
   assert.equal(parseGoalTime("abc"), undefined);
+});
+
+// ------------------------------------------------------------ replace mode
+test("splitAtToday keeps today and later, counts ignored past rows", () => {
+  const { rows } = parsePlanCsv(
+    "2027-01-04,easy,5,,\n2027-01-05,rest,,,\n2027-01-06,long,10,,\n2027-01-07,easy,4,,",
+  );
+  const { future, ignoredPast } = splitAtToday(rows, "2027-01-06");
+  assert.deepEqual(future.map((r) => r.scheduled_date), ["2027-01-06", "2027-01-07"]);
+  assert.equal(ignoredPast, 2);
+});
+
+test("blockEndDate is the latest of all dates and the race date", () => {
+  assert.equal(blockEndDate(["2027-01-04", "2027-02-01", "2027-01-10"]), "2027-02-01");
+  assert.equal(blockEndDate(["2027-01-04"], "2027-03-01"), "2027-03-01");
+  assert.equal(blockEndDate(["2027-01-04"], null), "2027-01-04");
 });

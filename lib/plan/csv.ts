@@ -156,3 +156,21 @@ export function parseGoalTime(value: string): number | null | undefined {
   if (s > 59 || (nums.length === 3 && m > 59)) return undefined;
   return h * 3600 + m * 60 + s;
 }
+
+/**
+ * Replace mode keeps the past as recorded history: only rows dated today or
+ * later replace the block's schedule; earlier rows are ignored.
+ */
+export function splitAtToday(
+  rows: PlannedRunInput[],
+  todayISO: string,
+): { future: PlannedRunInput[]; ignoredPast: number } {
+  const future = rows.filter((r) => r.scheduled_date >= todayISO);
+  return { future, ignoredPast: rows.length - future.length };
+}
+
+/** A block ends on its last workout or its goal race, whichever is later. */
+export function blockEndDate(dates: string[], raceDate?: string | null): string {
+  const all = raceDate ? [...dates, raceDate] : dates;
+  return all.reduce((max, d) => (d > max ? d : max));
+}
