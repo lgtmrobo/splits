@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { analyzeRun } from "@/lib/ai/analyze";
+import { getCurrentAthleteId } from "@/lib/auth/athlete";
 import { bestMatch } from "@/lib/plan/matching";
 import { createServerSupabase, createServiceRoleSupabase } from "@/lib/supabase/server";
 import type {
@@ -27,9 +28,12 @@ export async function GET(_req: NextRequest, { params }: Context) {
 
 // POST → generate (or force regenerate with ?force=1)
 export async function POST(req: NextRequest, { params }: Context) {
-  const authed = await createServerSupabase();
-  const { data: { user } } = await authed.auth.getUser();
-  if (!user) return NextResponse.json({ error: "unauth" }, { status: 401 });
+  let athleteId: string;
+  try {
+    athleteId = await getCurrentAthleteId();
+  } catch {
+    return NextResponse.json({ error: "unauth" }, { status: 401 });
+  }
 
   const force = req.nextUrl.searchParams.get("force") === "1";
   const admin = createServiceRoleSupabase();
@@ -40,8 +44,16 @@ export async function POST(req: NextRequest, { params }: Context) {
     .from("activities")
     .select("*")
     .eq("id", activityId)
-    .single();
+    .eq("athlete_id", athleteId)
+    .maybeSingle();
   if (!activity) return NextResponse.json({ error: "activity_not_found" }, { status: 404 });
+
+  // planned_runs has no athlete_id — scope it through the athlete's plans.
+  const { data: plans } = await admin
+    .from("training_plans")
+    .select("id")
+    .eq("athlete_id", athleteId);
+  const planIds = (plans ?? []).map((p) => p.id as string);
 
   const { data: recent } = await admin
     .from("activities")
@@ -56,6 +68,7 @@ export async function POST(req: NextRequest, { params }: Context) {
   const { data: candidates } = await admin
     .from("planned_runs")
     .select("*")
+    .in("plan_id", planIds)
     .eq("scheduled_date", activityDate);
   const matched = candidates
     ? bestMatch(activity as Activity, candidates as PlannedRun[])?.planned ?? null
@@ -68,6 +81,7 @@ export async function POST(req: NextRequest, { params }: Context) {
   const { data: adh } = await admin
     .from("planned_runs")
     .select("id, completion_status")
+    .in("plan_id", planIds)
     .gte("scheduled_date", fourteenAgo.slice(0, 10))
     .lte("scheduled_date", activityDate)
     .neq("workout_type", "rest");

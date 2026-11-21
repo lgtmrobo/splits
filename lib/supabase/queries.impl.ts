@@ -554,11 +554,13 @@ export async function getWeekView(
 
 /**
  * Every active shoe's color, assigning and saving one for any shoe that has
- * none yet (see lib/gear/colors.ts). Writes use the service role.
+ * none yet (see lib/gear/colors.ts). Reads are RLS-scoped so each athlete
+ * gets their own palette; writes use the service role.
  */
 async function gearColors(): Promise<Map<string, string>> {
+  const sb = await createServerSupabase();
   const admin = createServiceRoleSupabase();
-  const { data, error } = await admin.from("gear").select("id, retired, color");
+  const { data, error } = await sb.from("gear").select("id, retired, color");
   if (error) throw error;
   const { colors, changed } = assignGearColors(
     (data ?? []).map((g) => ({
@@ -1284,6 +1286,7 @@ export async function getShellSummary(): Promise<{
   } | null;
   lastSync: string | null;
   lastSyncCount: number;
+  initial: string;
 }> {
   const sb = await createServerSupabase();
   const [
@@ -1295,6 +1298,7 @@ export async function getShellSummary(): Promise<{
     nextRace,
     upcomingPlan,
     lastSyncRes,
+    athleteRes,
   ] = await Promise.all([
     sb.from("activities").select("id", { count: "exact", head: true }),
     sb.from("gear").select("id", { count: "exact", head: true }),
@@ -1312,7 +1316,12 @@ export async function getShellSummary(): Promise<{
       .order("synced_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    sb.from("athletes").select("first_name, email").limit(1).maybeSingle(),
   ]);
+  const athleteName =
+    (athleteRes.data?.first_name as string | null) ??
+    (athleteRes.data?.email as string | null) ??
+    "";
   const lastSync =
     (lastSyncRes.data as { synced_at: string } | null)?.synced_at ?? null;
   let lastSyncCount = 0;
@@ -1367,6 +1376,7 @@ export async function getShellSummary(): Promise<{
   }
 
   return {
+    initial: athleteName.charAt(0).toUpperCase() || "·",
     activities: actCountRes.count ?? 0,
     gear: gearCountRes.count ?? 0,
     races: raceCountRes.count ?? 0,

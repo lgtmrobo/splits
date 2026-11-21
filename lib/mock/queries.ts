@@ -358,6 +358,7 @@ export async function getPlanAdherenceBreakdown() {
 
 export async function getShellSummary() {
   return {
+    initial: (ATHLETE.first_name ?? "").charAt(0).toUpperCase() || "·",
     activities: 187,
     gear: GEAR.length,
     races: RACES.filter((r) => r.status === "upcoming").length,

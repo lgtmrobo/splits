@@ -1,3 +1,4 @@
+import { historyFromMs } from "@/lib/auth/history";
 import { stravaFetch } from "@/lib/strava/client";
 import { createServiceRoleSupabase } from "@/lib/supabase/server";
 import { gearShares, groupSegmentsByActivity } from "@/lib/gear/segments";
@@ -63,9 +64,9 @@ function mapActivity(a: StravaSummaryActivity, athleteId: string) {
  */
 export async function backfillActivities(athleteId: string, years = 2) {
   const supabase = createServiceRoleSupabase();
-  const after = Math.floor(
-    (Date.now() - years * 365 * 24 * 60 * 60 * 1000) / 1000,
-  );
+  const windowStartMs = Date.now() - years * 365 * 24 * 60 * 60 * 1000;
+  const fromMs = await historyFromMs(athleteId);
+  const after = Math.floor(Math.max(windowStartMs, fromMs ?? 0) / 1000);
   const perPage = 200;
   let page = 1;
   let totalInserted = 0;
@@ -163,6 +164,11 @@ export async function upsertActivity(athleteId: string, activityId: number) {
     `/activities/${activityId}`,
   );
   if (!ALLOWED_TYPES.has(a.type)) return { skipped: true as const };
+  // Invited athletes only get activities from when they connected.
+  const fromMs = await historyFromMs(athleteId);
+  if (fromMs !== null && new Date(a.start_date).getTime() < fromMs) {
+    return { skipped: true as const };
+  }
   const row = mapActivity(a, athleteId);
   const { error } = await supabase.from("activities").upsert(row, {
     onConflict: "id",

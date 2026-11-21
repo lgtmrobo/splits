@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { allowedEmails, isAllowedEmail } from "@/lib/auth/allowlist";
 
 // Paths that don't require auth
 const PUBLIC_PATHS = [
@@ -19,22 +20,24 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Dev bypass: explicit opt-in via DEV_AUTH_BYPASS=true (local only),
-  // OR if Supabase env vars are missing.
-  if (
-    process.env.DEV_AUTH_BYPASS === "true" ||
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    !process.env.ALLOWED_EMAIL
-  ) {
-    return NextResponse.next();
+  // OR, outside production, if auth isn't configured (e.g. `pnpm dev:mock`).
+  // A production deploy missing that config fails closed instead of open.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (process.env.DEV_AUTH_BYPASS === "true") return NextResponse.next();
+  if (!supabaseUrl || !supabaseAnonKey || allowedEmails().length === 0) {
+    if (process.env.NODE_ENV !== "production") return NextResponse.next();
+    return new NextResponse("Splits isn't configured — see README setup.", {
+      status: 503,
+    });
   }
 
   if (isPublicPath(pathname)) return NextResponse.next();
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -64,7 +67,7 @@ export async function proxy(request: NextRequest) {
 
   // Defense in depth — the auth callback already enforces this, but check
   // again in case cookies outlived an env change.
-  if (user.email !== process.env.ALLOWED_EMAIL) {
+  if (!isAllowedEmail(user.email)) {
     await supabase.auth.signOut();
     const loginUrl = new URL("/login?error=unauthorized", request.url);
     return NextResponse.redirect(loginUrl);

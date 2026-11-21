@@ -20,6 +20,18 @@ export interface ShoePayload {
   retired: boolean;
 }
 
+async function ownedShoe(id: string, athleteId: string) {
+  const { data, error } = await createServiceRoleSupabase()
+    .from("gear")
+    .select("distance_m, baseline_m")
+    .eq("id", id)
+    .eq("athlete_id", athleteId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Shoe not found");
+  return data;
+}
+
 export async function saveShoe(payload: ShoePayload) {
   const athleteId = await getCurrentAthleteId();
   const admin = createServiceRoleSupabase();
@@ -39,13 +51,11 @@ export async function saveShoe(payload: ShoePayload) {
   // portion rather than overwrite the live total outright.
   const baselineM = milesToM(payload.miles);
   let distanceM = baselineM;
-  if (payload.id && !payload.id.startsWith("local_")) {
-    const { data: current } = await admin
-      .from("gear")
-      .select("distance_m, baseline_m")
-      .eq("id", payload.id)
-      .maybeSingle();
-    if (current) {
+  if (payload.id) {
+    // Editing: the shoe must belong to the caller, or the upsert below
+    // would hand someone else's shoe over to them.
+    const current = await ownedShoe(payload.id, athleteId);
+    if (!payload.id.startsWith("local_")) {
       const stravaPortion =
         Number(current.distance_m ?? 0) - Number(current.baseline_m ?? 0);
       distanceM = baselineM + stravaPortion;
@@ -76,13 +86,26 @@ export async function saveShoe(payload: ShoePayload) {
 }
 
 export async function deleteShoe(id: string) {
-  await getCurrentAthleteId();
+  const athleteId = await getCurrentAthleteId();
+  await ownedShoe(id, athleteId);
   const admin = createServiceRoleSupabase();
   // Detach from any activities first (gear_id has no FK to gear in our schema,
   // but keep it tidy)
-  await admin.from("activities").update({ gear_id: null }).eq("gear_id", id);
-  await admin.from("activity_gear_segments").delete().eq("gear_id", id);
-  const { error } = await admin.from("gear").delete().eq("id", id);
+  await admin
+    .from("activities")
+    .update({ gear_id: null })
+    .eq("gear_id", id)
+    .eq("athlete_id", athleteId);
+  await admin
+    .from("activity_gear_segments")
+    .delete()
+    .eq("gear_id", id)
+    .eq("athlete_id", athleteId);
+  const { error } = await admin
+    .from("gear")
+    .delete()
+    .eq("id", id)
+    .eq("athlete_id", athleteId);
   if (error) throw new Error(error.message);
   revalidatePath("/shoes");
   revalidatePath("/");

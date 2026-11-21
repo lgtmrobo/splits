@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isOwnerEmail } from "@/lib/auth/allowlist";
 import { exchangeCodeForToken } from "@/lib/strava/client";
 import { backfillActivities, syncGear } from "@/lib/strava/sync";
 import { createServerSupabase, createServiceRoleSupabase } from "@/lib/supabase/server";
@@ -24,6 +25,18 @@ export async function GET(req: NextRequest) {
   const tokens = await exchangeCodeForToken(code);
   const admin = createServiceRoleSupabase();
 
+  // Invited users start tracking from their first connect — no history
+  // import. Set only when the athlete row is new, so a reconnect keeps the
+  // original cutoff. The owner (first ALLOWED_EMAILS entry) gets full history.
+  const { data: existing } = await admin
+    .from("athletes")
+    .select("id")
+    .eq("supabase_user_id", user.id)
+    .maybeSingle();
+  const isOwner = isOwnerEmail(user.email);
+  const historyFrom: { history_from?: string } =
+    !existing && !isOwner ? { history_from: new Date().toISOString() } : {};
+
   // Upsert athlete (one row per supabase_user_id)
   const s = tokens.athlete;
   const athletePayload = {
@@ -34,6 +47,7 @@ export async function GET(req: NextRequest) {
     last_name: s?.lastname ?? null,
     profile_image_url: s?.profile ?? null,
     updated_at: new Date().toISOString(),
+    ...historyFrom,
   };
 
   const { data: athlete, error: athErr } = await admin
@@ -63,9 +77,10 @@ export async function GET(req: NextRequest) {
 
   // Fire-and-forget backfill — webhook is already set up at subscription time.
   // We don't `await` to avoid holding the redirect open; errors log to Vercel.
+  // Only the owner gets the 2-year history; everyone else just gets gear.
   Promise.resolve().then(async () => {
     try {
-      await backfillActivities(athlete.id, 2);
+      if (isOwner) await backfillActivities(athlete.id, 2);
       await syncGear(athlete.id);
     } catch (e) {
       console.error("[strava] backfill failed", e);
