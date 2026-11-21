@@ -12,7 +12,7 @@ import { dirname, join } from "node:path";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function loadEnv() {
-  const envPath = join(__dirname, "..", ".env");
+  const envPath = join(__dirname, "..", ".env.local");
   const raw = readFileSync(envPath, "utf8");
   for (const line of raw.split("\n")) {
     const m = line.match(/^([A-Z0-9_]+)=(.*)$/);

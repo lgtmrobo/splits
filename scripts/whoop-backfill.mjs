@@ -5,7 +5,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
 
-const env = readFileSync(".env", "utf8");
+const env = readFileSync(".env.local", "utf8");
 for (const line of env.split("\n")) {
   const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
