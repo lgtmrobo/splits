@@ -76,7 +76,7 @@ export default async function ConnectStravaPage() {
         </div>
         <div className="row gap-8">
           <span style={{ color: "var(--accent)" }}>✓</span>
-          <span>New runs sync nightly, or anytime with Sync Strava</span>
+          <span>New runs sync automatically within seconds</span>
         </div>
       </div>
 
