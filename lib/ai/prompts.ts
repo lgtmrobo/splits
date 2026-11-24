@@ -1,4 +1,5 @@
 import type { Activity, HRZone, PlannedRun } from "@/lib/types";
+import { speedToPacePerMile } from "@/lib/utils/units";
 
 export const PROMPT_VERSION = "v1";
 
@@ -40,14 +41,7 @@ export function buildAnalysisPrompt(args: {
     .map(
       (r) =>
         `- ${r.start_date_local.slice(0, 10)} · ${r.name} · ${(r.distance_m / 1609.344).toFixed(1)}mi @ ${
-          r.average_speed_ms
-            ? (() => {
-                const s = 1609.344 / r.average_speed_ms;
-                const m = Math.floor(s / 60);
-                const ss = Math.round(s % 60);
-                return `${m}:${String(ss).padStart(2, "0")}/mi`;
-              })()
-            : "—"
+          r.average_speed_ms ? `${speedToPacePerMile(r.average_speed_ms)}/mi` : "—"
         } · HR ${r.average_heartrate ?? "—"}`
     )
     .join("\n");
@@ -75,14 +69,7 @@ export function buildAnalysisPrompt(args: {
 - Distance: ${(a.distance_m / 1609.344).toFixed(2)}mi
 - Moving time: ${Math.floor(a.moving_time_s / 60)}:${String(a.moving_time_s % 60).padStart(2, "0")}
 - Avg pace: ${
-    a.average_speed_ms
-      ? (() => {
-          const s = 1609.344 / a.average_speed_ms;
-          const m = Math.floor(s / 60);
-          const ss = Math.round(s % 60);
-          return `${m}:${String(ss).padStart(2, "0")}/mi`;
-        })()
-      : "—"
+    a.average_speed_ms ? `${speedToPacePerMile(a.average_speed_ms)}/mi` : "—"
   }
 - Avg HR: ${a.average_heartrate ?? "—"}  ·  Max HR: ${a.max_heartrate ?? "—"}
 - Elevation gain: ${a.total_elevation_gain_m ? Math.round(a.total_elevation_gain_m / 0.3048) : "—"} ft

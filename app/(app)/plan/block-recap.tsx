@@ -4,6 +4,7 @@ import {
   formatDuration,
   formatMilesCompact,
   metersToMiles,
+  paceFromTime,
 } from "@/lib/utils/units";
 import type { Activity, Race } from "@/lib/types";
 
@@ -25,13 +26,6 @@ const MONTHS = [
 function fmtMd(iso: string): string {
   const d = new Date(iso.slice(0, 10) + "T00:00:00Z");
   return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
-}
-
-function pacePerMile(distance_m: number, duration_s: number): string {
-  const sec = duration_s / metersToMiles(distance_m);
-  const m = Math.floor(sec / 60);
-  const s = Math.round(sec % 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -94,7 +88,7 @@ export function BlockRecap({
                   {formatDuration(finishS)}
                 </span>
                 <span className="muted num" style={{ fontSize: 12 }}>
-                  {pacePerMile(race.distance_m, finishS)}/mi
+                  {paceFromTime(race.distance_m, finishS)}/mi
                 </span>
               </div>
               {goalDeltaS != null && (

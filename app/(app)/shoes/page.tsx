@@ -37,14 +37,6 @@ const M_PER_MILE = 1609.344;
 // Skip sub-mile runs (strides, warmup jogs) when picking a shoe's fastest pace.
 const MIN_FASTEST_RUN_M = M_PER_MILE;
 
-function paceFromSpeed(ms: number): string {
-  if (!ms || ms <= 0) return "—";
-  const secPerMile = M_PER_MILE / ms;
-  const m = Math.floor(secPerMile / 60);
-  const s = Math.round(secPerMile % 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
 export default async function ShoesPage() {
   const [gear, activities, projectionsByGear] = await Promise.all([
     getAllGear(),
@@ -120,7 +112,7 @@ export default async function ShoesPage() {
       const g = gear.find((x) => x.id === id);
       if (g) {
         fastestSpeed = s.fastestSpeed;
-        fastestShoe = { name: g.name, pace: paceFromSpeed(s.fastestSpeed) };
+        fastestShoe = { name: g.name, pace: speedToPacePerMile(s.fastestSpeed) };
       }
     }
   }
@@ -352,7 +344,7 @@ export default async function ShoesPage() {
                   label="Fastest"
                   value={
                     stats.fastestSpeed > 0
-                      ? paceFromSpeed(stats.fastestSpeed)
+                      ? speedToPacePerMile(stats.fastestSpeed)
                       : "—"
                   }
                   unit="/mi"
