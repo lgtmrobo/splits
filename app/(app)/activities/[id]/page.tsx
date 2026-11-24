@@ -43,14 +43,6 @@ const TSS_METHOD_LABEL: Record<TssMethod, string> = {
   duration: "estimated",
 };
 
-function paceLabelFromSpeed(ms: number): string {
-  if (!ms || ms <= 0) return "—";
-  const secPerMile = 1609.344 / ms;
-  const m = Math.floor(secPerMile / 60);
-  const s = Math.round(secPerMile % 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
 function buildXLabels(durationS: number, count = 5): string[] {
   if (!durationS || durationS <= 0) return [];
   const out: string[] = [];
@@ -682,13 +674,13 @@ export default async function ActivityDetailPage({ params }: Props) {
               <span>
                 avg{" "}
                 <span style={{ color: "var(--text-1)" }}>
-                  {paceLabelFromSpeed(activity.average_speed_ms ?? 0)}
+                  {speedToPacePerMile(activity.average_speed_ms)}
                 </span>
               </span>
               <span>
                 fastest{" "}
                 <span style={{ color: "var(--accent)" }}>
-                  {paceLabelFromSpeed(activity.max_speed_ms ?? 0)}
+                  {speedToPacePerMile(activity.max_speed_ms)}
                 </span>
               </span>
             </div>

@@ -25,6 +25,8 @@ import {
   formatDuration,
   formatMilesCompact,
   metersToMiles,
+  paceFromTime,
+  speedToPacePerMile,
 } from "@/lib/utils/units";
 import { addDaysISO, sundayOfISO, todayLocalISO } from "@/lib/utils/dates";
 import type { Activity, Gear, PlannedRun, PlanWeekDay } from "@/lib/types";
@@ -855,10 +857,7 @@ function goalPaceLabel(race: {
   goal_time_s: number | null;
 }): string {
   if (!race.goal_time_s) return "—";
-  const sec = race.goal_time_s / metersToMiles(race.distance_m);
-  const m = Math.floor(sec / 60);
-  const s = Math.round(sec % 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
+  return paceFromTime(race.distance_m, race.goal_time_s);
 }
 
 function WeekDayCell({
@@ -1001,14 +1000,7 @@ function WeekDayCell({
           >
             <span>{metersToMiles(day.actual.distance_m).toFixed(1)}mi</span>
             <span>
-              {day.actual.average_speed_ms
-                ? (() => {
-                    const secPerMile = 1609.344 / day.actual.average_speed_ms;
-                    const m = Math.floor(secPerMile / 60);
-                    const s = Math.round(secPerMile % 60);
-                    return `${m}:${String(s).padStart(2, "0")}`;
-                  })()
-                : "—"}
+              {speedToPacePerMile(day.actual.average_speed_ms)}
             </span>
           </div>
         </div>

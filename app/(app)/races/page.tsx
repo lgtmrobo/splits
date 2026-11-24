@@ -4,7 +4,7 @@ import {
   getAllPlans,
   getAllRaces,
 } from "@/lib/supabase/queries";
-import { formatDuration, metersToMiles } from "@/lib/utils/units";
+import { formatDuration, metersToMiles, paceFromTime } from "@/lib/utils/units";
 import { AddRaceButton } from "@/app/(app)/races/add-race";
 import { RaceRow } from "@/app/(app)/races/race-row";
 import { isTriathlon, RACE_TYPES, TRI_LEGS } from "@/lib/races/types";
@@ -21,13 +21,6 @@ export default async function RacesPage() {
   const upcoming = races.filter((r) => r.status !== "completed");
   const past = races.filter((r) => r.status === "completed");
 
-  const paceFromDuration = (distance_m: number, duration_s: number): string => {
-    const sec = duration_s / metersToMiles(distance_m);
-    const m = Math.floor(sec / 60);
-    const s = Math.round(sec % 60);
-    return `${m}:${String(s).padStart(2, "0")}`;
-  };
-  const goalPace = paceFromDuration;
 
   const pastResults = await Promise.all(
     past.map(async (r) => {
@@ -42,7 +35,7 @@ export default async function RacesPage() {
         resultTime: finishTime != null ? formatDuration(finishTime) : null,
         pace:
           finishTime != null
-            ? paceFromDuration(r.distance_m, finishTime)
+            ? paceFromTime(r.distance_m, finishTime)
             : null,
       };
     }),
@@ -161,7 +154,7 @@ export default async function RacesPage() {
                   <Stat
                     label="Pace"
                     value={
-                      r.goal_time_s ? goalPace(r.distance_m, r.goal_time_s) : "—"
+                      r.goal_time_s ? paceFromTime(r.distance_m, r.goal_time_s) : "—"
                     }
                     unit="/mi"
                   />

@@ -45,14 +45,25 @@ export function formatFeet(m: number | null | undefined): string {
   return Math.round(metersToFeet(m)).toLocaleString();
 }
 
+/**
+ * Seconds per mile → "M:SS". Rounds the total first, so 539.998 s is
+ * "9:00", never "8:60".
+ */
+export function formatPace(secPerMile: number): string {
+  if (!Number.isFinite(secPerMile) || secPerMile <= 0) return "—";
+  const total = Math.round(secPerMile);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
+
 /** Pace from m/s → "M:SS" per mile. */
 export function speedToPacePerMile(ms: number | null | undefined): string {
   if (!ms || ms <= 0) return "—";
-  const secPerMile = M_PER_MILE / ms;
-  const min = Math.floor(secPerMile / 60);
-  const sec = Math.round(secPerMile % 60);
-  if (sec === 60) return `${min + 1}:00`;
-  return `${min}:${String(sec).padStart(2, "0")}`;
+  return formatPace(M_PER_MILE / ms);
+}
+
+/** Pace for covering a distance in a time (e.g. a goal or finish time). */
+export function paceFromTime(distance_m: number, duration_s: number): string {
+  return formatPace(duration_s / metersToMiles(distance_m));
 }
 
 /** Seconds → "M:SS" or "H:MM:SS" if >= 1h. */
@@ -104,10 +115,7 @@ export function pacePerMileToSecPerKm(pace: string): number {
 
 /** seconds/km → "M:SS /mi" for display. */
 export function secPerKmToPacePerMile(sPerKm: number): string {
-  const secPerMile = sPerKm * (M_PER_MILE / M_PER_KM);
-  const min = Math.floor(secPerMile / 60);
-  const sec = Math.round(secPerMile % 60);
-  return `${min}:${String(sec).padStart(2, "0")}`;
+  return formatPace(sPerKm * (M_PER_MILE / M_PER_KM));
 }
 
 export { M_PER_MILE, M_PER_KM, M_PER_FT };
