@@ -13,7 +13,7 @@
     "check-env": "node scripts/check-env.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
+    "@anthropic-ai/sdk": "^1.13.0",
     "@mapbox/polyline": "^1.2.1",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
