@@ -1,3 +1,5 @@
+import type { RaceType } from "@/lib/races/types";
+
 // Domain types — shape matches the DB schema defined in
 // supabase/migrations/00001_init.sql so that mock data and real
 // Supabase queries are interchangeable.
@@ -169,8 +171,9 @@ export interface Race {
   id: UUID;
   athlete_id: UUID;
   name: string;
+  race_type: RaceType;
   race_date: string; // YYYY-MM-DD
-  distance_m: number;
+  distance_m: number; // triathlons: all three legs
   location: string | null;
   goal_time_s: number | null;
   status: RaceStatus;

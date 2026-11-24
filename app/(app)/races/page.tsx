@@ -5,7 +5,9 @@ import {
   getAllRaces,
 } from "@/lib/supabase/queries";
 import { formatDuration, metersToMiles } from "@/lib/utils/units";
+import { AddRaceButton } from "@/app/(app)/races/add-race";
 import { RaceRow } from "@/app/(app)/races/race-row";
+import { isTriathlon, RACE_TYPES, TRI_LEGS } from "@/lib/races/types";
 
 export default async function RacesPage() {
   const [races, plans] = await Promise.all([getAllRaces(), getAllPlans()]);
@@ -46,6 +48,8 @@ export default async function RacesPage() {
     }),
   );
 
+  const typeLabel = (t: string | undefined) =>
+    RACE_TYPES.find((x) => x.value === t)?.label ?? "Run";
   const raceDistanceLabel = (m: number): string => {
     const mi = metersToMiles(m);
     if (Math.abs(mi - 26.2) < 0.1) return "mi · marathon";
@@ -55,7 +59,7 @@ export default async function RacesPage() {
 
   return (
     <div className="content fadein">
-      <div className="row between" style={{ marginBottom: 14 }}>
+      <div className="row between wrap gap-10" style={{ marginBottom: 14 }}>
         <div className="col gap-4">
           <h1 className="page-title">
             Races
@@ -64,9 +68,7 @@ export default async function RacesPage() {
             {upcoming.length} upcoming · {past.length} completed
           </div>
         </div>
-        <button type="button" className="btn primary">
-          + Add race
-        </button>
+        <AddRaceButton />
       </div>
 
       <div className="card-title" style={{ marginBottom: 8 }}>
@@ -135,19 +137,35 @@ export default async function RacesPage() {
                 <Stat
                   label="Distance"
                   value={metersToMiles(r.distance_m).toFixed(1)}
-                  unit={raceDistanceLabel(r.distance_m)}
+                  unit={
+                    isTriathlon(r.race_type)
+                      ? `mi · ${typeLabel(r.race_type)}`
+                      : raceDistanceLabel(r.distance_m)
+                  }
                 />
                 <Stat
                   label="Goal"
                   value={r.goal_time_s ? formatDuration(r.goal_time_s) : "—"}
                 />
-                <Stat
-                  label="Pace"
-                  value={
-                    r.goal_time_s ? goalPace(r.distance_m, r.goal_time_s) : "—"
-                  }
-                  unit="/mi"
-                />
+                {isTriathlon(r.race_type) ? (
+                  <Stat
+                    label="Legs"
+                    value={(() => {
+                      const l = TRI_LEGS[r.race_type as "ironman_70_3" | "ironman"];
+                      const mi = (m: number) => Number(metersToMiles(m).toFixed(1));
+                      return `${mi(l.swim_m)}/${mi(l.bike_m)}/${mi(l.run_m)}`;
+                    })()}
+                    unit="mi"
+                  />
+                ) : (
+                  <Stat
+                    label="Pace"
+                    value={
+                      r.goal_time_s ? goalPace(r.distance_m, r.goal_time_s) : "—"
+                    }
+                    unit="/mi"
+                  />
+                )}
               </div>
               {r.confidence != null && (
                 <div style={{ marginTop: 12 }}>
@@ -194,10 +212,10 @@ export default async function RacesPage() {
             <tr>
               <th>Date</th>
               <th>Race</th>
-              <th>Location</th>
+              <th className="m-hide">Location</th>
               <th className="num">Distance</th>
               <th className="num">Result</th>
-              <th className="num">Pace</th>
+              <th className="num m-hide">Pace</th>
               <th></th>
             </tr>
           </thead>
@@ -213,7 +231,7 @@ export default async function RacesPage() {
               >
                 <td className="num muted">{r.race_date}</td>
                 <td>{r.name}</td>
-                <td className="muted">{r.location}</td>
+                <td className="muted m-hide">{r.location}</td>
                 <td className="num">
                   {metersToMiles(r.distance_m).toFixed(1)}
                 </td>
@@ -223,7 +241,9 @@ export default async function RacesPage() {
                 >
                   {resultTime ?? r.notes ?? "—"}
                 </td>
-                <td className="num">{pace ? `${pace}/mi` : "—"}</td>
+                <td className="num m-hide">
+                  {pace && !isTriathlon(r.race_type) ? `${pace}/mi` : "—"}
+                </td>
                 <td className="muted" style={{ textAlign: "right" }}>
                   {planIdByRace.has(r.id) ? "Block →" : ""}
                 </td>

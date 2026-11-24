@@ -7,6 +7,9 @@ import {
   GEAR_PALETTE,
   RETIRED_GEAR_COLOR,
 } from "@/lib/gear/colors";
+import { RUN_TYPE, sportOf, TRI_TYPES } from "@/lib/activities/sports";
+import { TRI_LEGS } from "@/lib/races/types";
+import { summarizeTri, type TriActivity, type TriSummary } from "@/lib/tri/summary";
 import { groupSegmentsByActivity } from "@/lib/gear/segments";
 import { decodePolyline } from "@/lib/strava/polyline";
 import {
@@ -62,16 +65,25 @@ export async function getRecentActivities(limit = 10): Promise<Activity[]> {
   const { data, error } = await sb
     .from("activities")
     .select("*")
+    .eq("type", RUN_TYPE)
     .order("start_date", { ascending: false })
     .limit(limit);
   if (error) throw error;
   return (data ?? []) as Activity[];
 }
 
-export async function getAllActivities(): Promise<Activity[]> {
+/**
+ * Runs, newest first. `allSports` adds a triathlete's swims and rides, for
+ * the Activities log; everything that measures running leaves it off.
+ */
+export async function getAllActivities(
+  { allSports = false }: { allSports?: boolean } = {},
+): Promise<Activity[]> {
   const sb = await createServerSupabase();
+  let q = sb.from("activities").select("*").order("start_date", { ascending: false });
+  if (!allSports) q = q.eq("type", RUN_TYPE);
   const [{ data, error }, segments] = await Promise.all([
-    sb.from("activities").select("*").order("start_date", { ascending: false }),
+    q,
     getGearSegments(),
   ]);
   if (error) throw error;
@@ -125,6 +137,7 @@ export async function getAllPolylines(): Promise<string[]> {
   const { data, error } = await sb
     .from("activities")
     .select("summary_polyline")
+    .eq("type", RUN_TYPE)
     .not("summary_polyline", "is", null)
     .neq("summary_polyline", "");
   if (error) throw error;
@@ -172,7 +185,8 @@ export async function getActivityTotals(): Promise<{
     .from("activities")
     .select(
       "distance_m, moving_time_s, average_speed_ms, average_heartrate, total_elevation_gain_m, start_date",
-    );
+    )
+    .eq("type", RUN_TYPE);
   if (error) throw error;
   const rows = data ?? [];
 
@@ -511,6 +525,7 @@ export async function getWeekView(
   const { data: weekActs } = await sb
     .from("activities")
     .select("*")
+    .eq("type", RUN_TYPE)
     .gte("start_date_local", weekStartISO)
     .lte("start_date_local", endISO + "T23:59:59");
 
@@ -675,6 +690,47 @@ export async function getRaceById(raceId: string): Promise<Race | null> {
     .maybeSingle();
   if (error) throw error;
   return data ? decorateRace(data) : null;
+}
+
+/**
+ * The Triathlon page: the athlete's next tri race (else their latest one)
+ * and a summary of their swims, rides and runs over the last 12 weeks.
+ * Null when they have no triathlon race.
+ */
+export async function getTriathlonView(): Promise<{ race: Race; summary: TriSummary } | null> {
+  const sb = await createServerSupabase();
+  const today = todayLocalISO();
+  const { data: races, error } = await sb
+    .from("races")
+    .select("*")
+    .in("race_type", ["ironman_70_3", "ironman"])
+    .order("race_date", { ascending: true });
+  if (error) throw error;
+  const race =
+    (races ?? []).find((r) => r.race_date >= today) ?? (races ?? []).at(-1) ?? null;
+  if (!race) return null;
+
+  const since = addDaysISO(today, -7 * 13);
+  const { data: acts, error: actErr } = await sb
+    .from("activities")
+    .select("type, start_date_local, distance_m, moving_time_s, elapsed_time_s")
+    .in("type", TRI_TYPES)
+    .gte("start_date_local", since);
+  if (actErr) throw actErr;
+  const tagged: TriActivity[] = [];
+  for (const a of acts ?? []) {
+    const sport = sportOf(a.type);
+    if (!sport) continue;
+    tagged.push({
+      sport,
+      start_date_local: a.start_date_local,
+      distance_m: Number(a.distance_m ?? 0),
+      moving_time_s: Number(a.moving_time_s ?? 0),
+      elapsed_time_s: a.elapsed_time_s != null ? Number(a.elapsed_time_s) : null,
+    });
+  }
+  const legs = TRI_LEGS[race.race_type as "ironman_70_3" | "ironman"];
+  return { race: decorateRace(race), summary: summarizeTri(tagged, legs, today) };
 }
 
 export interface GearRaceProjection {
@@ -978,6 +1034,7 @@ export async function getWeekHRZones(): Promise<HRZone[]> {
   const { data: acts } = await sb
     .from("activities")
     .select("id, moving_time_s, average_heartrate")
+    .eq("type", RUN_TYPE)
     .gte("start_date", since.toISOString());
   if (!acts || acts.length === 0) return zones;
 
@@ -1019,6 +1076,7 @@ export async function getDailyLoad28d(): Promise<number[]> {
   const { data: acts } = await sb
     .from("activities")
     .select("start_date_local, suffer_score, moving_time_s")
+    .eq("type", RUN_TYPE)
     .gte("start_date", since.toISOString());
   const out = new Array(28).fill(0);
   const today = new Date();
@@ -1048,6 +1106,7 @@ export async function getMonthlyStats() {
   const { data: acts } = await sb
     .from("activities")
     .select("start_date_local, distance_m")
+    .eq("type", RUN_TYPE)
     .gte("start_date", since.toISOString());
   const MONTHS = [
     "Jan",
@@ -1098,6 +1157,7 @@ export async function getPaceTrend12w(): Promise<number[]> {
   const { data: acts } = await sb
     .from("activities")
     .select("start_date, distance_m, moving_time_s")
+    .eq("type", RUN_TYPE)
     .gte("start_date", since.toISOString());
   const buckets: { dist: number; time: number }[] = Array.from(
     { length: 12 },
@@ -1221,6 +1281,7 @@ export async function getWeekStats(weekStartISO: string): Promise<{
     .select(
       "distance_m, moving_time_s, total_elevation_gain_m, average_heartrate",
     )
+    .eq("type", RUN_TYPE)
     .gte("start_date_local", start.toISOString())
     .lt("start_date_local", end.toISOString());
   let distance_m = 0;
@@ -1253,6 +1314,7 @@ export async function getStreakDays(): Promise<number> {
   const { data } = await sb
     .from("activities")
     .select("start_date_local")
+    .eq("type", RUN_TYPE)
     .gte("start_date", since.toISOString())
     .order("start_date_local", { ascending: false });
   const days = new Set<string>();
@@ -1287,6 +1349,8 @@ export async function getShellSummary(): Promise<{
   lastSync: string | null;
   lastSyncCount: number;
   initial: string;
+  email: string | null;
+  triathlon: boolean;
 }> {
   const sb = await createServerSupabase();
   const [
@@ -1299,6 +1363,8 @@ export async function getShellSummary(): Promise<{
     upcomingPlan,
     lastSyncRes,
     athleteRes,
+    userRes,
+    triRes,
   ] = await Promise.all([
     sb.from("activities").select("id", { count: "exact", head: true }),
     sb.from("gear").select("id", { count: "exact", head: true }),
@@ -1316,12 +1382,17 @@ export async function getShellSummary(): Promise<{
       .order("synced_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
-    sb.from("athletes").select("first_name, email").limit(1).maybeSingle(),
+    sb.from("athletes").select("email").limit(1).maybeSingle(),
+    sb.auth.getUser(),
+    sb
+      .from("races")
+      .select("id", { count: "exact", head: true })
+      .in("race_type", ["ironman_70_3", "ironman"]),
   ]);
-  const athleteName =
-    (athleteRes.data?.first_name as string | null) ??
-    (athleteRes.data?.email as string | null) ??
-    "";
+  // The signed-in Google account's email; the athlete row's (from Strava
+  // connect) when there's no session, e.g. under DEV_AUTH_BYPASS.
+  const email =
+    userRes.data.user?.email ?? (athleteRes.data?.email as string | null) ?? null;
   const lastSync =
     (lastSyncRes.data as { synced_at: string } | null)?.synced_at ?? null;
   let lastSyncCount = 0;
@@ -1376,7 +1447,10 @@ export async function getShellSummary(): Promise<{
   }
 
   return {
-    initial: athleteName.charAt(0).toUpperCase() || "·",
+    initial: email?.charAt(0).toUpperCase() || "·",
+    email,
+    // Errors (e.g. race_type not migrated yet) just hide the Triathlon page.
+    triathlon: (triRes.count ?? 0) > 0,
     activities: actCountRes.count ?? 0,
     gear: gearCountRes.count ?? 0,
     races: raceCountRes.count ?? 0,

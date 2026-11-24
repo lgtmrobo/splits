@@ -3,7 +3,7 @@ import { BurndownChart } from "@/components/charts/burndown-chart";
 import { Icon } from "@/components/ui/icon";
 import { PlanViewSwitcher } from "@/app/(app)/plan/view-switcher";
 import { BlockRecap } from "@/app/(app)/plan/block-recap";
-import { ImportPlanButton } from "@/app/(app)/plan/import-plan";
+import { ImportPlanButton, type RaceOption } from "@/app/(app)/plan/import-plan";
 import { CardHeader, Pill } from "@/components/ui/primitives";
 import { TypePill } from "@/components/ui/type-pill";
 import { RouteMap } from "@/components/maps/route-map";
@@ -13,6 +13,7 @@ import {
   getActivityById,
   getAllActivities,
   getAllGear,
+  getAllRaces,
   getPlanById,
   getPlanMeta,
   getPlannedRunsBetween,
@@ -65,10 +66,23 @@ export default async function PlanPage({
   const view =
     (sp.view as "week" | "block" | "full" | undefined) ?? "week";
   const requestedPlanId = sp.plan ?? null;
-  const activePlan = await getActivePlan();
+  const [activePlan, races] = await Promise.all([getActivePlan(), getAllRaces()]);
   const plan = requestedPlanId
     ? await getPlanById(requestedPlanId)
     : activePlan;
+  // Races a block can build to (picked in the upload dialog): upcoming
+  // ones, plus whatever this block already builds to.
+  const raceOptions: RaceOption[] = races
+    .filter((r) => r.status === "upcoming" || r.id === plan?.goal_race_id)
+    .map((r) => ({
+      id: r.id,
+      plan_id: r.plan_id,
+      name: r.name,
+      race_type: r.race_type ?? "run",
+      race_date: r.race_date,
+      distance_m: Number(r.distance_m),
+      goal_time_s: r.goal_time_s,
+    }));
   if (!plan) {
     return (
       <div className="content fadein">
@@ -90,7 +104,7 @@ export default async function PlanPage({
               </a>{" "}
               to get started.
             </p>
-            <ImportPlanButton primary />
+            <ImportPlanButton primary races={raceOptions} />
           </div>
         )}
       </div>
@@ -270,7 +284,7 @@ export default async function PlanPage({
         </div>
       )}
       <div
-        className="row between"
+        className="row between wrap gap-10"
         style={{ marginBottom: 14, alignItems: "center" }}
       >
         <h1
@@ -287,21 +301,11 @@ export default async function PlanPage({
         <div className="row gap-10">
           <PlanViewSwitcher />
           <ImportPlanButton
+            races={raceOptions}
             existing={
               isPastBlock
                 ? undefined
-                : {
-                    planId: plan.id,
-                    name: plan.name,
-                    race: goalRace
-                      ? {
-                          name: goalRace.name,
-                          race_date: goalRace.race_date,
-                          distance_m: Number(goalRace.distance_m),
-                          goal_time_s: goalRace.goal_time_s,
-                        }
-                      : null,
-                  }
+                : { planId: plan.id, name: plan.name, raceId: plan.goal_race_id }
             }
           />
         </div>
@@ -310,7 +314,7 @@ export default async function PlanPage({
       {goalRace && (
         <div className="card" style={{ marginBottom: 14, padding: 18 }}>
           <div
-            className="grid"
+            className="grid m-stack"
             style={{
               gridTemplateColumns: "1.05fr 1fr",
               gap: 20,
@@ -459,12 +463,12 @@ export default async function PlanPage({
       )}
 
       <div className="card" style={{ marginBottom: 14 }}>
-        <div className="row between" style={{ marginBottom: 6 }}>
+        <div className="row between wrap gap-14" style={{ marginBottom: 6 }}>
           <div className="col gap-4">
             <div className="stat-label" style={{ marginBottom: 0 }}>
               Cumulative Mileage · Plan vs Actual
             </div>
-            <div className="row gap-14 baseline" style={{ marginTop: 6 }}>
+            <div className="row gap-14 baseline wrap" style={{ marginTop: 6 }}>
               <div className="row baseline gap-4">
                 <span className="stat-num lg">{totalActualMi.toFixed(1)}</span>
                 <span className="stat-unit">mi logged</span>
@@ -602,7 +606,7 @@ export default async function PlanPage({
                   action={`${formatMilesCompact(metersToMiles(w.planned_m))} mi planned${isCurrent ? " · current" : ""}`}
                 />
                 <div
-                  className="grid"
+                  className="grid m-scroll"
                   style={{ gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}
                 >
                   {days.map((d) => (
@@ -622,7 +626,7 @@ export default async function PlanPage({
 
       {view === "week" && (
         <div
-          className="grid"
+          className="grid m-stack"
           style={{ gridTemplateColumns: "2fr 1fr", marginBottom: 14 }}
         >
           <div className="card">
@@ -631,7 +635,7 @@ export default async function PlanPage({
               action={`${thisWeekActualMi.toFixed(1)} / ${formatMilesCompact(thisWeekPlannedMi)} mi · ${thisWeekDone}/${thisWeekHas} done`}
             />
             <div
-              className="grid"
+              className="grid m-scroll"
               style={{ gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}
             >
               {weekView.map((d) => (
@@ -740,7 +744,7 @@ export default async function PlanPage({
             action={`${formatMilesCompact(nextWeekTotalMi)} mi planned`}
           />
           <div
-            className="grid"
+            className="grid m-scroll"
             style={{ gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}
           >
             {Array.from({ length: 7 }).map((_, i) => {

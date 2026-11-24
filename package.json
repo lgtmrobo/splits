@@ -9,7 +9,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "screenshots": "node scripts/screenshot.mjs",
-    "test": "node --experimental-strip-types --test scripts/test-gear-segments.mjs scripts/test-fitness.mjs scripts/test-plan-csv.mjs",
+    "test": "node --experimental-strip-types --test scripts/test-gear-segments.mjs scripts/test-fitness.mjs scripts/test-plan-csv.mjs scripts/test-tri.mjs",
     "check-env": "node scripts/check-env.mjs"
   },
   "dependencies": {

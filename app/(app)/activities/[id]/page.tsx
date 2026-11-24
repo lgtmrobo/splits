@@ -271,7 +271,7 @@ export default async function ActivityDetailPage({ params }: Props) {
         style={{ padding: 0, overflow: "hidden", marginBottom: 14 }}
       >
         <div
-          className="row between"
+          className="row between wrap gap-10"
           style={{
             padding: "18px 24px",
             borderBottom: "1px solid var(--hairline)",
@@ -280,6 +280,7 @@ export default async function ActivityDetailPage({ params }: Props) {
           <div className="col gap-6">
             <div className="row gap-10 baseline">
               <h1
+                className="m-wrap-text"
                 style={{
                   margin: 0,
                   fontSize: 22,
@@ -311,7 +312,7 @@ export default async function ActivityDetailPage({ params }: Props) {
           </div>
         </div>
 
-        <div className="row" style={{ alignItems: "stretch" }}>
+        <div className="row m-col" style={{ alignItems: "stretch" }}>
           <div
             style={{
               padding: "24px 28px",
@@ -327,7 +328,7 @@ export default async function ActivityDetailPage({ params }: Props) {
                 Distance
               </div>
               <div className="row baseline gap-4">
-                <span className="stat-num" style={{ fontSize: 64 }}>
+                <span className="stat-num hero-num" style={{ fontSize: 64 }}>
                   {formatMiles(activity.distance_m)}
                 </span>
                 <span className="stat-unit" style={{ fontSize: 14 }}>
@@ -418,7 +419,7 @@ export default async function ActivityDetailPage({ params }: Props) {
       </div>
 
       <div
-        className="grid"
+        className="grid m-stack"
         style={{ gridTemplateColumns: "1fr 1.2fr 1fr", marginBottom: 14 }}
       >
         <div className="card">
@@ -660,7 +661,7 @@ export default async function ActivityDetailPage({ params }: Props) {
         )}
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+      <div className="grid m-stack" style={{ gridTemplateColumns: "1fr 1fr" }}>
         <HeartRateSummary
           avgHR={
             activity.average_heartrate ?? whoop?.average_heart_rate ?? null

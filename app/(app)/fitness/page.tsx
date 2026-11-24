@@ -66,7 +66,7 @@ export default async function FitnessPage() {
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "repeat(4, 1fr)", marginBottom: 14 }}>
+      <div className="grid m-2col" style={{ gridTemplateColumns: "repeat(4, 1fr)", marginBottom: 14 }}>
         <div className="card compact">
           <Stat label="Fitness · CTL" value={today ? today.ctl.toFixed(0) : "—"} size="lg" delta="42-day load" />
         </div>
@@ -111,7 +111,7 @@ export default async function FitnessPage() {
       </div>
 
       {model.raceForms.length > 0 && (
-        <div className="grid" style={{ gridTemplateColumns: `repeat(${Math.min(model.raceForms.length, 3)}, 1fr)`, marginBottom: 14 }}>
+        <div className="grid m-stack" style={{ gridTemplateColumns: `repeat(${Math.min(model.raceForms.length, 3)}, 1fr)`, marginBottom: 14 }}>
           {model.raceForms.map(({ race, tsb, ctl }) => {
             const z = formZone(tsb);
             const days = dayDiff(inputs.todayISO, race.race_date);
@@ -128,7 +128,7 @@ export default async function FitnessPage() {
         </div>
       )}
 
-      <div className="grid" style={{ gridTemplateColumns: "2fr 1fr", marginBottom: 14, alignItems: "start" }}>
+      <div className="grid m-stack" style={{ gridTemplateColumns: "2fr 1fr", marginBottom: 14, alignItems: "start" }}>
         <PeaksTable rows={model.peaks} recentWeeks={Math.round(PEAK_RECENT_DAYS / 7)} missing={model.activitiesMissingEfforts} />
         <div className="col gap-14">
           <div className="card">

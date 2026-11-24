@@ -358,7 +358,9 @@ export async function getPlanAdherenceBreakdown() {
 
 export async function getShellSummary() {
   return {
-    initial: (ATHLETE.first_name ?? "").charAt(0).toUpperCase() || "·",
+    initial: (ATHLETE.email ?? "").charAt(0).toUpperCase() || "·",
+    email: ATHLETE.email,
+    triathlon: false,
     activities: 187,
     gear: GEAR.length,
     races: RACES.filter((r) => r.status === "upcoming").length,
@@ -396,4 +398,9 @@ export async function getWhoopWorkoutForActivity(_activityId: number) {
     average_heart_rate: 164,
     max_heart_rate: 181,
   };
+}
+
+// Mock data is a runner's; the Triathlon page shows its empty state.
+export async function getTriathlonView(): Promise<null> {
+  return null;
 }

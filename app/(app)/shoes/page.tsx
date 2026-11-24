@@ -162,7 +162,7 @@ export default async function ShoesPage() {
       </div>
 
       <div
-        className="grid"
+        className="grid m-2col"
         style={{ gridTemplateColumns: "repeat(5, 1fr)", marginBottom: 14 }}
       >
         <div className="card compact">
@@ -224,7 +224,7 @@ export default async function ShoesPage() {
         Active Rotation
       </div>
       <div
-        className="grid"
+        className="grid m-stack"
         style={{ gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}
       >
         {active.length === 0 && (
@@ -329,7 +329,7 @@ export default async function ShoesPage() {
                 </div>
               )}
               <div
-                className="grid"
+                className="grid m-2col"
                 style={{
                   gridTemplateColumns: "repeat(4, 1fr)",
                   gap: 10,

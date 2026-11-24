@@ -578,3 +578,28 @@
   --zone-4: color-mix(in oklab, var(--accent) 70%, black);
   --zone-5: color-mix(in oklab, var(--accent) 45%, black);
 }
+
+/* Phones: the board stacks — one cell per row, dividers between instead
+   of beside. Rows set their columns inline, hence !important. */
+@media (max-width: 760px) {
+  .ff-head {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .ff-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .ff-cell,
+  .ff-cell:first-child,
+  .ff-cell:last-child {
+    padding: 20px 0;
+    border-left: none;
+  }
+  .ff-cell + .ff-cell {
+    border-top: 1px solid var(--hairline);
+  }
+  .grid.ff-split {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    row-gap: 16px;
+  }
+}

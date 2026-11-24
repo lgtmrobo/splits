@@ -1,3 +1,4 @@
+import { RUN_TYPE, RUN_TYPES, TRI_TYPES } from "@/lib/activities/sports";
 import { historyFromMs } from "@/lib/auth/history";
 import { stravaFetch } from "@/lib/strava/client";
 import { createServiceRoleSupabase } from "@/lib/supabase/server";
@@ -10,8 +11,24 @@ import type {
   StravaSummaryActivity,
 } from "@/lib/strava/types";
 
-// Activity types we ingest. Keep broad; filter at display time.
-const ALLOWED_TYPES = new Set(["Run", "TrailRun"]);
+/**
+ * Activity types we ingest for this athlete: runs, plus swims and rides
+ * once they have a triathlon race on their calendar.
+ */
+async function allowedTypes(athleteId: string): Promise<Set<string>> {
+  const { data, error } = await createServiceRoleSupabase()
+    .from("races")
+    .select("id")
+    .eq("athlete_id", athleteId)
+    .in("race_type", ["ironman_70_3", "ironman"])
+    .limit(1);
+  if (error) {
+    // e.g. migration 00015 not applied yet: keep syncing runs as before.
+    console.error("[sync] race type lookup failed; syncing runs only", error);
+    return new Set(RUN_TYPES);
+  }
+  return new Set(data?.length ? TRI_TYPES : RUN_TYPES);
+}
 
 /**
  * Map a Strava summary activity to our DB row shape.
@@ -67,6 +84,7 @@ export async function backfillActivities(athleteId: string, years = 2) {
   const windowStartMs = Date.now() - years * 365 * 24 * 60 * 60 * 1000;
   const fromMs = await historyFromMs(athleteId);
   const after = Math.floor(Math.max(windowStartMs, fromMs ?? 0) / 1000);
+  const allowed = await allowedTypes(athleteId);
   const perPage = 200;
   let page = 1;
   let totalInserted = 0;
@@ -79,7 +97,7 @@ export async function backfillActivities(athleteId: string, years = 2) {
     if (batch.length === 0) break;
 
     const rows = batch
-      .filter((a) => ALLOWED_TYPES.has(a.type))
+      .filter((a) => allowed.has(a.type))
       .map((a) => mapActivity(a, athleteId));
     if (rows.length > 0) {
       const { error } = await supabase.from("activities").upsert(rows, {
@@ -163,7 +181,7 @@ export async function upsertActivity(athleteId: string, activityId: number) {
     athleteId,
     `/activities/${activityId}`,
   );
-  if (!ALLOWED_TYPES.has(a.type)) return { skipped: true as const };
+  if (!(await allowedTypes(athleteId)).has(a.type)) return { skipped: true as const };
   // Invited athletes only get activities from when they connected.
   const fromMs = await historyFromMs(athleteId);
   if (fromMs !== null && new Date(a.start_date).getTime() < fromMs) {
@@ -263,7 +281,8 @@ async function sumDistanceByGear(
     supabase
       .from("activities")
       .select("id, gear_id, distance_m, moving_time_s")
-      .eq("athlete_id", athleteId),
+      .eq("athlete_id", athleteId)
+      .eq("type", RUN_TYPE),
     supabase
       .from("activity_gear_segments")
       .select("activity_id, seq, gear_id, distance_m, moving_time_s")
@@ -330,6 +349,8 @@ export async function syncGear(athleteId: string) {
     .from("activities")
     .select("gear_id")
     .eq("athlete_id", athleteId)
+    // Shoes only — a triathlete's rides carry their bike's gear id.
+    .eq("type", RUN_TYPE)
     .not("gear_id", "is", null);
 
   const ids = new Set<string>();

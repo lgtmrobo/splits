@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Icon } from "@/components/ui/icon";
+import { Field, Modal } from "@/components/ui/modal";
 import { saveShoe, deleteShoe, type ShoePayload } from "./actions";
 
 interface Props {
@@ -71,57 +72,7 @@ export function ShoeForm({ initial, onClose }: Props) {
   };
 
   return (
-    <div
-      role="dialog"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0, 0, 0, 0.5)",
-        display: "grid",
-        placeItems: "center",
-        zIndex: 200,
-      }}
-      onClick={onClose}
-    >
-      <div
-        className="card"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: 460,
-          maxWidth: "90vw",
-          padding: 24,
-          display: "flex",
-          flexDirection: "column",
-          gap: 14,
-        }}
-      >
-        <div className="row between baseline">
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 18,
-              fontWeight: 500,
-              letterSpacing: "-0.01em",
-            }}
-          >
-            {initial ? "Edit shoe" : "Add shoe"}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--text-3)",
-              cursor: "pointer",
-              fontSize: 16,
-            }}
-          >
-            ×
-          </button>
-        </div>
-
+    <Modal title={initial ? "Edit shoe" : "Add shoe"} onClose={onClose} width={460}>
         <Field label="Name *">
           <input
             type="text"
@@ -133,7 +84,7 @@ export function ShoeForm({ initial, onClose }: Props) {
         </Field>
 
         <div
-          className="grid"
+          className="grid m-stack"
           style={{ gridTemplateColumns: "1fr 1fr", gap: 10 }}
         >
           <Field label="Brand">
@@ -168,7 +119,7 @@ export function ShoeForm({ initial, onClose }: Props) {
         </Field>
 
         <div
-          className="grid"
+          className="grid m-stack"
           style={{ gridTemplateColumns: "1fr 1fr", gap: 10 }}
         >
           <Field label="Starting miles">
@@ -261,24 +212,6 @@ export function ShoeForm({ initial, onClose }: Props) {
             </button>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="col gap-4">
-      <span className="stat-label" style={{ marginBottom: 0 }}>
-        {label}
-      </span>
-      {children}
-    </label>
+    </Modal>
   );
 }
