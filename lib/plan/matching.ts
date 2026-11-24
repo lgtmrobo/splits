@@ -1,3 +1,4 @@
+import { RUN_TYPE } from "@/lib/activities/sports";
 import { createServiceRoleSupabase } from "@/lib/supabase/server";
 import type { Activity, PlannedRun, WorkoutType } from "@/lib/types";
 
@@ -128,6 +129,7 @@ export async function matchPlannedRunsForAthlete(
       .from("activities")
       .select("*")
       .eq("athlete_id", athleteId)
+      .eq("type", RUN_TYPE)
       .gte("start_date_local", fourteenAgo),
     admin
       .from("planned_runs")

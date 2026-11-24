@@ -36,7 +36,7 @@ export function TrailCard({
   return (
     <div className="card">
       <CardHeader title={`Trail Volume · ${weeks.length}w`} action="Vertical and time on feet, by week" />
-      <div className="grid" style={{ gridTemplateColumns: "repeat(5, 1fr)", gap: 16, marginBottom: 14 }}>
+      <div className="grid m-2col" style={{ gridTemplateColumns: "repeat(5, 1fr)", gap: 16, marginBottom: 14 }}>
         <Stat label={`Vert / wk · ${AVG_WEEKS}w avg`} value={Math.round(avgVertFt).toLocaleString()} unit="ft" />
         <Stat label={`Time on feet / wk`} value={formatDurationShort(avgTimeS)} />
         <Stat label="Climb density" value={String(Math.round(ftPerMile))} unit="ft/mi" />
@@ -53,7 +53,7 @@ export function TrailCard({
           }
         />
       </div>
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div className="grid m-stack" style={{ gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div>
           <div className="stat-label" style={{ marginBottom: 6 }}>Vertical (ft)</div>
           <ValueBars

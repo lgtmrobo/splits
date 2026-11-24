@@ -100,7 +100,7 @@ export function TweaksPanel() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="btn"
+        className="btn m-hide"
         style={{
           position: "fixed",
           bottom: 20,

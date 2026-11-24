@@ -347,7 +347,7 @@ export default async function StatsPage({
         />
         <LoadStrip data={dailyLoad} height={56} />
         <div
-          className="grid"
+          className="grid m-2col"
           style={{
             gridTemplateColumns: "repeat(4, 1fr)",
             gap: 16,
@@ -364,7 +364,7 @@ export default async function StatsPage({
       </div>
 
       <div
-        className="grid"
+        className="grid m-stack"
         style={{ gridTemplateColumns: "2fr 1fr", marginBottom: 14 }}
       >
         <div className="card">
@@ -407,7 +407,7 @@ export default async function StatsPage({
       </div>
 
       <div
-        className="grid"
+        className="grid m-stack"
         style={{ gridTemplateColumns: "1fr 1fr 1fr", marginBottom: 14 }}
       >
         <div className="card">
@@ -502,7 +502,7 @@ export default async function StatsPage({
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr" }}>
+      <div className="grid m-2col" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr" }}>
         <div className="card">
           <Stat
             label={

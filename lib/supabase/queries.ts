@@ -37,6 +37,7 @@ export const getUpcomingGearProjections = Q.getUpcomingGearProjections;
 export const getAllRaces = Q.getAllRaces;
 export const getUpcomingRaces = Q.getUpcomingRaces;
 export const getNextARace = Q.getNextARace;
+export const getTriathlonView = Q.getTriathlonView;
 export const getRaceById = Q.getRaceById;
 export const getAnalysisForActivity = Q.getAnalysisForActivity;
 export const getActivityDetail = Q.getActivityDetail;

@@ -915,3 +915,252 @@ input[type="checkbox"]:checked::after {
   stroke-dashoffset: var(--dash);
   animation: drawin 900ms ease-out 100ms forwards;
 }
+
+/* ===== Modal (components/ui/modal.tsx) ===== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 200;
+}
+.card.modal {
+  max-width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 18px;
+  padding: 4px 8px;
+}
+
+/* ===== Account menu (topbar avatar) ===== */
+.account-menu {
+  position: relative;
+}
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #2a2a32, #1a1a20);
+  border: 1px solid var(--hairline-strong);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  color: var(--text-1);
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+.card.account-pop {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  min-width: 200px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface-2);
+  z-index: 40;
+}
+/* Invisible bridge across the gap so hover survives moving to the menu. */
+.account-pop::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -10px;
+  height: 10px;
+}
+/* Hover opens it with a mouse; on touch screens (sticky hover) only a tap
+   does, toggling .open. */
+@media (hover: hover) {
+  .account-menu:hover .account-pop {
+    display: flex;
+  }
+}
+.account-menu.open .account-pop {
+  display: flex;
+}
+.account-email {
+  font-size: 12px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-logout {
+  width: 100%;
+  justify-content: center;
+}
+
+.nav-toggle,
+.nav-backdrop {
+  display: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ===== Phones =====
+   Layout grids set their columns inline; these opt-in classes override them
+   on narrow screens (hence !important):
+     .m-stack   one column
+     .m-2col    two columns (stat rows)
+     .m-scroll  keep columns, scroll sideways (7-day week strips)
+     .m-hide    hide (secondary table columns, decorative bits) */
+@media (max-width: 760px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 260px;
+    height: 100dvh;
+    z-index: 60;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 200ms ease;
+  }
+  :root[data-nav="open"] .sidebar {
+    transform: none;
+  }
+  .nav-toggle {
+    display: inline-flex;
+    padding: 6px 8px;
+  }
+  .nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 55;
+  }
+  .topbar {
+    padding: 10px 14px;
+    padding-top: max(10px, env(safe-area-inset-top));
+  }
+  .topbar-left {
+    gap: 10px;
+    min-width: 0;
+  }
+  .topbar-date,
+  .sync-label {
+    display: none;
+  }
+  .content {
+    padding: 14px 14px 40px;
+  }
+  .card {
+    padding: 16px;
+  }
+  .page-title {
+    font-size: 22px;
+  }
+
+  .grid.m-stack {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .grid.m-2col {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .grid.m-scroll {
+    grid-template-columns: repeat(7, minmax(118px, 1fr)) !important;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding-bottom: 6px;
+  }
+  .grid.m-scroll > * {
+    scroll-snap-align: start;
+  }
+  .m-hide {
+    display: none !important;
+  }
+  /* A side-by-side flex row that stacks; children drop side dividers. */
+  .row.m-col {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  .row.m-col > * {
+    min-width: 0 !important;
+    border-right: none !important;
+  }
+  .m-wrap-text {
+    white-space: normal !important;
+  }
+  .hero-num {
+    font-size: 48px !important;
+  }
+
+  /* Tables scroll inside their card instead of widening the page. */
+  .card:has(> .tbl),
+  .fluid-table,
+  .tbl-scroll {
+    overflow-x: auto;
+  }
+  .tbl th,
+  .tbl td {
+    white-space: nowrap;
+  }
+  .tbl td.cell-wrap {
+    white-space: normal;
+    min-width: 140px;
+  }
+
+  .stat-num.xl {
+    font-size: 32px;
+  }
+
+  /* 16px keeps iOS Safari from zooming into focused fields. */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="search"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  /* Dialogs become bottom sheets. */
+  .modal-backdrop {
+    place-items: end stretch;
+    padding: 0;
+  }
+  .card.modal {
+    width: 100% !important;
+    max-height: 92dvh;
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  }
+}

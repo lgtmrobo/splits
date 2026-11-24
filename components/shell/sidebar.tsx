@@ -29,6 +29,7 @@ interface ShellSummary {
   } | null;
   lastSync: string | null;
   lastSyncCount: number;
+  triathlon: boolean;
 }
 
 interface NavItem {
@@ -55,6 +56,8 @@ const ITEMS: NavItem[] = [
   { href: "/stats", icon: "stats", label: "Stats" },
   { href: "/heatmap", icon: "heatmap", label: "Heatmap" },
 ];
+
+const TRI_ITEM: NavItem = { href: "/triathlon", icon: "tri", label: "Triathlon" };
 
 const MONTHS = [
   "Jan",
@@ -188,7 +191,11 @@ export function Sidebar({ summary }: { summary: ShellSummary }) {
     if (item.matchPrefix) return pathname.startsWith(item.matchPrefix);
     return pathname === item.href;
   };
-  const activeIndex = ITEMS.findIndex(isActive);
+  // Triathlon only for athletes with a tri race on the calendar.
+  const items = summary.triathlon
+    ? [...ITEMS.slice(0, 5), TRI_ITEM, ...ITEMS.slice(5)]
+    : ITEMS;
+  const activeIndex = items.findIndex(isActive);
 
   return (
     <aside className="sidebar">
@@ -197,7 +204,7 @@ export function Sidebar({ summary }: { summary: ShellSummary }) {
         <div className="brand-name">Splits</div>
       </div>
 
-      <FluidNav items={ITEMS} activeIndex={activeIndex} summary={summary} />
+      <FluidNav items={items} activeIndex={activeIndex} summary={summary} />
 
       {summary.plan && (
         <div className="side-group">

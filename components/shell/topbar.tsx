@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui/icon";
 
 interface PageMeta {
@@ -18,7 +19,9 @@ function metaForPath(pathname: string): PageMeta {
   if (pathname === "/shoes") return { crumb: "Gear", title: "Shoes" };
   if (pathname === "/races") return { crumb: "Calendar", title: "Races" };
   if (pathname === "/stats") return { crumb: "Analytics", title: "Stats" };
+  if (pathname === "/fitness") return { crumb: "Analytics", title: "Fitness" };
   if (pathname === "/heatmap") return { crumb: "Map", title: "Heatmap" };
+  if (pathname === "/triathlon") return { crumb: "Multisport", title: "Triathlon" };
   return { crumb: "", title: "" };
 }
 
@@ -30,11 +33,19 @@ function todayLabel(): string {
   return `${DAYS_LONG[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
-export function Topbar({ initial }: { initial: string }) {
+export function Topbar({ initial, email }: { initial: string; email: string | null }) {
   const pathname = usePathname();
   const router = useRouter();
   const p = metaForPath(pathname);
   const [syncing, setSyncing] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+
+  // Phone layout: the sidebar is a drawer (see [data-nav="open"] in
+  // globals.css). It closes whenever a nav link changes the page.
+  useEffect(() => setNavOpen(false), [pathname]);
+  useEffect(() => {
+    document.documentElement.dataset.nav = navOpen ? "open" : "closed";
+  }, [navOpen]);
 
   async function onSync() {
     if (syncing) return;
@@ -56,28 +67,78 @@ export function Topbar({ initial }: { initial: string }) {
   return (
     <div className="topbar">
       <div className="topbar-left">
+        <button
+          type="button"
+          className="btn icon nav-toggle"
+          onClick={() => setNavOpen((o) => !o)}
+          aria-label="Menu"
+          aria-expanded={navOpen}
+        >
+          <Icon name="menu" size={16} />
+        </button>
         <span className="topbar-title">{p.title}</span>
         {p.showDate && <span className="topbar-date">{todayLabel()}</span>}
       </div>
       <div className="topbar-right">
-        <button type="button" className="btn" onClick={onSync} disabled={syncing}>
-          <Icon name="sync" size={12} /> {syncing ? "Syncing…" : "Sync Strava"}
-        </button>
-        <div
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 999,
-            background: "linear-gradient(135deg, #2a2a32, #1a1a20)",
-            border: "1px solid var(--hairline-strong)",
-            display: "grid",
-            placeItems: "center",
-            fontSize: 12,
-            color: "var(--text-1)",
-          }}
+        <button
+          type="button"
+          className="btn"
+          onClick={onSync}
+          disabled={syncing}
+          aria-label="Sync Strava"
         >
-          {initial}
-        </div>
+          <Icon name="sync" size={12} />
+          <span className="sync-label">{syncing ? "Syncing…" : "Sync Strava"}</span>
+        </button>
+        <AccountMenu initial={initial} email={email} />
+      </div>
+      {/* Portaled: the topbar's backdrop-filter would trap a fixed child. */}
+      {navOpen &&
+        createPortal(
+          <div className="nav-backdrop" onClick={() => setNavOpen(false)} />,
+          document.body,
+        )}
+    </div>
+  );
+}
+
+/** Avatar that opens on hover (or tap, on touch screens) to log out. */
+function AccountMenu({ initial, email }: { initial: string; email: string | null }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // A tap anywhere else closes it.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [open]);
+
+  return (
+    <div
+      ref={ref}
+      className={`account-menu ${open ? "open" : ""}`}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        className="avatar"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Account"
+        aria-expanded={open}
+      >
+        {initial}
+      </button>
+      <div className="account-pop card card-panel">
+        {email && <div className="account-email">{email}</div>}
+        <form action="/api/auth/signout" method="post">
+          <button type="submit" className="btn account-logout">
+            Log out
+          </button>
+        </form>
       </div>
     </div>
   );

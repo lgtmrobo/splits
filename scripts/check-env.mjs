@@ -69,8 +69,8 @@ if (!url || !key) {
 } else {
   try {
     const sb = createClient(url, key, { auth: { persistSession: false } });
-    // history_from is the newest migration's column — a cheap "fully migrated" check.
-    const { error } = await sb.from("athletes").select("id, history_from").limit(1);
+    // races.race_type is the newest migration's column — a cheap "fully migrated" check.
+    const { error } = await sb.from("races").select("id, race_type").limit(1);
     if (!error) {
       ok("connected, schema up to date");
       dbOk = true;

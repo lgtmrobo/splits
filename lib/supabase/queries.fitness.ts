@@ -1,3 +1,4 @@
+import { RUN_TYPE } from "@/lib/activities/sports";
 import { cache } from "react";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getLatestRecovery, getUpcomingRaces } from "@/lib/supabase/queries.impl";
@@ -23,7 +24,12 @@ export const getFitnessInputs = cache(async (): Promise<FitnessInputs> => {
   const today = todayLocalISO();
 
   const [acts, planned, upcomingRaces, athlete, recovery] = await Promise.all([
-    sb.from("activities").select(ACTIVITY_COLUMNS).order("start_date", { ascending: true }),
+    sb
+      .from("activities")
+      .select(ACTIVITY_COLUMNS)
+      // The load model is pace-based (rTSS), so runs only.
+      .eq("type", RUN_TYPE)
+      .order("start_date", { ascending: true }),
     sb
       .from("planned_runs")
       .select("*")

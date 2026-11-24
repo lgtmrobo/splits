@@ -14,7 +14,7 @@ export default async function AppShellLayout({ children }: { children: React.Rea
     <div className="app">
       <Sidebar summary={summary} />
       <div className="main">
-        <Topbar initial={summary.initial} />
+        <Topbar initial={summary.initial} email={summary.email} />
         {children}
       </div>
       <TweaksPanel />

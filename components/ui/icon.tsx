@@ -30,7 +30,9 @@ export type IconName =
   | "sparkle"
   | "play"
   | "heatmap"
-  | "fitness";
+  | "fitness"
+  | "menu"
+  | "tri";
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, "name"> {
   name: IconName;
@@ -233,6 +235,21 @@ export function Icon({ name, size = 16, className = "", ...rest }: IconProps) {
       return (
         <svg {...common}>
           <path d="M3 12h4l2.5-6 4 12 2.5-6H21" />
+        </svg>
+      );
+    case "menu":
+      return (
+        <svg {...common}>
+          <path d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+      );
+    case "tri":
+      // Swim wave, bike wheel, run stride.
+      return (
+        <svg {...common}>
+          <path d="M3 18c1.5-1.2 3-1.2 4.5 0s3 1.2 4.5 0 3-1.2 4.5 0 3 1.2 4.5 0" />
+          <circle cx="8" cy="9" r="3.5" />
+          <path d="M14 13l3-7 3 3" />
         </svg>
       );
     default:

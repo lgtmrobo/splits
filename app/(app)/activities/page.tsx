@@ -5,6 +5,7 @@ import { Stat } from "@/components/ui/primitives";
 import { TypePill } from "@/components/ui/type-pill";
 import { ShoeLabel } from "@/components/gear/shoe-label";
 import { FluidTable, FluidTr } from "@/components/fluid/fluid-table";
+import { formatSportDistance, formatSportSpeed, sportOf } from "@/lib/activities/sports";
 import { gearShares } from "@/lib/gear/segments";
 import { ActivityTypeFilter } from "@/app/(app)/activities/filter";
 import { getActivityTotals, getAllActivities, getAllGear, getPlannedRunsBetween } from "@/lib/supabase/queries";
@@ -12,12 +13,19 @@ import type { WorkoutType } from "@/lib/types";
 import {
   formatDuration,
   formatFeet,
-  formatMiles,
   metersToMiles,
   speedToPacePerMile,
 } from "@/lib/utils/units";
 
-function labelForActivity(planned: WorkoutType | undefined, name: string): string {
+function labelForActivity(
+  planned: WorkoutType | undefined,
+  name: string,
+  type: string,
+): string {
+  // A triathlete's swims and rides are labeled by sport, never by run plan.
+  const sport = sportOf(type);
+  if (sport === "swim") return "Swim";
+  if (sport === "bike") return "Ride";
   if (planned === "long") return "Long";
   if (planned === "interval" || planned === "tempo" || planned === "workout") return "Workout";
   if (planned === "recovery") return "Recovery";
@@ -37,7 +45,8 @@ export default async function ActivitiesPage({
   searchParams: Promise<{ type?: string }>;
 }) {
   const [allActivities, totals, gear] = await Promise.all([
-    getAllActivities(),
+    // Swims and rides too, for triathletes; runs-only for everyone else.
+    getAllActivities({ allSports: true }),
     getActivityTotals(),
     getAllGear(),
   ]);
@@ -51,13 +60,17 @@ export default async function ActivitiesPage({
   const filter = (await searchParams).type ?? "all";
   const activities = allActivities.filter((a) => {
     if (filter === "all") return true;
-    const label = labelForActivity(typeByDate.get(a.start_date_local.slice(0, 10)), a.name).toLowerCase();
+    const label = labelForActivity(
+      typeByDate.get(a.start_date_local.slice(0, 10)),
+      a.name,
+      a.type,
+    ).toLowerCase();
     return label === filter;
   });
 
   return (
     <div className="content fadein">
-      <div className="row between" style={{ marginBottom: 14 }}>
+      <div className="row between wrap gap-10" style={{ marginBottom: 14 }}>
         <div className="col gap-4">
           <h1 className="page-title">
             Activities
@@ -69,7 +82,7 @@ export default async function ActivitiesPage({
         </div>
         <div className="row gap-10">
           <ActivityTypeFilter />
-          <button type="button" className="btn">
+          <button type="button" className="btn m-hide">
             <Icon name="filter" size={12} />
             Filter
           </button>
@@ -78,7 +91,7 @@ export default async function ActivitiesPage({
 
       {/* Summary bar */}
       <div
-        className="grid"
+        className="grid m-2col"
         style={{ gridTemplateColumns: "repeat(6, 1fr)", marginBottom: 14 }}
       >
         <div className="card compact">
@@ -117,25 +130,28 @@ export default async function ActivitiesPage({
         <FluidTable>
           <thead>
             <tr>
-              <th></th>
+              <th className="m-hide"></th>
               <th>Date</th>
               <th>Activity</th>
-              <th>Type</th>
+              <th className="m-hide">Type</th>
               <th className="num">Dist</th>
               <th className="num">Pace</th>
-              <th className="num">Time</th>
-              <th className="num">HR</th>
-              <th className="num">Elev</th>
-              <th>Shoe</th>
+              <th className="num m-hide">Time</th>
+              <th className="num m-hide">HR</th>
+              <th className="num m-hide">Elev</th>
+              <th className="m-hide">Shoe</th>
             </tr>
           </thead>
           <tbody>
             {activities.map((a, i) => {
               const date = a.start_date_local.slice(0, 10);
-              const label = labelForActivity(typeByDate.get(date), a.name);
+              const label = labelForActivity(typeByDate.get(date), a.name, a.type);
+              const sport = sportOf(a.type) ?? "run";
+              const dist = formatSportDistance(sport, a.distance_m);
+              const speed = formatSportSpeed(sport, a.average_speed_ms);
               return (
                 <FluidTr key={a.id} index={i} href={`/activities/${a.id}`}>
-                  <td style={{ width: 64 }}>
+                  <td className="m-hide" style={{ width: 64 }}>
                     <Link href={`/activities/${a.id}`}>
                       <RouteThumb polyline={a.summary_polyline} seed={i * 7 + 3} size={44} />
                     </Link>
@@ -150,7 +166,7 @@ export default async function ActivitiesPage({
                       {a.start_date_local.slice(11, 16)}
                     </span>
                   </td>
-                  <td>
+                  <td className="cell-wrap">
                     <Link
                       href={`/activities/${a.id}`}
                       style={{ color: "inherit", textDecoration: "none" }}
@@ -158,15 +174,21 @@ export default async function ActivitiesPage({
                       <div style={{ fontSize: 13 }}>{a.name}</div>
                     </Link>
                   </td>
-                  <td>
+                  <td className="m-hide">
                     <TypePill type={label} />
                   </td>
-                  <td className="num">{formatMiles(a.distance_m)}</td>
-                  <td className="num">{speedToPacePerMile(a.average_speed_ms)}</td>
-                  <td className="num muted">{formatDuration(a.moving_time_s)}</td>
-                  <td className="num">{a.average_heartrate ?? "—"}</td>
-                  <td className="num muted">{formatFeet(a.total_elevation_gain_m)}</td>
-                  <td style={{ fontSize: 11, color: "var(--text-2)", maxWidth: 220 }}>
+                  <td className="num">
+                    {dist.value}
+                    {sport === "swim" && <span className="muted"> yd</span>}
+                  </td>
+                  <td className="num">
+                    {speed.value}
+                    {sport !== "run" && <span className="muted"> {speed.unit}</span>}
+                  </td>
+                  <td className="num muted m-hide">{formatDuration(a.moving_time_s)}</td>
+                  <td className="num m-hide">{a.average_heartrate ?? "—"}</td>
+                  <td className="num muted m-hide">{formatFeet(a.total_elevation_gain_m)}</td>
+                  <td className="m-hide" style={{ fontSize: 11, color: "var(--text-2)", maxWidth: 220 }}>
                     <ShoeLabel shares={gearShares(a)} gearById={gearById} />
                   </td>
                 </FluidTr>

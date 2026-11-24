@@ -195,6 +195,7 @@ All scripts read `.env.local` and run from the repo root with `node scripts/<nam
 | `check-env.mjs` (`pnpm check-env`) | Setup doctor: env vars, Supabase connection, migrations |
 | `register-strava-webhook.mjs` | One-time webhook registration after the first deploy |
 | `resync.mjs [days]` | Re-pull recent activities + gear after edits in Strava |
+| `backfill-athlete.mjs <email> [years]` | Import an invited athlete's full Strava history (clears their history cutoff) |
 | `backfill-polylines.mjs` | Fill in all route maps at once. Sync otherwise does this 50 activities per run. |
 | `whoop-backfill.mjs [days]` | Manual WHOOP backfill |
 | `import-race-course-gpx.mjs`, `fetch-race-courses.mjs` | Attach a course map to a race |
@@ -230,7 +231,8 @@ The browser never calls Strava or WHOOP. All third-party work happens in API rou
 
 - **`lib/supabase/queries.ts`** is the single read interface. Add new queries there, not in page files. In demo mode it swaps in `lib/mock`.
 - **`createServerSupabase()`** uses the caller's cookies, so row-level security applies. **`createServiceRoleSupabase()`** bypasses it. Use it only in webhooks, OAuth callbacks, cron, scripts and server actions, and **always filter by the athlete from `getCurrentAthleteId()`**. Never import it into a client component.
-- **History cutoff:** `athletes.history_from` is null for the owner (full history) and the connect time for invited users. `lib/auth/history.ts` enforces it inside the Strava and WHOOP sync functions, so the webhook, cron, Sync button and backfill all respect it.
+- **History cutoff:** `athletes.history_from` is null for the owner (full history) and the connect time for invited users. `lib/auth/history.ts` enforces it inside the Strava and WHOOP sync functions, so the webhook, cron, Sync button and backfill all respect it. `scripts/backfill-athlete.mjs` clears it to import someone's history after all.
+- **Sports:** everyone syncs runs. An athlete with an Ironman / 70.3 race (`races.race_type`) also syncs swims and rides, and gets the Triathlon page. Every running view (mileage, pace, shoes, fitness, plan matching) filters on `type = 'Run'`; only the Activities log and the Triathlon page show other sports.
 - **Dates are TZ-sensitive.** Use `lib/utils/dates.ts` (`todayLocalISO`, `addDaysISO`, …), never `new Date().toISOString()` for "today".
 - **Polylines:** Strava's list endpoint returns an empty `summary_polyline`, so sync fills it from the detail endpoint, 50 activities per run.
 - **Workout labels** (Easy / Long / Workout …) come from the matched planned run, falling back to keywords in the activity name.
