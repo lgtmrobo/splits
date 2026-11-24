@@ -16,10 +16,18 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
-const env = readFileSync(new URL("../.env.local", import.meta.url), "utf8");
-for (const line of env.split("\n")) {
-  const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
-  if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
+for (const file of ["../.env.local", "../.env"]) {
+  let env;
+  try {
+    env = readFileSync(new URL(file, import.meta.url), "utf8");
+  } catch {
+    continue;
+  }
+  for (const line of env.split("\n")) {
+    const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
+  }
+  break;
 }
 
 const REGION = process.env.COROS_REGION || "us";
@@ -310,6 +318,27 @@ async function push() {
   console.log(`\ndone: ${ok}/${sessions.length} scheduled. Open COROS app → Sync with your device.`);
 }
 
+// The owner's athlete id: the first ALLOWED_EMAILS address (lib/auth/allowlist.ts)
+// is the owner's Google sign-in, linked to an athlete by supabase_user_id.
+async function ownerAthleteId(sb) {
+  const ownerEmail = (process.env.ALLOWED_EMAILS ?? process.env.ALLOWED_EMAIL ?? "")
+    .split(",")[0]
+    .trim()
+    .toLowerCase();
+  if (!ownerEmail) throw new Error("Set ALLOWED_EMAILS (first address = owner)");
+  const { data: users, error } = await sb.auth.admin.listUsers({ perPage: 1000 });
+  if (error) throw error;
+  const user = users.users.find((u) => u.email?.toLowerCase() === ownerEmail);
+  if (!user) throw new Error(`No signed-in user for ${ownerEmail}`);
+  const { data: athlete, error: aErr } = await sb
+    .from("athletes")
+    .select("id")
+    .eq("supabase_user_id", user.id)
+    .single();
+  if (aErr) throw aErr;
+  return athlete.id;
+}
+
 // Replace COROS entries on specific dates with whatever planned_runs now holds
 // for those dates. Existing programs are dumped to coros-backup-<ts>.json first
 // because deleted ad-hoc structured workouts can't be recovered from the API.
@@ -329,9 +358,13 @@ async function resync() {
     process.env.SUPABASE_SERVICE_ROLE_KEY,
     { auth: { persistSession: false } },
   );
+  // The COROS account is the owner's, so only the owner's plans — invited
+  // athletes can have workouts on the same dates.
+  const ownerId = await ownerAthleteId(sb);
   const { data: runs, error } = await sb
     .from("planned_runs")
-    .select("scheduled_date, workout_type, target_distance_m, description")
+    .select("scheduled_date, workout_type, target_distance_m, description, training_plans!inner(athlete_id)")
+    .eq("training_plans.athlete_id", ownerId)
     .in("scheduled_date", dates);
   if (error) throw error;
 
