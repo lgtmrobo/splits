@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isAllowedEmail } from "@/lib/auth/allowlist";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServerSupabase, createServiceRoleSupabase } from "@/lib/supabase/server";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -20,20 +20,23 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=unauthorized", req.url));
   }
 
-  // If the user hasn't connected Strava yet, route them there.
-  // We detect this by checking whether an athlete row + token row exist.
-  const { data: athlete } = await supabase
+  // Route to Strava connect only if this user hasn't connected yet. Tokens
+  // are service-role only (RLS has no policy on strava_tokens), so the
+  // user's own session can't see them — check with the admin client.
+  const admin = createServiceRoleSupabase();
+  const { data: athlete } = await admin
     .from("athletes")
-    .select("id, strava_tokens(access_token)")
+    .select("id")
     .eq("supabase_user_id", data.user.id)
     .maybeSingle();
-
-  const connected =
-    !!athlete &&
-    Array.isArray(
-      (athlete as unknown as { strava_tokens: unknown[] }).strava_tokens
-    ) &&
-    (athlete as unknown as { strava_tokens: unknown[] }).strava_tokens.length > 0;
+  const { data: token } = athlete
+    ? await admin
+        .from("strava_tokens")
+        .select("athlete_id")
+        .eq("athlete_id", athlete.id)
+        .maybeSingle()
+    : { data: null };
+  const connected = !!token;
 
   return NextResponse.redirect(new URL(connected ? "/" : "/connect-strava", req.url));
 }
